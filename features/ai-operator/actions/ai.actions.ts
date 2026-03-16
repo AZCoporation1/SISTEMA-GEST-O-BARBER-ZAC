@@ -56,10 +56,56 @@ export async function executeAiAction(action: any, commandText: string): Promise
     }
 
     if (type === 'registrar_venda_simples') {
-      return { success: false, message: "Aviso", error: "Registro de venda simples via IA ainda está em desenvolvimento." }
+      const { createServerClient } = await import('@/lib/supabase/server')
+      const supabase = await createServerClient()
+      const { data: authData } = await supabase.auth.getUser()
+
+      // Fetch payment method "Dinheiro" by default for Fast AI Sales
+      const { data: pm } = await supabase.from('payment_methods').select('id').ilike('name', 'dinheiro').single()
+      if (!pm) return { success: false, message: "Erro", error: "Método de pagamento 'Dinheiro' não configurado." }
+
+      // Get costs and auto-generated sale price
+      const { data: prod } = await supabase.from('inventory_products').select('cost_price, sale_price_generated').eq('id', payload.productId).single()
+      if (!prod) return { success: false, message: "Erro", error: "Produto não encontrado." }
+
+      const qty = Math.abs(Number(payload.qty)) || 1
+      const total = qty * prod.sale_price_generated
+
+      // Create Sale
+      const { data: sale, error } = await supabase.from('sales').insert({
+        status: 'completed',
+        payment_method_id: pm.id,
+        subtotal: total,
+        created_by: authData?.user?.id || null,
+        notes: payload.notes || 'Venda Rápida via Assistente IA'
+      }).select().single()
+
+      if (error || !sale) throw error || new Error("Não foi possível criar a venda no Supabase.")
+
+      // Create Sale Item (Trigger will automatically deduct stock and add ledger historically)
+      const { error: itemError } = await supabase.from('sale_items').insert({
+        sale_id: (sale as any).id,
+        item_type: 'product',
+        product_id: payload.productId,
+        quantity: qty,
+        unit_cost_snapshot: prod.cost_price,
+        unit_price_snapshot: prod.sale_price_generated
+      })
+
+      if (itemError) throw itemError
+
+      // Log execution success
+      await logAiCommand(commandText, type, action, true)
+      
+      revalidatePath('/dashboard')
+      revalidatePath('/vendas')
+      revalidatePath('/estoque')
+      revalidatePath('/movimentacoes')
+
+      return { success: true, message: `Venda Simples de ${qty}x registrada com sucesso! Receita de R$ ${total.toFixed(2)} lançada na POS.` }
     }
 
-    return { success: false, message: "Aviso", error: "Ação não reconhecida ou faltam parâmetros." }
+    return { success: false, message: "Aviso", error: "Ação não reconhecida ou faltam parâmetros na IA." }
 
   } catch (error: any) {
     console.error("AI Action Execution Error:", error)
