@@ -1,0 +1,93 @@
+﻿Ôû▓ Next.js 16.1.6 (Turbopack)
+- Environments: .env.local
+
+  Creating an optimized production build ...
+Ô£ô Compiled successfully in 5.5s
+  Running TypeScript ...
+node.exe : Failed to 
+compile.
+No linha:1 caractere:1
++ & "C:\Program 
+Files\nodejs/node.exe" 
+"C:\Users\granc\AppData
+\Roaming\ ...
++ ~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~
+~~
+    + CategoryInfo     
+         : NotSpecifi  
+  ed: (Failed to com   
+ pile.:String) [],     
+RemoteException
+    + FullyQualifiedEr 
+   rorId : NativeComm  
+  andError
+ 
+
+./features/ai-operator/
+components/AlertsPanel.
+tsx:29:20
+Type error: Argument 
+of type 
+'StockInconsistency[]' 
+is not assignable to 
+parameter of type 'SetS
+tateAction<StockInconsi
+stency[]>'.
+  Type 'import("C:/User
+s/granc/Desktop/Sistema
+ de gest\u00E3o Barber 
+Zac/barber-zac/features
+/ai-operator/services/a
+lerts.service").StockIn
+consistency[]' is not 
+assignable to type 'imp
+ort("C:/Users/granc/Des
+ktop/Sistema de 
+gest\u00E3o Barber Zac/
+barber-zac/features/ai-
+operator/types").StockI
+nconsistency[]'.
+    Type 
+'StockInconsistency' 
+is missing the 
+following properties 
+from type 
+'StockInconsistency': 
+code, qty_min, 
+qty_current
+
+[0m [90m 27 |[39m   
+      [36mconst[39m 
+res [33m=[39m 
+[36mawait[39m fetchSt
+ockAlertsAction()
+ [90m 28 |[39m       
+  [36mif[39m 
+(res[33m.[39msuccess 
+[33m&&[39m 
+res[33m.[39mdata) {
+[31m[1m>[22m[39m[9
+0m 29 |[39m           
+ setData(res[33m.[39m
+data)
+ [90m    |[39m       
+             
+[31m[1m^[22m[39m
+ [90m 30 |[39m       
+  } [36melse[39m {
+ [90m 31 |[39m       
+     [36mthrow[39m [
+33mError[39m(res[33m.
+[39merror 
+[33m||[39m 
+[32m'Falha 
+desconhecida ao 
+carregar 
+anomalias.'[39m)
+ [90m 32 |[39m       
+  }[0m
+Next.js build worker 
+exited with code: 1 
+and signal: null

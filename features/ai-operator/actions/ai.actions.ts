@@ -14,7 +14,7 @@ export async function submitAiCommand(command: string): Promise<{ success: boole
       command, 
       aiResult.type === 'action' ? (aiResult.action?.type || 'unknown_action') : 'query', 
       aiResult, 
-      false
+      'pending'
     )
 
     return { success: true, data: aiResult }
@@ -46,7 +46,7 @@ export async function executeAiAction(action: any, commandText: string): Promise
       })
 
       // Log execution success
-      await logAiCommand(commandText, type, action, true)
+      await logAiCommand(commandText, type, action, 'executed')
       
       revalidatePath('/dashboard')
       revalidatePath('/estoque')
@@ -61,18 +61,18 @@ export async function executeAiAction(action: any, commandText: string): Promise
       const { data: authData } = await supabase.auth.getUser()
 
       // Fetch payment method "Dinheiro" by default for Fast AI Sales
-      const { data: pm } = await supabase.from('payment_methods').select('id').ilike('name', 'dinheiro').single()
+      const { data: pm } = await (supabase.from('payment_methods') as any).select('id').ilike('name', 'dinheiro').single()
       if (!pm) return { success: false, message: "Erro", error: "Método de pagamento 'Dinheiro' não configurado." }
 
       // Get costs and auto-generated sale price
-      const { data: prod } = await supabase.from('inventory_products').select('cost_price, sale_price_generated').eq('id', payload.productId).single()
+      const { data: prod } = await (supabase.from('inventory_products') as any).select('cost_price, sale_price_generated').eq('id', payload.productId).single()
       if (!prod) return { success: false, message: "Erro", error: "Produto não encontrado." }
 
       const qty = Math.abs(Number(payload.qty)) || 1
-      const total = qty * prod.sale_price_generated
+      const total = qty * (prod.sale_price_generated || 0)
 
       // Create Sale
-      const { data: sale, error } = await supabase.from('sales').insert({
+      const { data: sale, error } = await (supabase.from('sales') as any).insert({
         status: 'completed',
         payment_method_id: pm.id,
         subtotal: total,
@@ -83,8 +83,8 @@ export async function executeAiAction(action: any, commandText: string): Promise
       if (error || !sale) throw error || new Error("Não foi possível criar a venda no Supabase.")
 
       // Create Sale Item (Trigger will automatically deduct stock and add ledger historically)
-      const { error: itemError } = await supabase.from('sale_items').insert({
-        sale_id: (sale as any).id,
+      const { error: itemError } = await (supabase.from('sale_items') as any).insert({
+        sale_id: sale.id,
         item_type: 'product',
         product_id: payload.productId,
         quantity: qty,
@@ -95,7 +95,7 @@ export async function executeAiAction(action: any, commandText: string): Promise
       if (itemError) throw itemError
 
       // Log execution success
-      await logAiCommand(commandText, type, action, true)
+      await logAiCommand(commandText, type, action, 'executed')
       
       revalidatePath('/dashboard')
       revalidatePath('/vendas')

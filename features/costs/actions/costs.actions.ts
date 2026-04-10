@@ -4,6 +4,7 @@
 import { createServerClient } from "@/lib/supabase/server"
 import { fixedCostSchema, variableCostSchema, FixedCostFormValues, VariableCostFormValues } from "../types"
 import { revalidatePath } from "next/cache"
+import { logAudit } from "@/features/audit/actions/audit.actions"
 
 export async function createFixedCost(data: FixedCostFormValues) {
   try {
@@ -26,6 +27,14 @@ export async function createFixedCost(data: FixedCostFormValues) {
 
     if (error) throw error
 
+    await logAudit({
+      action: 'INSERT',
+      entity: 'fixed_costs',
+      entity_id: newCost.id,
+      newData: newCost,
+      observation: `Custo fixo criado: ${validated.name} (R$ ${validated.amount.toFixed(2)})`
+    })
+
     revalidatePath("/custos/fixos")
     return { success: true, data: newCost }
   } catch (error: any) {
@@ -46,6 +55,14 @@ export async function toggleFixedCostStatus(id: string, currentStatus: boolean) 
       .single()
 
     if (error) throw error
+
+    await logAudit({
+      action: 'UPDATE',
+      entity: 'fixed_costs',
+      entity_id: id,
+      newData: updated,
+      observation: `Status do custo fixo '${updated.name}' alterado para ${updated.is_active ? 'Ativo' : 'Inativo'}`
+    })
 
     revalidatePath("/custos/fixos")
     return { success: true, data: updated }
@@ -84,6 +101,14 @@ export async function createVariableCost(data: VariableCostFormValues) {
       origin_type: "variable_cost",
       origin_id: newCost.id,
       occurred_on: validated.occurred_on || new Date().toISOString(),
+    })
+
+    await logAudit({
+      action: 'INSERT',
+      entity: 'variable_costs',
+      entity_id: newCost.id,
+      newData: newCost,
+      observation: `Custo variável lançado: ${validated.name} (R$ ${validated.amount.toFixed(2)})`
     })
 
     revalidatePath("/custos/variaveis")

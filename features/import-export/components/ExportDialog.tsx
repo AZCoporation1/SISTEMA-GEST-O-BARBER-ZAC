@@ -1,5 +1,6 @@
 "use client"
 import { useState } from "react"
+import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Download, FileText, FileSpreadsheet, FileJson, Loader2 } from "lucide-react"
 import { ExportService } from "../services/export.service"
@@ -26,16 +27,19 @@ export function ExportDialog({ data, filename, title, buttonText = "Exportar" }:
   const handleExport = async (format: 'csv' | 'xlsx' | 'pdf') => {
     setIsExporting(true)
     try {
-      // Small timeout to allow UI loading state to render if data is huge
-      setTimeout(() => {
-        ExportService.exportData(data, filename, format, title)
-        setIsExporting(false)
+      // Small timeout to allow UI loading state to render
+      await new Promise(resolve => setTimeout(resolve, 50))
+      const success = ExportService.exportData(data, filename, format, title)
+      if (!success) {
+        toast.warning("Não há dados válidos para exportar.")
+      } else {
         setOpen(false)
-      }, 100)
+      }
     } catch (err) {
       console.error(err)
+      toast.error("Falha ao exportar relatório.")
+    } finally {
       setIsExporting(false)
-      alert("Falha ao exportar relatório.")
     }
   }
 

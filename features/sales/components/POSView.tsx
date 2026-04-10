@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import { usePOSDependencies, usePOSMutations } from "../hooks/useSales"
 import { useInventory } from "@/features/inventory/hooks/useInventory"
 import { CartItem } from "../types"
@@ -14,8 +14,7 @@ import {
   SelectTrigger, 
   SelectValue 
 } from "@/components/ui/select"
-import { ShoppingCart, Plus, Minus, Trash2, Tag, User, Search, MapPin, Package } from "lucide-react"
-import { FilterBar } from "@/components/ui/filter-bar"
+import { ShoppingCart, Plus, Minus, Trash2, Tag, User, Search, MapPin, Package, AlertCircle } from "lucide-react"
 
 export function POSView() {
   const [cart, setCart] = useState<CartItem[]>([])
@@ -25,9 +24,10 @@ export function POSView() {
   const [paymentMethodId, setPaymentMethodId] = useState<string>("")
   const [notes, setNotes] = useState("")
   const [searchQuery, setSearchQuery] = useState("")
+  const [stockWarning, setStockWarning] = useState<string | null>(null)
   
   // Data hooks
-  const { data: inventoryData, isLoading: isInventoryLoading } = useInventory({ page: 1, perPage: 1000, status: "active", search: searchQuery })
+  const { data: inventoryData, isLoading: isInventoryLoading } = useInventory({ page: 1, perPage: 1000, status: "active", search: "" })
   const { customers, collaborators, paymentMethods, isLoading } = usePOSDependencies()
   const { processSale, isProcessing } = usePOSMutations()
 
@@ -38,9 +38,48 @@ export function POSView() {
 
   const safeInventory = inventoryData?.data || []
 
+  // Filter products by name OR external_code, AND ensure they are for resale
+  const filteredProducts = useMemo(() => {
+    let base = safeInventory.filter((p: any) => p.is_for_resale !== false)
+    if (!searchQuery.trim()) return base
+    const q = searchQuery.toLowerCase().trim()
+    return base.filter((p: any) => {
+      const nameMatch = p.product_name?.toLowerCase().includes(q)
+      const codeMatch = p.external_code?.toLowerCase().includes(q)
+      return nameMatch || codeMatch
+    })
+  }, [safeInventory, searchQuery])
+
+  // Get current stock for a product, accounting for what's already in the cart
+  const getAvailableStock = (productId: string, currentBalance: number) => {
+    const cartItem = cart.find(item => item.productId === productId)
+    const inCart = cartItem ? cartItem.quantity : 0
+    return currentBalance - inCart
+  }
+
   const handleAddProduct = (productId: string) => {
-    const product = safeInventory.find(p => p.product_id === productId)
+    const product = safeInventory.find((p: any) => p.product_id === productId)
     if (!product) return
+
+    const balance = product.current_balance || 0
+
+    // Block if no stock at all
+    if (balance <= 0) {
+      setStockWarning(`"${product.product_name}" está sem estoque (saldo: 0). Não é possível adicionar.`)
+      setTimeout(() => setStockWarning(null), 4000)
+      return
+    }
+
+    const available = getAvailableStock(productId, balance)
+
+    // Block if all stock is already in cart
+    if (available <= 0) {
+      setStockWarning(`Estoque insuficiente para "${product.product_name}". Já há ${balance} un. no carrinho.`)
+      setTimeout(() => setStockWarning(null), 4000)
+      return
+    }
+
+    setStockWarning(null)
 
     setCart(prev => {
       const existing = prev.find(item => item.productId === productId)
@@ -58,21 +97,26 @@ export function POSView() {
         quantity: 1,
         unitPrice: product.sale_price || 0,
         unitCost: product.cost_price || 0,
-        discount: 0
-      }]
+        discount: 0,
+        maxStock: balance // Track max for this item
+      } as CartItem]
     })
   }
 
-  // MVP Simple Service addition
-  const handleAddServiceMock = () => {
+  // Service addition with editable name and price
+  const [serviceNameInput, setServiceNameInput] = useState("Serviço Avulso")
+  const [servicePriceInput, setServicePriceInput] = useState(50)
+  
+  const handleAddService = () => {
+    if (!serviceNameInput || servicePriceInput <= 0) return
     setCart(prev => [...prev, {
       id: `srv-${Date.now()}`,
       type: 'service',
-      name: 'Serviço Avulso',
+      name: serviceNameInput,
       quantity: 1,
-      unitPrice: 50.00,
+      unitPrice: servicePriceInput,
       unitCost: 0,
-       discount: 0
+      discount: 0
     }])
   }
 
@@ -80,6 +124,18 @@ export function POSView() {
     setCart(prev => prev.map(item => {
       if (item.id === id) {
         const newQ = Math.max(1, item.quantity + delta)
+        
+        // For products, cap at available stock
+        if (item.type === 'product' && item.productId) {
+          const product = safeInventory.find((p: any) => p.product_id === item.productId)
+          const maxBalance = product?.current_balance || 0
+          if (newQ > maxBalance) {
+            setStockWarning(`Quantidade máxima para "${item.name}": ${maxBalance} un. (estoque disponível).`)
+            setTimeout(() => setStockWarning(null), 3000)
+            return { ...item, quantity: maxBalance }
+          }
+        }
+        
         return { ...item, quantity: newQ }
       }
       return item
@@ -88,14 +144,27 @@ export function POSView() {
 
   const removeItem = (id: string) => {
     setCart(prev => prev.filter(item => item.id !== id))
+    setStockWarning(null)
   }
 
   const onSubmit = async () => {
     if (!isValid) return
 
+    // Final validation: ensure no product exceeds stock
+    for (const item of cart) {
+      if (item.type === 'product' && item.productId) {
+        const product = safeInventory.find((p: any) => p.product_id === item.productId)
+        const balance = product?.current_balance || 0
+        if (item.quantity > balance) {
+          setStockWarning(`"${item.name}" tem apenas ${balance} un. em estoque, mas há ${item.quantity} no carrinho. Ajuste antes de finalizar.`)
+          return
+        }
+      }
+    }
+
     const payload: SaleFormValues = {
-      customer_id: selectedCustomer || null,
-      collaborator_id: selectedCollaborator || null,
+      customer_id: selectedCustomer && selectedCustomer !== "none" ? selectedCustomer : null,
+      collaborator_id: selectedCollaborator && selectedCollaborator !== "none" ? selectedCollaborator : null,
       payment_method_id: paymentMethodId,
       discount_amount: discountAmount,
       notes,
@@ -120,6 +189,7 @@ export function POSView() {
     setSelectedCustomer("")
     setSelectedCollaborator("")
     setPaymentMethodId("")
+    setStockWarning(null)
   }
 
   return (
@@ -131,22 +201,48 @@ export function POSView() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start h-[calc(100vh-180px)]">
+      {/* Stock Warning */}
+      {stockWarning && (
+        <div className="flex items-center gap-3 p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg text-amber-600 dark:text-amber-400 animate-in slide-in-from-top-2">
+          <AlertCircle className="h-4 w-4 flex-shrink-0" />
+          <p className="text-sm font-medium">{stockWarning}</p>
+        </div>
+      )}
+
+      <div className="pos-grid-container flex flex-col xl:flex-row gap-6 items-start xl:h-[calc(100vh-180px)]">
         
         {/* Left Panel - Selectors */}
-        <div className="xl:col-span-8 space-y-4 flex flex-col h-full overflow-hidden">
+        <div className="pos-panel w-full xl:w-2/3 space-y-4 flex flex-col xl:h-full overflow-hidden">
           
           <div className="section-card flex-shrink-0">
             <div className="section-card-header">
               <h3 className="section-card-title">Inserir Rápido</h3>
             </div>
             <div className="section-card-body">
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <Button onClick={handleAddServiceMock} variant="outline" className="h-20 flex flex-col gap-2 hover:border-emerald-500 hover:text-emerald-500 transition-colors">
-                  <Plus className="h-5 w-5" />
-                  <span className="text-xs font-semibold">Serviço Avulso</span>
+              <div className="flex flex-col sm:flex-row gap-4 items-end">
+                <div className="flex-1 w-full text-left">
+                  <label className="text-[11px] font-medium text-muted-foreground block mb-1">Nome do Serviço</label>
+                  <Input
+                    value={serviceNameInput}
+                    onChange={e => setServiceNameInput(e.target.value)}
+                    placeholder="Ex: Corte Degradê"
+                    className="h-9 w-full"
+                  />
+                </div>
+                <div className="w-full sm:w-32 text-left">
+                  <label className="text-[11px] font-medium text-muted-foreground block mb-1">Valor (R$)</label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min="0.01"
+                    value={servicePriceInput || ""}
+                    onChange={e => setServicePriceInput(parseFloat(e.target.value) || 0)}
+                    className="h-9 w-full"
+                  />
+                </div>
+                <Button onClick={handleAddService} variant="outline" className="w-full sm:w-auto h-9 hover:border-emerald-500 hover:text-emerald-500 transition-colors">
+                  <Plus className="h-4 w-4 mr-1" /> Adicionar
                 </Button>
-                {/* Future: map real services here */}
               </div>
             </div>
           </div>
@@ -160,38 +256,56 @@ export function POSView() {
             </div>
             <div className="p-4 border-b">
                <div className="relative w-full max-w-sm">
-                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Buscar produto por nome..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-8"
-                  />
-                </div>
+                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                 <Input
+                   placeholder="Buscar por nome ou código..."
+                   value={searchQuery}
+                   onChange={(e) => setSearchQuery(e.target.value)}
+                   className="pl-8"
+                 />
+               </div>
             </div>
-            <div className="section-card-body overflow-y-auto bg-muted/5">
+            <div className="section-card-body overflow-y-auto bg-muted/5 p-4">
               {isInventoryLoading ? (
                 <div className="h-32 flex items-center justify-center text-muted-foreground">Carregando catálogo...</div>
-              ) : safeInventory.length === 0 ? (
+              ) : filteredProducts.length === 0 ? (
                  <div className="empty-state py-8">
                    <Package className="empty-state-icon w-12 h-12" />
-                   <h3 className="empty-state-title text-sm">Nenhum produto em estoque</h3>
+                   <h3 className="empty-state-title text-sm">
+                     {searchQuery ? "Nenhum produto encontrado" : "Nenhum produto em estoque"}
+                   </h3>
+                   {searchQuery && <p className="empty-state-description text-xs">Tente buscar por outro nome ou código.</p>}
                  </div>
               ) : (
-                <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
-                  {safeInventory.map((p: any) => (
-                    <div 
-                      key={p.product_id} 
-                      onClick={() => handleAddProduct(p.product_id!)}
-                      className="border rounded-xl p-4 cursor-pointer hover:border-emerald-500 hover:shadow-md transition-all bg-card flex flex-col justify-between min-h-[120px]"
-                    >
-                      <div>
-                        <p className="font-semibold text-sm line-clamp-2 leading-tight">{p.product_name}</p>
-                        <p className="text-[11px] text-muted-foreground mt-1.5 uppercase font-medium tracking-wider">Estoque: {p.current_balance}</p>
+                <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3">
+                  {filteredProducts.map((p: any) => {
+                    const balance = p.current_balance || 0
+                    const isOutOfStock = balance <= 0
+                    return (
+                      <div 
+                        key={p.product_id} 
+                        onClick={() => !isOutOfStock && handleAddProduct(p.product_id!)}
+                        className={`border rounded-xl p-3 flex flex-col justify-between min-h-[110px] transition-all ${
+                          isOutOfStock 
+                            ? 'opacity-50 cursor-not-allowed border-dashed' 
+                            : 'cursor-pointer hover:border-emerald-500 hover:shadow-md bg-card active:scale-95'
+                        }`}
+                      >
+                        <div>
+                          {p.external_code && (
+                            <span className="text-[9px] font-semibold tracking-wider text-[var(--accent)] font-mono bg-[var(--accent-subtle)] px-1 py-0.5 rounded mb-1 inline-block" style={{ letterSpacing: '0.06em' }}>
+                              {p.external_code}
+                            </span>
+                          )}
+                          <p className="font-semibold text-xs sm:text-sm line-clamp-2 leading-tight">{p.product_name}</p>
+                          <p className={`text-[10px] mt-1 uppercase font-medium tracking-wider ${isOutOfStock ? 'text-red-500' : 'text-muted-foreground'}`}>
+                            Est: {balance}
+                          </p>
+                        </div>
+                        <p className="font-bold text-base sm:text-lg text-emerald-600 dark:text-emerald-400 mt-1">R$ {p.sale_price?.toFixed(2)}</p>
                       </div>
-                      <p className="font-bold text-lg text-emerald-600 dark:text-emerald-400 mt-2">R$ {p.sale_price?.toFixed(2)}</p>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
               )}
             </div>
@@ -199,11 +313,16 @@ export function POSView() {
         </div>
 
         {/* Right Panel - Cart & Checkout */}
-        <div className="xl:col-span-4 section-card flex flex-col h-full overflow-hidden">
+        <div className="pos-panel w-full xl:w-1/3 section-card flex flex-col xl:h-full overflow-hidden min-h-[500px]">
           <div className="section-card-header bg-emerald-950/20 border-b-emerald-900/30">
             <h3 className="section-card-title text-emerald-500 flex items-center gap-2">
               <ShoppingCart className="h-4 w-4" />
               Carrinho Atual
+              {cart.length > 0 && (
+                <span className="ml-auto text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full font-bold">
+                  {cart.reduce((a, c) => a + c.quantity, 0)} itens
+                </span>
+              )}
             </h3>
           </div>
 
@@ -216,7 +335,7 @@ export function POSView() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">Avulso / Sem cadastro</SelectItem>
-                  {customers.map((c: any) => (
+                  {(customers || []).filter((c: any) => c.id).map((c: any) => (
                     <SelectItem key={c.id} value={c.id}>{c.full_name}</SelectItem>
                   ))}
                 </SelectContent>
@@ -231,7 +350,7 @@ export function POSView() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">Sem vínculo</SelectItem>
-                  {collaborators.map((c: any) => (
+                  {(collaborators || []).filter((c: any) => c.id).map((c: any) => (
                     <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
                   ))}
                 </SelectContent>
@@ -251,7 +370,14 @@ export function POSView() {
                 <div key={item.id} className="flex justify-between items-center p-3 border rounded-lg bg-card shadow-sm">
                   <div className="flex-1 min-w-0 pr-2">
                     <p className="font-semibold text-sm truncate">{item.name}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">R$ {item.unitPrice.toFixed(2)}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      R$ {item.unitPrice.toFixed(2)}
+                      {item.type === 'product' && (
+                        <span className="ml-2 text-[10px] opacity-60">
+                          (est: {safeInventory.find((p: any) => p.product_id === item.productId)?.current_balance || 0})
+                        </span>
+                      )}
+                    </p>
                   </div>
                   
                   <div className="flex items-center gap-1">
@@ -307,7 +433,7 @@ export function POSView() {
                 <SelectValue placeholder="Selecione a Forma de Pagamento*" />
               </SelectTrigger>
               <SelectContent>
-                {paymentMethods.map((pm: any) => (
+                {(paymentMethods || []).filter((pm: any) => pm.id).map((pm: any) => (
                   <SelectItem key={pm.id} value={pm.id}>{pm.name}</SelectItem>
                 ))}
               </SelectContent>

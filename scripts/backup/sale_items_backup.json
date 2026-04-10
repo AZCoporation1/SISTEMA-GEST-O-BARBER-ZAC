@@ -1,0 +1,41 @@
+[
+  {
+    "id": "2fabf3b4-a18d-441a-a24e-f84b229d94c9",
+    "sale_id": "5f7f4a24-7cbf-4c33-917d-891376cf6ab7",
+    "item_type": "service",
+    "product_id": null,
+    "service_name": "Serviço Avulso",
+    "quantity": 1,
+    "unit_cost_snapshot": 0,
+    "unit_price_snapshot": 50,
+    "discount_amount": 0,
+    "total": 50,
+    "created_at": "2026-03-17T20:26:57.909047+00:00"
+  },
+  {
+    "id": "6b2fb583-04dc-43a7-9be6-23eed0ba4c10",
+    "sale_id": "4ac2d5cf-5e2d-469c-a7b5-3c77aa0df7f0",
+    "item_type": "service",
+    "product_id": null,
+    "service_name": "Serviço Avulso",
+    "quantity": 1,
+    "unit_cost_snapshot": 0,
+    "unit_price_snapshot": 50,
+    "discount_amount": 0,
+    "total": 50,
+    "created_at": "2026-03-18T04:59:49.278629+00:00"
+  },
+  {
+    "id": "c57c5272-2316-41aa-a7aa-ea798a02cce4",
+    "sale_id": "ebbc77d5-224e-4f24-b8cd-10415806d370",
+    "item_type": "service",
+    "product_id": null,
+    "service_name": "Corte Sombrancelha + Barba",
+    "quantity": 1,
+    "unit_cost_snapshot": 0,
+    "unit_price_snapshot": 80,
+    "discount_amount": 0,
+    "total": 80,
+    "created_at": "2026-03-18T15:17:58.409872+00:00"
+  }
+]

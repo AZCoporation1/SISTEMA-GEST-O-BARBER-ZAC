@@ -1,0 +1,670 @@
+[
+  {
+    "id": "d4eeae62-aa65-4cba-a5b0-1c35438c55b7",
+    "entity_type": "inventory_products",
+    "entity_id": "23d7f0b2-6117-40f5-8fa7-abda27608d12",
+    "action": "UPDATE",
+    "actor_id": "24b18f8a-9b60-4d15-9c9b-9f184c850c31",
+    "before_data": null,
+    "after_data": null,
+    "context": {
+      "source": "web",
+      "status": "success",
+      "observation": "Status do produto alterado para Inativo"
+    },
+    "created_at": "2026-03-18T05:28:42.462371+00:00"
+  },
+  {
+    "id": "5e80dea3-643a-45ad-becd-cce6d0cfb1b6",
+    "entity_type": "stock_movements",
+    "entity_id": "1e2f0791-2ec2-4548-a003-80af9f78edd6",
+    "action": "INSERT",
+    "actor_id": "24b18f8a-9b60-4d15-9c9b-9f184c850c31",
+    "before_data": null,
+    "after_data": {
+      "id": "1e2f0791-2ec2-4548-a003-80af9f78edd6",
+      "notes": "",
+      "quantity": 5,
+      "created_at": "2026-03-18T05:38:09.155238+00:00",
+      "product_id": "6a7684d5-914f-4cee-8419-a91107eb5548",
+      "approved_by": null,
+      "location_id": null,
+      "source_type": "manual",
+      "performed_by": "24b18f8a-9b60-4d15-9c9b-9f184c850c31",
+      "reference_id": null,
+      "movement_date": "2026-03-18T05:38:06.499+00:00",
+      "movement_type": "purchase_entry",
+      "reference_type": null,
+      "movement_reason": "Rejuste estoque",
+      "destination_type": "stock",
+      "unit_cost_snapshot": null,
+      "unit_sale_snapshot": null,
+      "total_cost_snapshot": null,
+      "total_sale_snapshot": null
+    },
+    "context": {
+      "source": "web",
+      "status": "success",
+      "observation": "Movimentação Manual (purchase_entry): +5 unid."
+    },
+    "created_at": "2026-03-18T05:38:10.221349+00:00"
+  },
+  {
+    "id": "d18c0d64-4077-4abb-bcd3-c69562b435ec",
+    "entity_type": "stock_movements",
+    "entity_id": "83823532-de4c-431b-817a-27d9c0eb1f59",
+    "action": "INSERT",
+    "actor_id": "24b18f8a-9b60-4d15-9c9b-9f184c850c31",
+    "before_data": null,
+    "after_data": null,
+    "context": {
+      "source": "web",
+      "status": "success",
+      "observation": "Saldo inicial gerado: 3"
+    },
+    "created_at": "2026-03-18T05:39:57.314307+00:00"
+  },
+  {
+    "id": "613f59f2-18d4-4349-be5f-f81d80c9faca",
+    "entity_type": "inventory_products",
+    "entity_id": "83823532-de4c-431b-817a-27d9c0eb1f59",
+    "action": "INSERT",
+    "actor_id": "24b18f8a-9b60-4d15-9c9b-9f184c850c31",
+    "before_data": null,
+    "after_data": {
+      "id": "83823532-de4c-431b-817a-27d9c0eb1f59",
+      "sku": null,
+      "name": "Leve in ",
+      "notes": "",
+      "barcode": null,
+      "brand_id": null,
+      "is_active": true,
+      "max_stock": 5,
+      "min_stock": 2,
+      "unit_type": "UN",
+      "cost_price": 50,
+      "created_at": "2026-03-18T05:39:55.572163+00:00",
+      "deleted_at": null,
+      "updated_at": "2026-03-18T05:39:55.572163+00:00",
+      "category_id": "5e5d06a1-c7d6-4ee5-bb9d-6709db2fbe2b",
+      "external_code": "30_1 ",
+      "is_for_resale": true,
+      "reorder_point": null,
+      "markup_percent": 100,
+      "normalized_name": "leve in",
+      "is_for_internal_use": false,
+      "sale_price_generated": 100,
+      "markup_value_generated": 50
+    },
+    "context": {
+      "source": "web",
+      "status": "success",
+      "observation": "Produto cadastrado: Leve in  (R$ 50.00)"
+    },
+    "created_at": "2026-03-18T05:39:58.036309+00:00"
+  },
+  {
+    "id": "88833493-07b9-48d4-b056-f27847491bb2",
+    "entity_type": "stock_movements",
+    "entity_id": "295ec3c9-f4df-41e2-a5aa-35005be0cd24",
+    "action": "INSERT",
+    "actor_id": "24b18f8a-9b60-4d15-9c9b-9f184c850c31",
+    "before_data": null,
+    "after_data": {
+      "id": "295ec3c9-f4df-41e2-a5aa-35005be0cd24",
+      "notes": "",
+      "quantity": 1,
+      "created_at": "2026-03-18T05:55:36.063859+00:00",
+      "product_id": "23ea9db5-c1f7-466f-baa1-544d48d0a93f",
+      "approved_by": null,
+      "location_id": null,
+      "source_type": "manual",
+      "performed_by": "24b18f8a-9b60-4d15-9c9b-9f184c850c31",
+      "reference_id": null,
+      "movement_date": "2026-03-18T05:55:35.784+00:00",
+      "movement_type": "manual_adjustment_in",
+      "reference_type": null,
+      "movement_reason": "Ajuste ",
+      "destination_type": "stock",
+      "unit_cost_snapshot": null,
+      "unit_sale_snapshot": null,
+      "total_cost_snapshot": null,
+      "total_sale_snapshot": null
+    },
+    "context": {
+      "source": "web",
+      "status": "success",
+      "observation": "Movimentação Manual (manual_adjustment_in): +1 unid."
+    },
+    "created_at": "2026-03-18T05:55:37.040783+00:00"
+  },
+  {
+    "id": "41fd9a59-52e3-48a2-a9b4-5ad8fc42b4e8",
+    "entity_type": "stock_movements",
+    "entity_id": "0b9d77ef-5736-46a4-9d54-3d8f4480cc45",
+    "action": "INSERT",
+    "actor_id": "24b18f8a-9b60-4d15-9c9b-9f184c850c31",
+    "before_data": null,
+    "after_data": {
+      "id": "0b9d77ef-5736-46a4-9d54-3d8f4480cc45",
+      "notes": "",
+      "quantity": -4,
+      "created_at": "2026-03-18T05:56:13.551049+00:00",
+      "product_id": "23ea9db5-c1f7-466f-baa1-544d48d0a93f",
+      "approved_by": null,
+      "location_id": null,
+      "source_type": "manual",
+      "performed_by": "24b18f8a-9b60-4d15-9c9b-9f184c850c31",
+      "reference_id": null,
+      "movement_date": "2026-03-18T05:56:13.242+00:00",
+      "movement_type": "loss",
+      "reference_type": null,
+      "movement_reason": "desperdicio",
+      "destination_type": "stock",
+      "unit_cost_snapshot": null,
+      "unit_sale_snapshot": null,
+      "total_cost_snapshot": null,
+      "total_sale_snapshot": null
+    },
+    "context": {
+      "source": "web",
+      "status": "success",
+      "observation": "Movimentação Manual (loss): -4 unid."
+    },
+    "created_at": "2026-03-18T05:56:14.347585+00:00"
+  },
+  {
+    "id": "20839a38-ab4d-4dee-80cf-51ef3b6f376e",
+    "entity_type": "stock_movements",
+    "entity_id": "3bccdb41-81c2-41a4-be41-57760e03da68",
+    "action": "INSERT",
+    "actor_id": "24b18f8a-9b60-4d15-9c9b-9f184c850c31",
+    "before_data": null,
+    "after_data": {
+      "id": "3bccdb41-81c2-41a4-be41-57760e03da68",
+      "notes": "",
+      "quantity": -5,
+      "created_at": "2026-03-18T05:56:29.440548+00:00",
+      "product_id": "6a7684d5-914f-4cee-8419-a91107eb5548",
+      "approved_by": null,
+      "location_id": null,
+      "source_type": "manual",
+      "performed_by": "24b18f8a-9b60-4d15-9c9b-9f184c850c31",
+      "reference_id": null,
+      "movement_date": "2026-03-18T05:56:29.351+00:00",
+      "movement_type": "loss",
+      "reference_type": null,
+      "movement_reason": "Ajuste",
+      "destination_type": "stock",
+      "unit_cost_snapshot": null,
+      "unit_sale_snapshot": null,
+      "total_cost_snapshot": null,
+      "total_sale_snapshot": null
+    },
+    "context": {
+      "source": "web",
+      "status": "success",
+      "observation": "Movimentação Manual (loss): -5 unid."
+    },
+    "created_at": "2026-03-18T05:56:30.256789+00:00"
+  },
+  {
+    "id": "ada05b39-0e49-451d-b47c-33b7d9df9db9",
+    "entity_type": "inventory_products",
+    "entity_id": "83823532-de4c-431b-817a-27d9c0eb1f59",
+    "action": "UPDATE",
+    "actor_id": "24b18f8a-9b60-4d15-9c9b-9f184c850c31",
+    "before_data": null,
+    "after_data": null,
+    "context": {
+      "source": "web",
+      "status": "success",
+      "observation": "Status do produto alterado para Inativo"
+    },
+    "created_at": "2026-03-18T05:56:38.040758+00:00"
+  },
+  {
+    "id": "3287bd7d-5c03-4604-a691-0482b7a72709",
+    "entity_type": "inventory_products",
+    "entity_id": "83823532-de4c-431b-817a-27d9c0eb1f59",
+    "action": "UPDATE",
+    "actor_id": "24b18f8a-9b60-4d15-9c9b-9f184c850c31",
+    "before_data": null,
+    "after_data": null,
+    "context": {
+      "source": "web",
+      "status": "success",
+      "observation": "Status do produto alterado para Inativo"
+    },
+    "created_at": "2026-03-18T05:56:58.423349+00:00"
+  },
+  {
+    "id": "27a1a873-d188-4334-bd86-fed8262328d4",
+    "entity_type": "app_settings",
+    "entity_id": "97be617f-af61-42a0-b7d4-ff962f2b9933",
+    "action": "UPDATE",
+    "actor_id": "24b18f8a-9b60-4d15-9c9b-9f184c850c31",
+    "before_data": null,
+    "after_data": {
+      "id": "97be617f-af61-42a0-b7d4-ff962f2b9933",
+      "currency": "BRL",
+      "timezone": "America/Sao_Paulo",
+      "ai_enabled": true,
+      "created_at": "2026-03-16T18:47:16.440288+00:00",
+      "updated_at": "2026-03-18T11:01:11.712548+00:00",
+      "default_markup": 60,
+      "organization_name": "Instituto Barber Zac",
+      "low_stock_alert_enabled": false,
+      "critical_stock_alert_enabled": true
+    },
+    "context": {
+      "source": "web",
+      "status": "success",
+      "observation": "Configurações atualizadas. Nome: \"Instituto Barber Zac\""
+    },
+    "created_at": "2026-03-18T11:01:12.62839+00:00"
+  },
+  {
+    "id": "05918b21-e9be-4e21-928d-5b1de387f086",
+    "entity_type": "app_settings",
+    "entity_id": "97be617f-af61-42a0-b7d4-ff962f2b9933",
+    "action": "UPDATE",
+    "actor_id": "24b18f8a-9b60-4d15-9c9b-9f184c850c31",
+    "before_data": {
+      "organization_name": "Instituto Barber Zac"
+    },
+    "after_data": {
+      "id": "97be617f-af61-42a0-b7d4-ff962f2b9933",
+      "currency": "BRL",
+      "timezone": "America/Sao_Paulo",
+      "ai_enabled": true,
+      "created_at": "2026-03-16T18:47:16.440288+00:00",
+      "updated_at": "2026-03-18T11:01:20.407946+00:00",
+      "default_markup": 60,
+      "organization_name": "Instituto ",
+      "low_stock_alert_enabled": false,
+      "critical_stock_alert_enabled": true
+    },
+    "context": {
+      "source": "web",
+      "status": "success",
+      "observation": "Configurações atualizadas. Nome: \"Instituto \""
+    },
+    "created_at": "2026-03-18T11:01:20.964491+00:00"
+  },
+  {
+    "id": "788838cf-5e33-4a5a-8759-e4df2ca1ceca",
+    "entity_type": "app_settings",
+    "entity_id": "97be617f-af61-42a0-b7d4-ff962f2b9933",
+    "action": "UPDATE",
+    "actor_id": "24b18f8a-9b60-4d15-9c9b-9f184c850c31",
+    "before_data": {
+      "organization_name": "Instituto "
+    },
+    "after_data": {
+      "id": "97be617f-af61-42a0-b7d4-ff962f2b9933",
+      "currency": "BRL",
+      "timezone": "America/Sao_Paulo",
+      "ai_enabled": true,
+      "created_at": "2026-03-16T18:47:16.440288+00:00",
+      "updated_at": "2026-03-18T11:01:31.045871+00:00",
+      "default_markup": 60,
+      "organization_name": "Instituto Barber Zac",
+      "low_stock_alert_enabled": false,
+      "critical_stock_alert_enabled": true
+    },
+    "context": {
+      "source": "web",
+      "status": "success",
+      "observation": "Configurações atualizadas. Nome: \"Instituto Barber Zac\""
+    },
+    "created_at": "2026-03-18T11:01:32.181036+00:00"
+  },
+  {
+    "id": "98e41060-92f9-4690-b650-13114e2858ba",
+    "entity_type": "inventory_products",
+    "entity_id": "83823532-de4c-431b-817a-27d9c0eb1f59",
+    "action": "UPDATE",
+    "actor_id": "24b18f8a-9b60-4d15-9c9b-9f184c850c31",
+    "before_data": null,
+    "after_data": null,
+    "context": {
+      "source": "web",
+      "status": "success",
+      "observation": "Status do produto alterado para Inativo"
+    },
+    "created_at": "2026-03-18T13:07:23.403927+00:00"
+  },
+  {
+    "id": "d2e0f8de-15b2-464c-9f9b-d216f7f25e2b",
+    "entity_type": "stock_movements",
+    "entity_id": "30dcbccb-a717-4ca4-aa08-1150f6dd7dad",
+    "action": "INSERT",
+    "actor_id": "24b18f8a-9b60-4d15-9c9b-9f184c850c31",
+    "before_data": null,
+    "after_data": {
+      "id": "30dcbccb-a717-4ca4-aa08-1150f6dd7dad",
+      "notes": "",
+      "quantity": -3,
+      "created_at": "2026-03-18T13:07:52.323305+00:00",
+      "product_id": "83823532-de4c-431b-817a-27d9c0eb1f59",
+      "approved_by": null,
+      "location_id": null,
+      "source_type": "manual",
+      "performed_by": "24b18f8a-9b60-4d15-9c9b-9f184c850c31",
+      "reference_id": null,
+      "movement_date": "2026-03-18T13:07:52.23+00:00",
+      "movement_type": "loss",
+      "reference_type": null,
+      "movement_reason": "Teste ",
+      "destination_type": "stock",
+      "unit_cost_snapshot": null,
+      "unit_sale_snapshot": null,
+      "total_cost_snapshot": null,
+      "total_sale_snapshot": null
+    },
+    "context": {
+      "source": "web",
+      "status": "success",
+      "observation": "Movimentação Manual (loss): -3 unid."
+    },
+    "created_at": "2026-03-18T13:07:53.009585+00:00"
+  },
+  {
+    "id": "3292f491-3849-4904-a5f9-04e250931849",
+    "entity_type": "stock_movements",
+    "entity_id": "62dd8666-ecc0-4426-bbb2-f6a657d3acf8",
+    "action": "INSERT",
+    "actor_id": "24b18f8a-9b60-4d15-9c9b-9f184c850c31",
+    "before_data": null,
+    "after_data": {
+      "id": "62dd8666-ecc0-4426-bbb2-f6a657d3acf8",
+      "notes": "",
+      "quantity": 3,
+      "created_at": "2026-03-18T15:09:35.617026+00:00",
+      "product_id": "23ea9db5-c1f7-466f-baa1-544d48d0a93f",
+      "approved_by": null,
+      "location_id": null,
+      "source_type": "manual",
+      "performed_by": "24b18f8a-9b60-4d15-9c9b-9f184c850c31",
+      "reference_id": null,
+      "movement_date": "2026-03-18T15:09:35.521+00:00",
+      "movement_type": "purchase_entry",
+      "reference_type": null,
+      "movement_reason": "Teste ",
+      "destination_type": "stock",
+      "unit_cost_snapshot": null,
+      "unit_sale_snapshot": null,
+      "total_cost_snapshot": null,
+      "total_sale_snapshot": null
+    },
+    "context": {
+      "source": "web",
+      "status": "success",
+      "observation": "Movimentação Manual (purchase_entry): +3 unid."
+    },
+    "created_at": "2026-03-18T15:09:36.766949+00:00"
+  },
+  {
+    "id": "e88872a6-ae69-4750-8fee-6ab438bd3bb0",
+    "entity_type": "stock_movements",
+    "entity_id": "277ae597-182b-44dc-8275-b4aeabdf768e",
+    "action": "INSERT",
+    "actor_id": "24b18f8a-9b60-4d15-9c9b-9f184c850c31",
+    "before_data": null,
+    "after_data": null,
+    "context": {
+      "source": "web",
+      "status": "success",
+      "observation": "Saldo inicial gerado: 4"
+    },
+    "created_at": "2026-03-18T15:12:51.581671+00:00"
+  },
+  {
+    "id": "2373ff94-4457-45df-a92a-56870e265e9a",
+    "entity_type": "inventory_products",
+    "entity_id": "277ae597-182b-44dc-8275-b4aeabdf768e",
+    "action": "INSERT",
+    "actor_id": "24b18f8a-9b60-4d15-9c9b-9f184c850c31",
+    "before_data": null,
+    "after_data": {
+      "id": "277ae597-182b-44dc-8275-b4aeabdf768e",
+      "sku": null,
+      "name": "TESTE",
+      "notes": "",
+      "barcode": null,
+      "brand_id": null,
+      "is_active": true,
+      "max_stock": 5,
+      "min_stock": 3,
+      "unit_type": "UN",
+      "cost_price": 50,
+      "created_at": "2026-03-18T15:12:50.329377+00:00",
+      "deleted_at": null,
+      "updated_at": "2026-03-18T15:12:50.329377+00:00",
+      "category_id": "964e845a-908f-4ee7-87df-7c80ae09850f",
+      "external_code": "30_1",
+      "is_for_resale": true,
+      "reorder_point": null,
+      "markup_percent": 105,
+      "normalized_name": "teste",
+      "is_for_internal_use": true,
+      "sale_price_generated": 102.5,
+      "markup_value_generated": 52.5
+    },
+    "context": {
+      "source": "web",
+      "status": "success",
+      "observation": "Produto cadastrado: TESTE (R$ 50.00)"
+    },
+    "created_at": "2026-03-18T15:12:52.184428+00:00"
+  },
+  {
+    "id": "c86e201f-5e8b-4c66-a345-18f0751ddbcb",
+    "entity_type": "inventory_products",
+    "entity_id": "83823532-de4c-431b-817a-27d9c0eb1f59",
+    "action": "UPDATE",
+    "actor_id": "24b18f8a-9b60-4d15-9c9b-9f184c850c31",
+    "before_data": null,
+    "after_data": null,
+    "context": {
+      "source": "web",
+      "status": "success",
+      "observation": "Status do produto alterado para Inativo"
+    },
+    "created_at": "2026-03-18T15:13:49.34444+00:00"
+  },
+  {
+    "id": "0ade07b9-c25b-4671-b8ce-224174526865",
+    "entity_type": "cash_sessions",
+    "entity_id": "6787b9d2-1341-40c7-b16d-0c6a23b05f27",
+    "action": "UPDATE",
+    "actor_id": "24b18f8a-9b60-4d15-9c9b-9f184c850c31",
+    "before_data": null,
+    "after_data": {
+      "id": "6787b9d2-1341-40c7-b16d-0c6a23b05f27",
+      "notes": "",
+      "status": "closed",
+      "closed_at": "2026-03-18T15:14:18.729+00:00",
+      "closed_by": "24b18f8a-9b60-4d15-9c9b-9f184c850c31",
+      "opened_at": "2026-03-17T02:29:11.027372+00:00",
+      "opened_by": null,
+      "session_date": "2026-03-17",
+      "closing_amount": 100,
+      "opening_amount": 500,
+      "expected_amount": 400,
+      "difference_amount": -300
+    },
+    "context": {
+      "source": "web",
+      "status": "success",
+      "observation": "Caixa fechado. Saldo esperado: R$ 400.00 | Informado: R$ 100.00 | Diferença: R$ -300.00"
+    },
+    "created_at": "2026-03-18T15:14:19.513914+00:00"
+  },
+  {
+    "id": "ebce2a07-9442-47de-8310-e49e99bd09ad",
+    "entity_type": "cash_sessions",
+    "entity_id": "774e463d-1c41-4e95-ad3f-eaaec14b9662",
+    "action": "INSERT",
+    "actor_id": "24b18f8a-9b60-4d15-9c9b-9f184c850c31",
+    "before_data": null,
+    "after_data": {
+      "id": "774e463d-1c41-4e95-ad3f-eaaec14b9662",
+      "notes": "Dia 18/03",
+      "status": "open",
+      "closed_at": null,
+      "closed_by": null,
+      "opened_at": "2026-03-18T15:14:36.399946+00:00",
+      "opened_by": "24b18f8a-9b60-4d15-9c9b-9f184c850c31",
+      "session_date": "2026-03-18",
+      "closing_amount": null,
+      "opening_amount": 500,
+      "expected_amount": null,
+      "difference_amount": null
+    },
+    "context": {
+      "source": "web",
+      "status": "success",
+      "observation": "Caixa aberto. Saldo inicial: R$ 500.00"
+    },
+    "created_at": "2026-03-18T15:14:37.280213+00:00"
+  },
+  {
+    "id": "b2fe721f-fe9c-4e29-8b48-c3941b14fbc5",
+    "entity_type": "fixed_costs",
+    "entity_id": "11a6c262-dce9-42ac-8f01-3f2492c3a2d0",
+    "action": "INSERT",
+    "actor_id": "24b18f8a-9b60-4d15-9c9b-9f184c850c31",
+    "before_data": null,
+    "after_data": {
+      "id": "11a6c262-dce9-42ac-8f01-3f2492c3a2d0",
+      "name": "Aluguel ",
+      "notes": null,
+      "amount": 1200,
+      "due_day": 10,
+      "category": "Aluguel",
+      "frequency": "monthly",
+      "is_active": true,
+      "created_at": "2026-03-18T15:16:01.998531+00:00",
+      "updated_at": "2026-03-18T15:16:01.998531+00:00"
+    },
+    "context": {
+      "source": "web",
+      "status": "success",
+      "observation": "Custo fixo criado: Aluguel  (R$ 1200.00)"
+    },
+    "created_at": "2026-03-18T15:16:03.07855+00:00"
+  },
+  {
+    "id": "e2a8ab14-5dfd-46c9-ba91-efda3b853223",
+    "entity_type": "fixed_costs",
+    "entity_id": "11a6c262-dce9-42ac-8f01-3f2492c3a2d0",
+    "action": "UPDATE",
+    "actor_id": "24b18f8a-9b60-4d15-9c9b-9f184c850c31",
+    "before_data": null,
+    "after_data": {
+      "id": "11a6c262-dce9-42ac-8f01-3f2492c3a2d0",
+      "name": "Aluguel ",
+      "notes": null,
+      "amount": 1200,
+      "due_day": 10,
+      "category": "Aluguel",
+      "frequency": "monthly",
+      "is_active": false,
+      "created_at": "2026-03-18T15:16:01.998531+00:00",
+      "updated_at": "2026-03-18T15:16:01.998531+00:00"
+    },
+    "context": {
+      "source": "web",
+      "status": "success",
+      "observation": "Status do custo fixo 'Aluguel ' alterado para Inativo"
+    },
+    "created_at": "2026-03-18T15:16:15.681389+00:00"
+  },
+  {
+    "id": "cf689605-9771-43fa-81a6-efb15d0ef832",
+    "entity_type": "sales",
+    "entity_id": "ebbc77d5-224e-4f24-b8cd-10415806d370",
+    "action": "INSERT",
+    "actor_id": "24b18f8a-9b60-4d15-9c9b-9f184c850c31",
+    "before_data": null,
+    "after_data": {
+      "id": "ebbc77d5-224e-4f24-b8cd-10415806d370",
+      "notes": "",
+      "total": 80,
+      "status": "completed",
+      "subtotal": 80,
+      "sale_date": "2026-03-18T15:17:57.66+00:00",
+      "created_at": "2026-03-18T15:17:58.017171+00:00",
+      "created_by": "24b18f8a-9b60-4d15-9c9b-9f184c850c31",
+      "updated_at": "2026-03-18T15:17:58.017171+00:00",
+      "customer_id": null,
+      "collaborator_id": null,
+      "discount_amount": 0,
+      "payment_method_id": "398f04e9-daf1-4083-ae36-f333a1d162fd"
+    },
+    "context": {
+      "source": "web",
+      "status": "success",
+      "observation": "Venda registrada. Total: R$ 80.00 (1 itens)"
+    },
+    "created_at": "2026-03-18T15:17:59.155555+00:00"
+  },
+  {
+    "id": "adc66576-fc4d-4e48-8632-57b6061ba91b",
+    "entity_type": "app_settings",
+    "entity_id": "97be617f-af61-42a0-b7d4-ff962f2b9933",
+    "action": "UPDATE",
+    "actor_id": "24b18f8a-9b60-4d15-9c9b-9f184c850c31",
+    "before_data": {
+      "organization_name": "Instituto Barber Zac"
+    },
+    "after_data": {
+      "id": "97be617f-af61-42a0-b7d4-ff962f2b9933",
+      "currency": "BRL",
+      "timezone": "America/Sao_Paulo",
+      "ai_enabled": true,
+      "created_at": "2026-03-16T18:47:16.440288+00:00",
+      "updated_at": "2026-03-18T15:24:09.942306+00:00",
+      "default_markup": 60,
+      "organization_name": "Barbearia da esquina",
+      "low_stock_alert_enabled": false,
+      "critical_stock_alert_enabled": true
+    },
+    "context": {
+      "source": "web",
+      "status": "success",
+      "observation": "Configurações atualizadas. Nome: \"Barbearia da esquina\""
+    },
+    "created_at": "2026-03-18T15:24:10.569384+00:00"
+  },
+  {
+    "id": "52caa69e-d129-437f-afa2-65c30369e7f3",
+    "entity_type": "app_settings",
+    "entity_id": "97be617f-af61-42a0-b7d4-ff962f2b9933",
+    "action": "UPDATE",
+    "actor_id": "24b18f8a-9b60-4d15-9c9b-9f184c850c31",
+    "before_data": {
+      "organization_name": "Barbearia da esquina"
+    },
+    "after_data": {
+      "id": "97be617f-af61-42a0-b7d4-ff962f2b9933",
+      "currency": "BRL",
+      "timezone": "America/Sao_Paulo",
+      "ai_enabled": true,
+      "created_at": "2026-03-16T18:47:16.440288+00:00",
+      "updated_at": "2026-03-18T15:24:24.283298+00:00",
+      "default_markup": 60,
+      "organization_name": "Instituto Barber Zac",
+      "low_stock_alert_enabled": false,
+      "critical_stock_alert_enabled": true
+    },
+    "context": {
+      "source": "web",
+      "status": "success",
+      "observation": "Configurações atualizadas. Nome: \"Instituto Barber Zac\""
+    },
+    "created_at": "2026-03-18T15:24:24.892507+00:00"
+  }
+]

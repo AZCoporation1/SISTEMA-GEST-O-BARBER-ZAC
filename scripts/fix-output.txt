@@ -1,0 +1,20 @@
+﻿
+ÔöüÔöüÔöü FIXING DUPLICATES ÔöüÔöüÔöü
+
+Current payment methods: [
+  'Cartao de Credito',
+  'Cartao de Debito',
+  'Pix',
+  'Dinheiro',
+  'Cart├úo de D├®bito',
+  'Cart├úo de Cr├®dito'
+]
+  Ô£à Deleted duplicate: "Cartao de Credito"
+  Ô£à Deleted duplicate: "Cartao de Debito"
+  Ô£à Deleted old category "Minoxiddil"
+  Ô£à Deleted old category "Produtos de Limpeza"
+
+  Final: 26 categories, 4 payment methods
+
+ÔöüÔöüÔöü FIXES COMPLETE ÔöüÔöüÔöü
+

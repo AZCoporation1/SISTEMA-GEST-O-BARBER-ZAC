@@ -1,0 +1,91 @@
+﻿Ôû▓ Next.js 16.1.6 (Turbopack)
+- Environments: .env.local
+
+  Creating an optimized production build ...
+Ô£ô Compiled successfully in 6.8s
+  Running TypeScript ...
+node.exe : Failed to 
+compile.
+No linha:1 caractere:1
++ & "C:\Program 
+Files\nodejs/node.exe" 
+"C:\Users\granc\AppData
+\Roaming\ ...
++ ~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~
+~~
+    + CategoryInfo     
+         : NotSpecifi  
+  ed: (Failed to com   
+ pile.:String) [],     
+RemoteException
+    + FullyQualifiedEr 
+   rorId : NativeComm  
+  andError
+ 
+
+./app/(dashboard)/dashb
+oard/page.tsx:75:62
+Type error: Property 
+'opening_amount' does 
+not exist on type 
+'never'.
+
+[0m [90m 73 |[39m   
+      [36mconst[39m 
+cashSession 
+[33m=[39m cashRes[33
+m.[39mdata[33m?[39m
+[33m.[39m[[35m0[39m]
+ [90m 74 |[39m       
+  [36mconst[39m 
+cashStatus [33m=[39m 
+cashSession 
+[33m?[39m 
+[32m"Aberto"[39m 
+[33m:[39m 
+[32m"Fechado"[39m
+[31m[1m>[22m[39m[9
+0m 75 |[39m         
+[36mconst[39m 
+cashBalance 
+[33m=[39m 
+cashSession 
+[33m?[39m [33mNumber
+[39m(cashSession[33m.
+[39mopening_amount 
+[33m||[39m 
+[35m0[39m) 
+[33m:[39m [35m0[39m
+ [90m    |[39m       
+                       
+                       
+         
+[31m[1m^[22m[39m
+ [90m 76 |[39m
+ [90m 77 |[39m       
+  [36mconst[39m 
+financials [33m=[39m 
+(financialRes[33m.[39
+mdata [33m||[39m []) 
+[36mas[39m any[]
+ [90m 78 |[39m       
+  [36mconst[39m 
+monthRevenue 
+[33m=[39m financials
+[33m.[39mfilter(f 
+[33m=>[39m f[33m.[3
+9mmovement_type 
+[33m===[39m [32m'rec
+eived'[39m)[33m.[39m
+reduce((a[33m,[39m 
+f) [33m=>[39m a 
+[33m+[39m [33mNumber
+[39m(f[33m.[39mamoun
+t [33m||[39m [35m0[
+39m)[33m,[39m 
+[35m0[39m)[0m
+Next.js build worker 
+exited with code: 1 
+and signal: null

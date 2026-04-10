@@ -1,26 +1,23 @@
-// @ts-nocheck
-"use server"
-import { createServerClient } from "@/lib/supabase/server"
-import { AppSettings } from "../types"
+import { createClient } from "@/lib/supabase/client"
+import type { AppSettingsRow } from "@/types/supabase"
 
-export async function getSettings() {
-  const supabase = await createServerClient()
+export async function getSettings(): Promise<AppSettingsRow> {
+  const supabase = createClient()
   
-  // Since there's usually only one settings row per organization, we can just grab the first one
   const { data, error } = await supabase
     .from("app_settings")
     .select("*")
     .limit(1)
     .single()
 
-  if (error && error.code !== 'PGRST116') { // PGRST116 is no rows
+  if (error && error.code !== 'PGRST116') {
     console.error("Error fetching settings:", error)
     throw new Error(error.message)
   }
 
-  // Return default fallbacks if no row exists yet
   if (!data) {
     return {
+      id: '',
       organization_name: "Barber Zac",
       currency: "BRL",
       timezone: "America/Sao_Paulo",
@@ -28,8 +25,10 @@ export async function getSettings() {
       low_stock_alert_enabled: true,
       critical_stock_alert_enabled: true,
       ai_enabled: true,
-    } as AppSettings
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    }
   }
 
-  return data as AppSettings
+  return data as unknown as AppSettingsRow
 }

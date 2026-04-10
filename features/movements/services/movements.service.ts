@@ -1,10 +1,9 @@
-// @ts-nocheck
-"use server"
-import { createServerClient } from "@/lib/supabase/server"
-import { MovementFilters, StockMovementWithRelations } from "../types"
+import { createClient } from "@/lib/supabase/client"
+import type { StockMovementRow } from "@/types/supabase"
+import type { MovementFilters, StockMovementWithRelations } from "../types"
 
 export async function getStockMovements(filters: MovementFilters) {
-  const supabase = await createServerClient()
+  const supabase = createClient()
   
   let query = supabase
     .from("stock_movements")
@@ -24,11 +23,6 @@ export async function getStockMovements(filters: MovementFilters) {
       )
     `, { count: "exact" })
 
-  if (filters.search) {
-    // Foreign table search requires advanced PostgREST syntax or a DB View. 
-    // Using simple notes search for MVP, plus filtering manually in edge cases
-    query = query.ilike("notes", `%${filters.search}%`)
-  }
   if (filters.type && filters.type !== "all") {
     query = query.eq("movement_type", filters.type)
   }
@@ -42,7 +36,6 @@ export async function getStockMovements(filters: MovementFilters) {
     query = query.lte("movement_date", filters.endDate)
   }
 
-  // Pagination
   const from = (filters.page - 1) * filters.perPage
   const to = from + filters.perPage - 1
   
@@ -55,13 +48,13 @@ export async function getStockMovements(filters: MovementFilters) {
     throw new Error(error.message)
   }
 
-  // Workaround for searching by product name since we can't easily ilike on the related field directly in the standard JS client without string tricks 
   let filteredData = data as any as StockMovementWithRelations[]
   if (filters.search) {
     const term = filters.search.toLowerCase()
     filteredData = filteredData.filter(m => 
-      m.product?.name.toLowerCase().includes(term) || 
-      (m.notes && m.notes.toLowerCase().includes(term))
+      m.product?.name?.toLowerCase().includes(term) || 
+      (m.notes && m.notes.toLowerCase().includes(term)) ||
+      (m.movement_reason && m.movement_reason.toLowerCase().includes(term))
     )
   }
 

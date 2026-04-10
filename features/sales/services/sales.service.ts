@@ -1,18 +1,16 @@
-// @ts-nocheck
-"use server"
-import { createServerClient } from "@/lib/supabase/server"
-import { SalesFilters, SaleWithRelations } from "../types"
-import { Database } from "@/types/supabase"
+import { createClient } from "@/lib/supabase/client"
+import type { SaleRow, PaymentMethodRow, CustomerRow, CollaboratorRow } from "@/types/supabase"
+import type { SalesFilters, SaleWithRelations } from "../types"
 
 export async function getSales(filters: SalesFilters) {
-  const supabase = await createServerClient()
+  const supabase = createClient()
   
   let query = supabase
     .from("sales")
     .select(`
       *,
       items:sale_items (*),
-      collaborator:collaborator_id (full_name),
+      collaborator:collaborator_id (name),
       customer:customer_id (full_name),
       payment_method:payment_method_id (name)
     `, { count: "exact" })
@@ -27,8 +25,6 @@ export async function getSales(filters: SalesFilters) {
     query = query.lte("sale_date", filters.endDate)
   }
 
-  // search locally after fetch for MVP due to relation search complexity
-  
   const from = (filters.page - 1) * filters.perPage
   const to = from + filters.perPage - 1
   
@@ -48,7 +44,7 @@ export async function getSales(filters: SalesFilters) {
 }
 
 export async function getPaymentMethods() {
-  const supabase = await createServerClient()
+  const supabase = createClient()
   const { data, error } = await supabase
     .from("payment_methods")
     .select("*")
@@ -56,22 +52,22 @@ export async function getPaymentMethods() {
     .order("name")
   
   if (error) throw new Error(error.message)
-  return data
+  return data as unknown as PaymentMethodRow[]
 }
 
 export async function getCustomers() {
-  const supabase = await createServerClient()
+  const supabase = createClient()
   const { data, error } = await supabase
     .from("customers")
     .select("*")
     .order("full_name")
   
   if (error) throw new Error(error.message)
-  return data
+  return data as unknown as CustomerRow[]
 }
 
 export async function getCollaborators() {
-  const supabase = await createServerClient()
+  const supabase = createClient()
   const { data, error } = await supabase
     .from("collaborators")
     .select("*")
@@ -79,5 +75,5 @@ export async function getCollaborators() {
     .order("name")
   
   if (error) throw new Error(error.message)
-  return data
+  return data as unknown as CollaboratorRow[]
 }

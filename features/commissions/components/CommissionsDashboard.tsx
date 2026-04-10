@@ -2,15 +2,20 @@
 
 import { useState } from "react"
 import { useCommissionEntries, useCommissionSummary, useCommissionCollaborators } from "../hooks/useCommissions"
+import { closePeriodCommissions } from "../actions/commissions.actions"
 import { DataTable } from "@/components/ui/data-table"
 import { KPICard } from "@/components/ui/kpi-card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { useMutation, useQueryClient } from "@tanstack/react-query"
+import { useToast } from "@/hooks/use-toast"
 import { ColumnDef } from "@tanstack/react-table"
 import { CommissionEntryWithRelations } from "../types"
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
-import { DollarSign, Users } from "lucide-react"
+import { DollarSign, Users, CheckCircle } from "lucide-react"
+import { ExportDialog } from "@/features/import-export/components/ExportDialog"
 
 function getCurrentMonth() {
   const now = new Date()
@@ -28,6 +33,22 @@ export function CommissionsDashboard() {
     month: selectedMonth,
     page: 1,
     perPage: 100,
+  })
+
+  const queryClient = useQueryClient()
+  const { toast } = useToast()
+  
+  const closePeriod = useMutation({
+    mutationFn: () => closePeriodCommissions(selectedMonth),
+    onSuccess: (res) => {
+      if (res.success) {
+        queryClient.invalidateQueries({ queryKey: ["commissionEntries"] })
+        queryClient.invalidateQueries({ queryKey: ["commissionSummary"] })
+        toast({ title: "Período fechado!", description: `${res.count} lançamentos marcados como pagos.` })
+      } else {
+        toast({ title: "Erro", description: res.error, variant: "destructive" })
+      }
+    }
   })
 
   // Current month summary
@@ -94,7 +115,8 @@ export function CommissionsDashboard() {
           <h1 className="page-title">Comissões</h1>
           <p className="page-subtitle">Extrato de comissões por colaborador e período.</p>
         </div>
-        <div className="page-actions">
+        <div className="page-actions flex items-center gap-2 flex-wrap">
+          <ExportDialog data={entries?.data || []} filename={`relatorio-comissoes-${selectedMonth}`} title={`Comissões - ${selectedMonth}`} />
           <Select value={selectedMonth} onValueChange={setSelectedMonth}>
             <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
             <SelectContent>
@@ -105,9 +127,18 @@ export function CommissionsDashboard() {
             <SelectTrigger className="w-[180px]"><SelectValue placeholder="Todos" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todos os colaboradores</SelectItem>
-              {collaboratorList?.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+              {collaboratorList?.filter(c => c.id).map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
             </SelectContent>
           </Select>
+          <Button 
+            variant="outline" 
+            className="border-emerald-500 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/20"
+            disabled={closePeriod.isPending}
+            onClick={() => closePeriod.mutateAsync()}
+          >
+            <CheckCircle className="mr-2 h-4 w-4" />
+            {closePeriod.isPending ? "Fechando..." : "Fechar Período"}
+          </Button>
         </div>
       </div>
 

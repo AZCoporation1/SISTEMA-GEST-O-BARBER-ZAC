@@ -25,6 +25,8 @@
     "openai": "^6.29.0",
     "papaparse": "^5.5.3",
     "pdfjs-dist": "^5.5.207",
+    "pg": "^8.20.0",
+    "postgres": "^3.4.8",
     "radix-ui": "^1.4.3",
     "react": "19.2.3",
     "react-dom": "19.2.3",
@@ -46,6 +48,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "tailwindcss": "^4",
+    "ts-node": "^10.9.2",
     "typescript": "^5",
     "vitest": "^4.1.0"
   }

@@ -8,39 +8,105 @@ export class ImportParserService {
   /**
    * Translates the raw rows from Barber Zac legacy Excel/CSV.
    * Cleans numeric data (R$, strings, percentages) and aliases keys.
+   *
+   * Revised for the Smart SKU spreadsheet format:
+   * - Barbearia sheet: has Valor R$ Compra (real cost), Porcentagem %, Valor Venda
+   * - Bebidas sheet: has Valor R$ Compra (real cost), Porcentagem %, Valor Venda
+   * - Perfumes sheet: has Valor a Vista / Valor a Prazo (sale prices, NOT cost)
+   *
+   * CRITICAL: Never infer cost_price from sale price columns.
    */
   static parseRawSpreadsheetData(data: any[]): any[] {
-    return data.map((rawRow, index) => {
+    const parsedData = data.map((rawRow, index) => {
       const cleanCurrency = (val: any) => {
-        if (!val) return 0;
+        if (!val && val !== 0) return 0;
         if (typeof val === 'number') return val;
         const s = String(val).replace(/R\$\s*/gi, '').replace(/\./g, '').replace(',', '.').trim()
         return parseFloat(s) || 0
       }
-      
+
       const cleanPercent = (val: any) => {
-        if (!val) return 0;
+        if (!val && val !== 0) return 0;
         if (typeof val === 'number') return val;
-        const s = String(val).replace('%', '').trim()
+        const s = String(val).replace('%', '').trim().replace(',', '.')
         return parseFloat(s) || 0
       }
 
-      // Keys might be upper, lower, with spaces. Best effort map to the Zod Schema:
+      const cleanStock = (val: any) => {
+        if (!val && val !== 0) return 0;
+        if (typeof val === 'number') return Math.max(0, Math.ceil(val));
+        const s = String(val).replace(',', '.').trim();
+        return Math.max(0, Math.ceil(parseFloat(s) || 0));
+      }
+
+      // Smart SKU code from Item column
+      const codigo = String(rawRow["Item"] || rawRow["CÓDIGO"] || rawRow["Codigo"] || rawRow["codigo"] || "").trim();
+
+      // Product name — widened aliases
+      const nome_produto = String(
+        rawRow["Descrição"] || rawRow["PRODUTOS"] || rawRow["NOME"] || rawRow["Produto"] || rawRow["nome_produto"] || ""
+      ).trim();
+
+      // Category
+      const categoria = String(
+        rawRow["Categoria"] || rawRow["CATEGORIA"] || rawRow["categoria"] || "Sem Categoria"
+      ).trim();
+
+      // Brand
+      const marca = String(rawRow["Marca"] || rawRow["MARCA"] || rawRow["marca"] || "").trim();
+
+      // COST PRICE — ONLY from explicit cost columns
+      // "Valor R$ Compra" or "CUSTO" — these are real purchase costs
+      // NEVER from "Valor a Vista" or "Valor a Prazo" (those are sale prices)
+      const custo = cleanCurrency(
+        rawRow["Valor R$ Compra"] || rawRow["CUSTO"] || rawRow["Custo"] || rawRow["custo"]
+      );
+
+      // Markup percentage
+      const markup = cleanPercent(
+        rawRow["Porcentagem %"] || rawRow["%"] || rawRow["MARKUP"] || rawRow["Margem"] || rawRow["markup"]
+      );
+
+      // SELLING PRICE — can come from explicit sale columns or Valor a Vista
+      const preco_venda = cleanCurrency(
+        rawRow["Valor Venda"] || rawRow["VALOR VENDA"] || rawRow["Preço"] ||
+        rawRow["Valor a Vista"] || rawRow["Venda"] || rawRow["preco_venda"]
+      );
+
+      // Stock quantity — widened aliases for Estoque column
+      const saldo_atual = cleanStock(
+        rawRow["Estoque"] || rawRow["Qtde Estoque"] || rawRow["SALDO\nATUAL"] ||
+        rawRow["SALDO"] || rawRow["Saldo"] || rawRow["saldo_atual"] ||
+        rawRow["Saldo Estoque"] || rawRow["Estoque dia"] || rawRow["Estoque Dia"]
+      );
+
+      // Min / Max stock
+      const estoque_minimo = cleanStock(
+        rawRow["Qtde Minimo"] || rawRow["MINIMO"] || rawRow["Mínimo"] || rawRow["estoque_minimo"]
+      );
+      const estoque_maximo = cleanStock(
+        rawRow["Qtde Maximo"] || rawRow["SUG. DE COMPRA"] || rawRow["Maximo"] || rawRow["estoque_maximo"]
+      );
+
+      const status = String(rawRow["STATUS"] || rawRow["Status"] || rawRow["status"] || "Ativo").trim();
+
       return {
-        _raw_row_index: index + 2, // Excel typically starts at 2 (1 is header)
-        codigo: String(rawRow["CÓDIGO"] || rawRow["Codigo"] || rawRow["codigo"] || ""),
-        nome_produto: String(rawRow["PRODUTOS"] || rawRow["NOME"] || rawRow["Produto"] || rawRow["nome_produto"] || ""),
-        categoria: String(rawRow["CATEGORIA"] || rawRow["Categoria"] || rawRow["categoria"] || "Sem Categoria"),
-        marca: String(rawRow["MARCA"] || rawRow["Marca"] || rawRow["marca"] || ""),
-        custo: cleanCurrency(rawRow["CUSTO"] || rawRow["Custo"] || rawRow["custo"]),
-        markup: cleanPercent(rawRow["%"] || rawRow["MARKUP"] || rawRow["Margem"] || rawRow["markup"]),
-        preco_venda: cleanCurrency(rawRow["VALOR VENDA"] || rawRow["Preço"] || rawRow["Venda"] || rawRow["preco_venda"]),
-        estoque_minimo: parseInt(rawRow["MINIMO"] || rawRow["Mínimo"] || rawRow["estoque_minimo"] || "0", 10),
-        estoque_maximo: parseInt(rawRow["SUG. DE COMPRA"] || rawRow["Maximo"] || rawRow["estoque_maximo"] || "0", 10), // often Barber Zac uses Sug de Compra as a proxy or max
-        saldo_atual: parseInt(rawRow["SALDO\nATUAL"] || rawRow["SALDO"] || rawRow["Saldo"] || rawRow["saldo_atual"] || "0", 10),
-        status: String(rawRow["STATUS"] || rawRow["Status"] || rawRow["status"] || "Ativo").trim()
+        _raw_row_index: index + 2,
+        codigo,
+        nome_produto,
+        categoria,
+        marca,
+        custo,
+        markup,
+        preco_venda,
+        estoque_minimo,
+        estoque_maximo,
+        saldo_atual,
+        status
       }
     })
+
+    return parsedData.filter(row => row.codigo && row.codigo !== "");
   }
 
   static async parseFile(file: File): Promise<{ valid: ImportedProductRow[], invalid: any[] }> {
@@ -56,12 +122,38 @@ export class ImportParserService {
         let rawRows: any[] = []
 
         try {
-          // If it's a CSV, papaparse could handle it directly, 
-          // but XLSX library reads CSVs fine as well. Let's use XLSX for both as unified entry
           const workbook = XLSX.read(data, { type: 'binary' })
-          const firstSheetName = workbook.SheetNames[0]
-          const worksheet = workbook.Sheets[firstSheetName]
-          rawRows = XLSX.utils.sheet_to_json(worksheet, { defval: "" })
+
+          // Filter out hidden sheets — only process visible ones
+          const visibleSheetNames = workbook.SheetNames.filter((name, idx) => {
+            const hidden = workbook.Workbook?.Sheets?.[idx]?.Hidden
+            return !hidden || hidden === 0
+          })
+
+          // Merge data from all visible sheets
+          for (const sheetName of visibleSheetNames) {
+            const worksheet = workbook.Sheets[sheetName]
+            if (!worksheet || !worksheet['!ref']) continue
+            
+            // Auto-detect header row: scan raw rows for the one starting with "Item"
+            const rawArrayRows = XLSX.utils.sheet_to_json(worksheet, { defval: "", header: 1 }) as any[][]
+            const headerRowIdx = rawArrayRows.findIndex(r => 
+              String(r[0] || '').trim() === 'Item' || 
+              String(r[0] || '').trim() === 'CÓDIGO' ||
+              String(r[0] || '').trim() === 'Codigo'
+            )
+            
+            let sheetRows: any[]
+            if (headerRowIdx >= 0) {
+              // Parse using the detected header row as column names
+              sheetRows = XLSX.utils.sheet_to_json(worksheet, { defval: "", range: headerRowIdx })
+            } else {
+              // Fallback: use default (row 0 as header)
+              sheetRows = XLSX.utils.sheet_to_json(worksheet, { defval: "" })
+            }
+            
+            rawRows.push(...sheetRows)
+          }
         } catch (err: any) {
           return reject("Failed to parse spreadsheet: " + err.message)
         }

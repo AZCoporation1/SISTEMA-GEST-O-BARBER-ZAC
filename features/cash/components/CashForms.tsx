@@ -156,7 +156,7 @@ export function CashEntryForm({ onSubmit, isLoading, sessionId, paymentMethods }
               <Select onValueChange={field.onChange} defaultValue={field.value || undefined}>
                 <FormControl><SelectTrigger><SelectValue placeholder="Opcional" /></SelectTrigger></FormControl>
                 <SelectContent>
-                  {paymentMethods.map(pm => (
+                  {paymentMethods.filter(pm => pm.id).map(pm => (
                     <SelectItem key={pm.id} value={pm.id}>{pm.name}</SelectItem>
                   ))}
                 </SelectContent>

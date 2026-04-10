@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>IBZ Score • Offline</title>
+  <style>
+    :root{--bg-start:#0A0F1A;--bg-end:#111827;--text:#E5E7EB;--muted:#94A3B8}
+    html,body{height:100%;margin:0}
+    body{background:radial-gradient(1200px 700px at 50% -10%,rgba(59,130,246,.15),transparent),
+         linear-gradient(180deg,var(--bg-start),var(--bg-end));color:var(--text);
+         display:flex;align-items:center;justify-content:center;font-family:'Montserrat',ui-sans-serif,system-ui,sans-serif}
+    .card{background:rgba(15,23,42,.6);border:1px solid rgba(148,163,184,.2);border-radius:16px;
+      padding:28px;width:min(520px,90%);text-align:center;box-shadow:0 10px 40px rgba(0,0,0,.35);
+      backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}
+    .logo{font-size:28px;letter-spacing:.08em;margin-bottom:6px;font-weight:700;
+      background:linear-gradient(90deg,#e5e7eb,#cbd5e1,#9ca3af);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+    .title{font-size:20px;margin:6px 0 12px;font-weight:600}
+    .icon{font-size:48px;margin-bottom:8px;opacity:0.6}
+    .muted{color:var(--muted);line-height:1.6;font-size:14px}
+    .btn{margin-top:18px;padding:10px 24px;border-radius:12px;border:1px solid rgba(148,163,184,.35);
+      color:#E5E7EB;background:#111827;cursor:pointer;transition:all 0.2s;font-family:inherit;font-size:14px;font-weight:500}
+    .btn:hover{background:#1E293B;border-color:rgba(148,163,184,.5)}
+    .btn:active{transform:scale(0.98)}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="icon">📡</div>
+    <div class="logo">Instituto Barber Zac</div>
+    <div class="title">Você está offline</div>
+    <p class="muted">Sem conexão com a internet. Quando a conexão voltar, os lançamentos pendentes serão sincronizados automaticamente e o ranking será atualizado.</p>
+    <button class="btn" onclick="location.reload()">↻ Tentar novamente</button>
+  </div>
+</body>
+</html>

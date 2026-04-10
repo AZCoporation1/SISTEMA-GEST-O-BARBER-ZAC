@@ -63,7 +63,7 @@ export const columns: ColumnDef<ProductRow>[] = [
     accessorKey: "sale_price",
     header: "Venda",
     cell: ({ row }) => (
-      <span style={{ fontWeight: 600, color: 'var(--accent-gold-light)' }}>
+      <span style={{ fontWeight: 600, color: 'var(--accent-light)' }}>
         {formatCurrency(row.original.sale_price)}
       </span>
     ),
@@ -102,7 +102,7 @@ export const columns: ColumnDef<ProductRow>[] = [
       <div style={{ textAlign: 'right' }}>
         <Link 
           href={`/estoque/${row.original.id}`}
-          style={{ fontSize: 13, color: 'var(--accent-gold)', textDecoration: 'none', fontWeight: 500 }}
+          style={{ fontSize: 13, color: 'var(--accent)', textDecoration: 'none', fontWeight: 500 }}
         >
           Editar
         </Link>

@@ -37,8 +37,9 @@ export function ProductForm({ initialData, onSubmit, isLoading }: ProductFormPro
   const { data: brands } = useBrands()
 
   const form = useForm<ProductFormValues>({
-    resolver: zodResolver(productSchema),
+    resolver: zodResolver(productSchema) as any,
     defaultValues: {
+      external_code: initialData?.external_code || "",
       name: initialData?.name || "",
       category_id: initialData?.category_id || "",
       brand_id: initialData?.brand_id || null,
@@ -46,6 +47,7 @@ export function ProductForm({ initialData, onSubmit, isLoading }: ProductFormPro
       markup_percent: initialData?.markup_percent || 0,
       min_stock: initialData?.min_stock || 0,
       max_stock: initialData?.max_stock || 10,
+      initial_quantity: 0,
       is_for_resale: initialData?.is_for_resale ?? true,
       is_for_internal_use: initialData?.is_for_internal_use ?? false,
       notes: initialData?.notes || "",
@@ -61,15 +63,29 @@ export function ProductForm({ initialData, onSubmit, isLoading }: ProductFormPro
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+          <FormField
+            control={form.control}
+            name="external_code"
+            render={({ field }) => (
+              <FormItem className="sm:col-span-1">
+                <FormLabel className="text-sm">Código do Produto*</FormLabel>
+                <FormControl>
+                  <Input placeholder="Ex: PERF 001" {...field} className="h-10" />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
           <FormField
             control={form.control}
             name="name"
             render={({ field }) => (
-              <FormItem className="md:col-span-2">
-                <FormLabel>Nome do Produto*</FormLabel>
+              <FormItem className="sm:col-span-1 md:col-span-2">
+                <FormLabel className="text-sm">Nome do Produto*</FormLabel>
                 <FormControl>
-                  <Input placeholder="Ex: Pomada Efeito Matte 100g" {...field} />
+                  <Input placeholder="Ex: Pomada Efeito Matte 100g" {...field} className="h-10" />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -89,7 +105,7 @@ export function ProductForm({ initialData, onSubmit, isLoading }: ProductFormPro
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    {categories?.map((cat: any) => (
+                    {categories?.filter((cat: any) => cat.id).map((cat: any) => (
                       <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
                     ))}
                   </SelectContent>
@@ -112,8 +128,8 @@ export function ProductForm({ initialData, onSubmit, isLoading }: ProductFormPro
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    <SelectItem value="">Nenhuma</SelectItem>
-                    {brands?.map((brand: any) => (
+                    <SelectItem value="none">Nenhuma</SelectItem>
+                    {brands?.filter((brand: any) => brand.id).map((brand: any) => (
                       <SelectItem key={brand.id} value={brand.id}>{brand.name}</SelectItem>
                     ))}
                   </SelectContent>
@@ -177,7 +193,23 @@ export function ProductForm({ initialData, onSubmit, isLoading }: ProductFormPro
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {!initialData && (
+            <FormField
+              control={form.control}
+              name="initial_quantity"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Saldo Inicial</FormLabel>
+                  <FormControl>
+                    <Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value) || 0)} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          )}
+
           <FormField
             control={form.control}
             name="min_stock"

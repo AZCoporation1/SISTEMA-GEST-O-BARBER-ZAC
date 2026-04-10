@@ -1,4 +1,5 @@
-// Stub generated to bypass TS parser/turbopack limits and recover from 0-byte truncation
+// Barber Zac ERP — Supabase Database Types
+// Based on migration: 20260314_000002_professional_schema_overhaul.sql
 
 export type Json =
   | string
@@ -8,44 +9,440 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[]
 
-type GenericTable = { Row: { id: any; [key: string]: any }; Insert: { [key: string]: any }; Update: { [key: string]: any }; Relationships: any[] }
-type GenericView = { Row: { id: any; [key: string]: any }; Relationships: any[] }
+// ── Enums ──────────────────────────────────────────────────
+export type MovementTypeEnum =
+  | 'initial_balance'
+  | 'purchase_entry'
+  | 'sale_exit'
+  | 'internal_consumption'
+  | 'loss'
+  | 'damage'
+  | 'manual_adjustment_in'
+  | 'manual_adjustment_out'
+  | 'transfer'
+  | 'return_from_customer'
+  | 'supplier_return'
+
+export type CashEntryTypeEnum =
+  | 'income'
+  | 'expense'
+  | 'withdrawal'
+  | 'reinforcement'
+  | 'sale_income'
+  | 'manual_income'
+  | 'manual_expense'
+
+// ── Table Row Types ────────────────────────────────────────
+export interface AppSettingsRow {
+  id: string
+  organization_name: string
+  currency: string
+  timezone: string
+  default_markup: number
+  low_stock_alert_enabled: boolean
+  critical_stock_alert_enabled: boolean
+  ai_enabled: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface UserProfileRow {
+  id: string
+  auth_user_id: string | null
+  full_name: string
+  email: string
+  role: 'admin' | 'gestor' | 'operador'
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface AuditLogRow {
+  id: string
+  actor_id: string | null
+  action: string
+  entity_type: string
+  entity_id: string | null
+  before_data: Json | null
+  after_data: Json | null
+  context: Json | null
+  created_at: string
+  
+  // Joined via foreign key in useAuditLogs
+  actor?: {
+    full_name: string
+  }
+}
+
+export interface InventoryCategoryRow {
+  id: string
+  code_prefix: string | null
+  name: string
+  normalized_name: string
+  aliases: Json | null
+  is_active: boolean
+  sort_order: number
+  created_at: string
+  updated_at: string
+}
+
+export interface ProductBrandRow {
+  id: string
+  name: string
+  normalized_name: string
+  aliases: Json | null
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface InventoryProductRow {
+  id: string
+  external_code: string | null
+  category_id: string | null
+  brand_id: string | null
+  name: string
+  normalized_name: string
+  sku: string | null
+  barcode: string | null
+  unit_type: string
+  cost_price: number
+  markup_percent: number
+  markup_value_generated: number
+  sale_price_generated: number
+  min_stock: number
+  max_stock: number
+  reorder_point: number | null
+  is_for_resale: boolean
+  is_for_internal_use: boolean
+  is_active: boolean
+  notes: string | null
+  created_at: string
+  updated_at: string
+  deleted_at: string | null
+}
+
+export interface StockMovementRow {
+  id: string
+  product_id: string
+  movement_type: MovementTypeEnum
+  movement_reason: string
+  source_type: string
+  destination_type: string
+  location_id: string | null
+  quantity: number
+  unit_cost_snapshot: number | null
+  unit_sale_snapshot: number | null
+  total_cost_snapshot: number | null
+  total_sale_snapshot: number | null
+  reference_type: string | null
+  reference_id: string | null
+  notes: string | null
+  performed_by: string | null
+  approved_by: string | null
+  movement_date: string
+  created_at: string
+}
+
+export interface SaleRow {
+  id: string
+  customer_id: string | null
+  collaborator_id: string | null
+  sale_date: string
+  status: 'pending' | 'completed' | 'cancelled' | 'refunded'
+  payment_method_id: string | null
+  subtotal: number
+  discount_amount: number
+  total: number
+  notes: string | null
+  created_by: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface SaleItemRow {
+  id: string
+  sale_id: string
+  item_type: 'product' | 'service' | 'combo'
+  product_id: string | null
+  service_name: string | null
+  quantity: number
+  unit_cost_snapshot: number
+  unit_price_snapshot: number
+  discount_amount: number
+  total: number
+  created_at: string
+}
+
+export interface CashSessionRow {
+  id: string
+  session_date: string
+  opening_amount: number
+  closing_amount: number | null
+  expected_amount: number | null
+  difference_amount: number | null
+  status: 'open' | 'closed' | 'audited'
+  opened_by: string | null
+  closed_by: string | null
+  opened_at: string
+  closed_at: string | null
+  notes: string | null
+}
+
+export interface CashEntryRow {
+  id: string
+  cash_session_id: string
+  entry_type: string
+  category: string
+  description: string
+  amount: number
+  payment_method_id: string | null
+  reference_type: string | null
+  reference_id: string | null
+  occurred_at: string
+  created_by: string | null
+  created_at: string
+}
+
+export interface FixedCostRow {
+  id: string
+  name: string
+  category: string
+  amount: number
+  due_day: number | null
+  frequency: 'monthly' | 'weekly' | 'yearly'
+  is_active: boolean
+  notes: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface VariableCostRow {
+  id: string
+  name: string
+  category: string
+  amount: number
+  occurred_on: string
+  notes: string | null
+  reference_type: string | null
+  reference_id: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface FinancialMovementRow {
+  id: string
+  movement_type: 'payable' | 'receivable' | 'paid' | 'received'
+  category: string
+  subcategory: string | null
+  description: string
+  amount: number
+  occurred_on: string
+  origin_type: string
+  origin_id: string | null
+  created_at: string
+}
+
+export interface CommissionRuleRow {
+  id: string
+  profile_id: string
+  rule_type: 'percent' | 'fixed'
+  applies_to: 'global' | 'category' | 'product' | 'service'
+  collaborator_id: string | null
+  product_id: string | null
+  category_id: string | null
+  percent: number | null
+  fixed_amount: number | null
+  priority: number
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface CommissionEntryRow {
+  id: string
+  collaborator_id: string
+  sale_id: string
+  sale_item_id: string | null
+  commission_rule_id: string | null
+  base_amount: number
+  commission_amount: number
+  competence_date: string
+  status: 'pending' | 'paid' | 'cancelled'
+  created_at: string
+}
+
+export interface CollaboratorRow {
+  id: string
+  name: string
+  role: 'barbeiro' | 'assistente' | 'gerente' | 'outro'
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface CustomerRow {
+  id: string
+  full_name: string
+  phone: string | null
+  email: string | null
+  notes: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface PaymentMethodRow {
+  id: string
+  name: string
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+
+export interface AiCommandRow {
+  id: string
+  command_text: string
+  intent: string
+  parsed_payload: Json
+  status: 'pending' | 'approved' | 'executed' | 'failed' | 'rejected'
+  requested_by: string | null
+  executed_by: string | null
+  created_at: string
+  executed_at: string | null
+}
+
+// ── View Row Types ─────────────────────────────────────────
+export interface VwInventoryPositionRow {
+  product_id: string
+  external_code: string | null
+  product_name: string
+  category_name: string | null
+  brand_name: string | null
+  cost_price: number
+  markup_percent: number
+  sale_price: number
+  current_balance: number
+  min_stock: number
+  max_stock: number
+  suggested_purchase: number
+  stock_status: 'sem_estoque' | 'abaixo_do_minimo' | 'acima_do_maximo' | 'normal'
+  total_cost_value: number
+  total_sale_value: number
+  is_for_resale?: boolean
+  is_for_internal_use?: boolean
+  is_active?: boolean
+}
+
+export interface VwDailyCashSummaryRow {
+  session_id: string
+  session_date: string
+  opening_amount: number
+  total_inflows: number
+  total_outflows: number
+  closing_amount: number | null
+  calculated_expected: number
+  difference_amount: number | null
+  status: string
+}
+
+export interface VwCommissionSummaryRow {
+  collaborator_id: string
+  month: string
+  total_base_commissionable: number
+  total_commission: number
+  paid_commission: number
+}
+
+export interface VwFinancialFlowSummaryRow {
+  flow_date: string
+  total_revenue: number
+  total_expenses: number
+  fixed_costs: number
+  net_profit: number
+}
+
+// ── Generic Database interface for Supabase client ─────────
+type GenericTable = {
+  Row: Record<string, any>
+  Insert: Record<string, any>
+  Update: Record<string, any>
+  Relationships: any[]
+}
+type GenericView = {
+  Row: Record<string, any>
+  Relationships: any[]
+}
 
 export interface Database {
   public: {
     Tables: {
-      cash_sessions: GenericTable
-      cash_entries: GenericTable
-      inventory_products: GenericTable
+      app_settings: GenericTable
+      user_profiles: GenericTable
       inventory_categories: GenericTable
       product_brands: GenericTable
-      movements: GenericTable
+      inventory_products: GenericTable
+      inventory_locations: GenericTable
+      suppliers: GenericTable
+      purchase_orders: GenericTable
+      purchase_order_items: GenericTable
+      stock_movements: GenericTable
+      stock_adjustments: GenericTable
+      customers: GenericTable
+      collaborators: GenericTable
+      payment_methods: GenericTable
+      sales: GenericTable
+      sale_items: GenericTable
+      cash_sessions: GenericTable
+      cash_entries: GenericTable
       fixed_costs: GenericTable
       variable_costs: GenericTable
+      financial_movements: GenericTable
+      commission_profiles: GenericTable
       commission_rules: GenericTable
       commission_entries: GenericTable
-      app_settings: GenericTable
+      commission_periods: GenericTable
+      ai_commands: GenericTable
+      ai_action_logs: GenericTable
+      import_jobs: GenericTable
+      import_rows: GenericTable
+      export_jobs: GenericTable
+      audit_logs: GenericTable
       [key: string]: GenericTable
     }
     Views: {
       vw_inventory_position: GenericView
-      vw_commission_summary: GenericView
+      vw_stock_movement_summary: GenericView
       vw_daily_cash_summary: GenericView
+      vw_financial_flow_summary: GenericView
+      vw_commission_summary: GenericView
       [key: string]: GenericView
     }
-    Functions: any
-    Enums: any
-    CompositeTypes: any
+    Functions: Record<string, unknown>
+    Enums: {
+      movement_type_enum: MovementTypeEnum
+      cash_entry_type: CashEntryTypeEnum
+    }
+    CompositeTypes: Record<string, unknown>
   }
 }
 
 export const Constants = {
   public: {
     Enums: {
-      movement_type_enum: ["entrada", "saida", "ajuste", "perda", "retorno"] as const,
-      cash_entry_type: ["in", "out"] as const
+      movement_type_enum: [
+        'initial_balance', 'purchase_entry', 'sale_exit',
+        'internal_consumption', 'loss', 'damage',
+        'manual_adjustment_in', 'manual_adjustment_out',
+        'transfer', 'return_from_customer', 'supplier_return'
+      ] as const,
+      cash_entry_type: [
+        'income', 'expense', 'withdrawal', 'reinforcement',
+        'sale_income', 'manual_income', 'manual_expense'
+      ] as const,
     }
   }
 }
 
-export type ProductWithStatus = any
+// Convenience alias
+export type ProductWithStatus = VwInventoryPositionRow

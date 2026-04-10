@@ -5,7 +5,9 @@ import { useMovements, useMovementMutations } from "../hooks/useMovements"
 import { DataTable } from "@/components/ui/data-table"
 import { FilterBar } from "@/components/ui/filter-bar"
 import { Button } from "@/components/ui/button"
-import { Plus, ArrowDownRight, ArrowUpRight } from "lucide-react"
+import { Plus, ArrowDownRight, ArrowUpRight, Download } from "lucide-react"
+import { ExportDialog } from "@/features/import-export/components/ExportDialog"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ColumnDef } from "@tanstack/react-table"
 import { StockMovementWithRelations, MovementType } from "../types"
 import { 
@@ -63,9 +65,19 @@ export function MovementsView() {
     {
       accessorKey: "product",
       header: "Produto",
-      cell: ({ row }) => (
-        <span className="font-medium">{row.original.product?.name || "Desconhecido"}</span>
-      )
+      cell: ({ row }) => {
+        const code = row.original.product?.sku || null
+        return (
+          <div className="flex items-center gap-2">
+            {code && (
+              <span className="text-[11px] font-semibold tracking-wider text-[var(--accent)] font-mono bg-[var(--accent-subtle)] px-1.5 py-0.5 rounded" style={{ letterSpacing: '0.06em' }}>
+                {code}
+              </span>
+            )}
+            <span className="font-medium">{row.original.product?.name || "Desconhecido"}</span>
+          </div>
+        )
+      }
     },
     {
       accessorKey: "movement_type",
@@ -142,7 +154,23 @@ export function MovementsView() {
           onSearchChange={setSearch} 
           placeholder="Buscar nas notas..."
         >
-           {/* Room for Type Filter Select component in the future, kept simple for MVP */}
+           <Select value={typeFilter} onValueChange={(val: any) => setTypeFilter(val)}>
+             <SelectTrigger className="w-[200px] h-9">
+               <SelectValue placeholder="Todos os tipos" />
+             </SelectTrigger>
+             <SelectContent>
+               <SelectItem value="all">Todos os tipos</SelectItem>
+               {Object.entries(MOVEMENT_LABELS).map(([key, label]) => (
+                 <SelectItem key={key} value={key}>{label}</SelectItem>
+               ))}
+             </SelectContent>
+           </Select>
+           <ExportDialog
+             data={movementsData?.data || []}
+             filename={`movimentacoes_barber_zac_${new Date().toISOString().split('T')[0]}`}
+             title="Relatório de Movimentações — Barber Zac"
+             buttonText="Exportar"
+           />
         </FilterBar>
         
         {isLoading ? (

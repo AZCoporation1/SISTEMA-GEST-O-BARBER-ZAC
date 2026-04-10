@@ -1,0 +1,71 @@
+=== DIRTY BRAND PRODUCTS ===
+  Perf 015 | Attar Al Wesal - Gustavo Lima | brand="R$ 400,00" | cat="null"
+  Perf 018 | Bade Al Oud | brand="R$ 480,00" | cat="null"
+  Perf 065 | Yara | brand="R$ 380,00" | cat="null"
+  Perf 026 | Eternal Toch | brand="R$ 120,00" | cat="null"
+  Perf 033 | Jubilant-Oro | brand="R$ 120,00" | cat="null"
+  Perf 032 | Jubilant-Noir | brand="R$ 120,00" | cat="null"
+  Perf 051 | Pink Velvet | brand="R$ 200,00" | cat="null"
+  Perf 006 | Angel | brand="R$ 60,00" | cat="null"
+  Perf 011 | Assad | brand="R$ 149,00" | cat="null"
+  Perf 023 | Cluib Di Nuit | brand="R$ 110,00" | cat="null"
+  Perf 037 | Kharmrah | brand="R$ 180,00" | cat="null"
+  Perf 044 | Monocline | brand="R$ 120,00" | cat="null"
+
+=== DIRTY ACTIVE BRANDS ===
+
+=== DUPLICATE SKUS ===
+  PERF 006 (2 entries):
+    id=324477a6-f2f9-4196-9094-f26fe1ef2f5b code="Perf 006" name="Angel" brand=2fa91424-4959-4440-b6a6-452f65dd0e5f active=true
+    id=f02d281a-be29-48cc-afdb-6314f652cb8f code="PERF 006" name="Angel" brand=994cde9d-f83d-4272-ad7d-b8fedbfbee4e active=true
+  PERF 011 (2 entries):
+    id=9ccfb3e5-4b6b-4f7c-bec0-1204f788dec6 code="Perf 011" name="Assad" brand=7699d763-b524-4f2b-947b-9cc96b66399d active=true
+    id=ccf67361-82f1-4b59-aaa5-863d32f53c4c code="PERF 011" name="Assad" brand=e3b8bf40-34da-4dce-a02a-2965ea9f0523 active=true
+  PERF 015 (2 entries):
+    id=252eb6a0-a044-4a68-a1ee-dbfb554856a0 code="Perf 015" name="Attar Al Wesal - Gustavo Lima" brand=789a63d8-36de-4224-a6db-adcc24847acd active=true
+    id=da9a6d6c-90d8-4dc7-ab3f-420cf101dd0e code="PERF 015" name="Attar Al Wesal" brand=null active=true
+  PERF 017 (2 entries):
+    id=539eb6a1-1d07-4b4e-b12b-3490888eee88 code="Perf 017" name="Bacara" brand=36b74b62-92ca-492f-b164-7e59c9cf1e56 active=true
+    id=c9a12d65-a71c-49a7-a6d0-4f9921fcab4c code="PERF 017" name="Bacara" brand=null active=true
+  PERF 018 (2 entries):
+    id=3aba13d5-5166-46c8-848c-f1260867b77f code="Perf 018" name="Bade Al Oud" brand=8e8905a9-9264-4aa1-a7e2-57af1d9a7991 active=true
+    id=1451df10-bf22-4bd9-acd6-d37437b28585 code="PERF 018" name="Bade'e al oud" brand=e3b8bf40-34da-4dce-a02a-2965ea9f0523 active=true
+  PERF 023 (2 entries):
+    id=94de2a61-6bb7-49ef-a6f3-b946f012f732 code="Perf 023" name="Cluib Di Nuit" brand=d9244cef-0bf9-4ca4-9140-13791e020f48 active=true
+    id=480f9226-e564-4d79-898a-af8577cd15f4 code="PERF 023" name="Cluib de Nuit Intense Man" brand=cf1b9260-3073-4dfc-9c3a-84d27d19fd5a active=true
+  PERF 026 (2 entries):
+    id=596e9027-6000-4837-b53e-2342589f9816 code="Perf 026" name="Eternal Toch" brand=19ffa486-bc27-47b6-94b1-e71a8bcb0045 active=true
+    id=50280453-93ab-4e81-a685-1ccaf6fcbb4f code="PERF 026" name="Eternal Touch" brand=328ca04b-53f2-4341-9d84-b4b889e9c4cc active=true
+  PERF 032 (2 entries):
+    id=b28466ed-212b-4713-ad66-01a3c6fc6250 code="Perf 032" name="Jubilant-Noir" brand=19ffa486-bc27-47b6-94b1-e71a8bcb0045 active=true
+    id=bbe3dce8-0ac5-46eb-bb8b-ee1c300b8bac code="PERF 032" name="Jubilant Noir" brand=328ca04b-53f2-4341-9d84-b4b889e9c4cc active=true
+  PERF 033 (2 entries):
+    id=2fdb1361-e98f-496d-8b98-f1a217810dba code="Perf 033" name="Jubilant-Oro" brand=19ffa486-bc27-47b6-94b1-e71a8bcb0045 active=true
+    id=e04f61fd-d223-400b-96a8-dae5ac842783 code="PERF 033" name="Jubilant Oro" brand=328ca04b-53f2-4341-9d84-b4b889e9c4cc active=true
+  PERF 037 (2 entries):
+    id=70cbbfef-4695-49c6-b95f-4e632a880246 code="Perf 037" name="Kharmrah" brand=1e9307e9-d547-4c63-9b2f-3f465232bb3e active=true
+    id=7e1a61a2-f9ae-4f5f-936c-820d5a6ed4cb code="PERF 037" name="Kharmrah" brand=c3af5221-f061-4ba1-b471-65d84258ca4f active=true
+  PERF 044 (2 entries):
+    id=2dc9731e-0db9-47e6-9ffb-4ec053cdd7f4 code="Perf 044" name="Monocline" brand=19ffa486-bc27-47b6-94b1-e71a8bcb0045 active=true
+    id=e35a1952-a6d4-4c3e-aa4d-62834704afab code="PERF 044" name="Monocline Series Two" brand=328ca04b-53f2-4341-9d84-b4b889e9c4cc active=true
+  PERF 051 (2 entries):
+    id=06238b83-d24c-4e59-a83e-5af7e327e6e4 code="Perf 051" name="Pink Velvet" brand=17b95f8f-accf-49f3-b425-5823a5e9a110 active=true
+    id=647ec18e-3931-47d3-b06f-f2a98dd0a4c1 code="PERF 051" name="Pink Velvet" brand=328ca04b-53f2-4341-9d84-b4b889e9c4cc active=true
+  PERF 065 (2 entries):
+    id=98d34854-2ecf-4b60-8b6e-accc2ec1676a code="Perf 065" name="Yara" brand=7b2c80c5-a5c7-47bc-8183-8cf6ca9f5807 active=true
+    id=d66c6efc-01da-46d5-a3ea-1fe52f76f8dc code="PERF 065" name="Yara" brand=e3b8bf40-34da-4dce-a02a-2965ea9f0523 active=true
+
+=== LOWERCASE PERF CODES ===
+  id=324477a6-f2f9-4196-9094-f26fe1ef2f5b code="Perf 006" name="Angel" brand=2fa91424-4959-4440-b6a6-452f65dd0e5f
+  id=9ccfb3e5-4b6b-4f7c-bec0-1204f788dec6 code="Perf 011" name="Assad" brand=7699d763-b524-4f2b-947b-9cc96b66399d
+  id=252eb6a0-a044-4a68-a1ee-dbfb554856a0 code="Perf 015" name="Attar Al Wesal - Gustavo Lima" brand=789a63d8-36de-4224-a6db-adcc24847acd
+  id=539eb6a1-1d07-4b4e-b12b-3490888eee88 code="Perf 017" name="Bacara" brand=36b74b62-92ca-492f-b164-7e59c9cf1e56
+  id=3aba13d5-5166-46c8-848c-f1260867b77f code="Perf 018" name="Bade Al Oud" brand=8e8905a9-9264-4aa1-a7e2-57af1d9a7991
+  id=94de2a61-6bb7-49ef-a6f3-b946f012f732 code="Perf 023" name="Cluib Di Nuit" brand=d9244cef-0bf9-4ca4-9140-13791e020f48
+  id=596e9027-6000-4837-b53e-2342589f9816 code="Perf 026" name="Eternal Toch" brand=19ffa486-bc27-47b6-94b1-e71a8bcb0045
+  id=b28466ed-212b-4713-ad66-01a3c6fc6250 code="Perf 032" name="Jubilant-Noir" brand=19ffa486-bc27-47b6-94b1-e71a8bcb0045
+  id=2fdb1361-e98f-496d-8b98-f1a217810dba code="Perf 033" name="Jubilant-Oro" brand=19ffa486-bc27-47b6-94b1-e71a8bcb0045
+  id=70cbbfef-4695-49c6-b95f-4e632a880246 code="Perf 037" name="Kharmrah" brand=1e9307e9-d547-4c63-9b2f-3f465232bb3e
+  id=2dc9731e-0db9-47e6-9ffb-4ec053cdd7f4 code="Perf 044" name="Monocline" brand=19ffa486-bc27-47b6-94b1-e71a8bcb0045
+  id=06238b83-d24c-4e59-a83e-5af7e327e6e4 code="Perf 051" name="Pink Velvet" brand=17b95f8f-accf-49f3-b425-5823a5e9a110
+  id=98d34854-2ecf-4b60-8b6e-accc2ec1676a code="Perf 065" name="Yara" brand=7b2c80c5-a5c7-47bc-8183-8cf6ca9f5807

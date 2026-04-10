@@ -1,16 +1,13 @@
-// @ts-nocheck
-"use server"
-import { createServerClient } from "@/lib/supabase/server"
-import { CostFilters, FixedCost, VariableCost } from "../types"
+import { createClient } from "@/lib/supabase/client"
+import type { FixedCostRow, VariableCostRow } from "@/types/supabase"
+import type { CostFilters } from "../types"
 
-// DB table: fixed_costs (not monthly_fixed_costs)
 export async function getFixedCosts(filters: CostFilters) {
-  const supabase = await createServerClient()
+  const supabase = createClient()
   
   let query = supabase
     .from("fixed_costs")
     .select("*", { count: "exact" })
-    .is("deleted_at" as any, null)
 
   if (filters.search) {
     query = query.ilike("name", `%${filters.search}%`)
@@ -19,7 +16,7 @@ export async function getFixedCosts(filters: CostFilters) {
   const from = (filters.page - 1) * filters.perPage
   const to = from + filters.perPage - 1
   
-  query = (query as any).range(from, to).order("due_day", { ascending: true, nullsFirst: false })
+  query = query.range(from, to).order("due_day", { ascending: true, nullsFirst: false })
 
   const { data, error, count } = await query
 
@@ -29,14 +26,13 @@ export async function getFixedCosts(filters: CostFilters) {
   }
 
   return {
-    data: data as FixedCost[],
+    data: (data || []) as unknown as FixedCostRow[],
     count: count || 0
   }
 }
 
-// DB table: variable_costs
 export async function getVariableCosts(filters: CostFilters) {
-  const supabase = await createServerClient()
+  const supabase = createClient()
   
   let query = supabase
     .from("variable_costs")
@@ -59,7 +55,7 @@ export async function getVariableCosts(filters: CostFilters) {
   }
 
   return {
-    data: data as VariableCost[],
+    data: (data || []) as unknown as VariableCostRow[],
     count: count || 0
   }
 }

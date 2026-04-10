@@ -23,7 +23,7 @@ export default function ImportarExportarPage() {
         <div className="section-card">
           <div className="section-card-header">
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Download size={16} style={{ color: 'var(--accent-gold)' }} />
+              <Download size={16} style={{ color: 'var(--accent)' }} />
               <span className="section-card-title">Exportações Simplificadas</span>
             </div>
           </div>

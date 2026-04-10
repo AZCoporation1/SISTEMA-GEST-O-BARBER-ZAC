@@ -1,0 +1,38 @@
+[
+  {
+    "id": "c6d4900d-f583-49bd-bf81-e0b4764b0024",
+    "movement_type": "received",
+    "category": "Vendas",
+    "subcategory": "PDV",
+    "description": "Receita Venda #5f7f4a24",
+    "amount": 50,
+    "occurred_on": "2026-03-17T20:26:55.84+00:00",
+    "origin_type": "sale",
+    "origin_id": "5f7f4a24-7cbf-4c33-917d-891376cf6ab7",
+    "created_at": "2026-03-17T20:26:58.808671+00:00"
+  },
+  {
+    "id": "ba74f47b-094c-49c9-aa80-577bdfa9aa12",
+    "movement_type": "received",
+    "category": "Vendas",
+    "subcategory": "PDV",
+    "description": "Receita Venda #4ac2d5cf",
+    "amount": 50,
+    "occurred_on": "2026-03-18T04:59:46.291+00:00",
+    "origin_type": "sale",
+    "origin_id": "4ac2d5cf-5e2d-469c-a7b5-3c77aa0df7f0",
+    "created_at": "2026-03-18T04:59:49.822157+00:00"
+  },
+  {
+    "id": "dad018cf-7d93-4179-aced-b576ce10aea9",
+    "movement_type": "received",
+    "category": "Vendas",
+    "subcategory": "PDV",
+    "description": "Receita Venda #ebbc77d5",
+    "amount": 80,
+    "occurred_on": "2026-03-18T15:17:57.66+00:00",
+    "origin_type": "sale",
+    "origin_id": "ebbc77d5-224e-4f24-b8cd-10415806d370",
+    "created_at": "2026-03-18T15:17:58.694446+00:00"
+  }
+]

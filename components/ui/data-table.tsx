@@ -59,8 +59,8 @@ export function DataTable<TData, TValue>({
   return (
     <div>
       {searchKey && (
-        <div className="flex items-center py-4 gap-2">
-          <div className="relative max-w-sm w-full">
+        <div className="flex items-center py-4 gap-2 w-full">
+          <div className="relative w-full sm:max-w-sm">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder={searchPlaceholder}
@@ -68,13 +68,13 @@ export function DataTable<TData, TValue>({
               onChange={(event) =>
                 table.getColumn(searchKey)?.setFilterValue(event.target.value)
               }
-              className="pl-8"
+              className="pl-8 w-full"
             />
           </div>
         </div>
       )}
-      <div className="rounded-md border">
-        <Table>
+      <div className="rounded-md border bg-card data-table-wrapper">
+        <Table className="data-table">
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
@@ -123,7 +123,7 @@ export function DataTable<TData, TValue>({
           </TableBody>
         </Table>
       </div>
-      <div className="flex items-center justify-end space-x-2 py-4">
+      <div className="flex items-center justify-end space-x-2 py-4 flex-wrap gap-y-2">
         <Button
           variant="outline"
           size="sm"

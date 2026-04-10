@@ -11,6 +11,7 @@ import { TrendingUp, TrendingDown, DollarSign, Activity } from "lucide-react"
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
 import { Badge } from "@/components/ui/badge"
+import { ExportDialog } from "@/features/import-export/components/ExportDialog"
 
 export function CashFlowDashboard() {
   const [period, setPeriod] = useState<"day"|"week"|"month">("month")
@@ -27,7 +28,7 @@ export function CashFlowDashboard() {
       accessorKey: "movement_type",
       header: "Tipo",
       cell: ({ row }: any) => {
-        const isIncome = row.original.movement_type === "income"
+        const isIncome = row.original.movement_type === "received" || row.original.movement_type === "income"
         return (
           <Badge variant={isIncome ? "default" : "destructive"}>
             {isIncome ? "Entrada" : "Saída"}
@@ -53,7 +54,7 @@ export function CashFlowDashboard() {
       accessorKey: "amount",
       header: "Valor (R$)",
       cell: ({ row }: any) => {
-        const isIncome = row.original.movement_type === "income"
+        const isIncome = row.original.movement_type === "received" || row.original.movement_type === "income"
         return (
           <span className={`font-bold ${isIncome ? 'text-emerald-600 dark:text-emerald-400' : 'text-destructive'}`}>
             {isIncome ? "+" : "-"} {row.original.amount.toFixed(2)}
@@ -68,10 +69,11 @@ export function CashFlowDashboard() {
       <div className="page-header">
         <div>
           <h1 className="page-title">Fluxo de Caixa</h1>
-          <p className="page-subtitle">Consolidação de receitas e despesas ({data?.periodStr})</p>
+          <p className="page-subtitle">Consolidação de receitas e despesas {data?.periodStr ? `(${data.periodStr})` : ""}</p>
         </div>
         
-        <div className="page-actions">
+        <div className="page-actions flex items-center gap-2">
+          <ExportDialog data={data?.movements || []} filename="relatorio-fluxo-caixa" title="Fluxo de Caixa" />
           <Select value={period} onValueChange={(val: any) => setPeriod(val)}>
             <SelectTrigger className="w-[180px]">
                <SelectValue placeholder="Período" />
@@ -89,25 +91,25 @@ export function CashFlowDashboard() {
         <div className="kpi-grid">
           <KPICard 
             title="Receita Total" 
-            value={`R$ ${data.summary.totalRevenue.toFixed(2)}`} 
+            value={`R$ ${(data.summary.totalRevenue || 0).toFixed(2)}`} 
             icon={<TrendingUp className="text-emerald-500" />} 
           />
           <KPICard 
             title="Despesas Totais" 
-            value={`R$ ${data.summary.totalExpenses.toFixed(2)}`} 
+            value={`R$ ${(data.summary.totalExpenses || 0).toFixed(2)}`} 
             icon={<TrendingDown className="text-destructive" />} 
           />
           <KPICard 
             title="Lucro Líquido Real" 
-            value={`R$ ${data.summary.netProfit.toFixed(2)}`} 
+            value={`R$ ${(data.summary.netProfit || 0).toFixed(2)}`} 
             icon={<DollarSign />} 
-            className={data.summary.netProfit >= 0 ? "border-emerald-500" : "border-destructive"}
+            className={(data.summary.netProfit || 0) >= 0 ? "border-emerald-500" : "border-destructive"}
           />
           <KPICard 
             title="Margem de Lucro" 
-            value={`${data.summary.profitMargin.toFixed(1)}%`} 
+            value={`${(data.summary.profitMargin || 0).toFixed(1)}%`} 
             icon={<Activity />} 
-            className={data.summary.profitMargin >= 20 ? "bg-emerald-50 dark:bg-emerald-950/20" : ""}
+            className={(data.summary.profitMargin || 0) >= 20 ? "bg-emerald-50 dark:bg-emerald-950/20" : ""}
           />
         </div>
       )}

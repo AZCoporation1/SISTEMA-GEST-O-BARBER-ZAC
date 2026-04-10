@@ -1,0 +1,48 @@
+﻿
+> barber-zac@0.1.0 build
+> next build
+
+Ôû▓ Next.js 16.1.6 (Turbopack)
+- Environments: .env.local
+
+  Creating an optimized production build ...
+Ô£ô Compiled successfully in 5.8s
+  Running TypeScript ...
+  Collecting page data using 11 workers ...
+  Generating static pages using 11 workers (0/25) ...
+  Generating static pages using 11 workers (6/25) 
+  Generating static pages using 11 workers (12/25) 
+  Generating static pages using 11 workers (18/25) 
+Ô£ô Generating static pages using 11 workers (25/25) in 556.4ms
+  Finalizing page optimization ...
+
+Route (app)
+Ôöî Ôùï /
+Ôö£ Ôùï /_not-found
+Ôö£ Ôùï /agendamento
+Ôö£ Ôùï /auditoria
+Ôö£ Ôùï /caixa
+Ôö£ Ôùï /comissoes
+Ôö£ Ôùï /configuracoes
+Ôö£ Ôùï /custos
+Ôö£ Ôùï /custos/fixos
+Ôö£ Ôùï /custos/variaveis
+Ôö£ Ôùï /dashboard
+Ôö£ Ôùï /estoque
+Ôö£ ãÆ /estoque/[id]
+Ôö£ Ôùï /estoque/novo
+Ôö£ Ôùï /fluxo-de-caixa
+Ôö£ Ôùï /importar-exportar
+Ôö£ Ôùï /movimentacoes
+Ôö£ Ôùï /relatorios
+Ôö£ Ôùï /relatorios/custos
+Ôö£ Ôùï /relatorios/estoque
+Ôö£ Ôùï /relatorios/movimentacoes
+Ôö£ Ôùï /relatorios/resultado
+Ôö£ Ôùï /relatorios/vendas
+Ôöö Ôùï /vendas
+
+
+Ôùï  (Static)   prerendered as static content
+ãÆ  (Dynamic)  server-rendered on demand
+

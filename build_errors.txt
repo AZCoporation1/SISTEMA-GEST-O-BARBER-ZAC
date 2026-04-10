@@ -1,0 +1,65 @@
+﻿Ôû▓ Next.js 16.1.6 (Turbopack)
+- Environments: .env.local
+
+  Creating an optimized production build ...
+Ô£ô Compiled successfully in 5.4s
+  Running TypeScript ...
+node.exe : Failed to 
+compile.
+No linha:1 caractere:1
++ & "C:\Program 
+Files\nodejs/node.exe" 
+"C:\Users\granc\AppData
+\Roaming\ ...
++ ~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~
+~~
+    + CategoryInfo     
+         : NotSpecifi  
+  ed: (Failed to com   
+ pile.:String) [],     
+RemoteException
+    + FullyQualifiedEr 
+   rorId : NativeComm  
+  andError
+ 
+
+./features/ai-operator/
+actions/ai.actions.ts:1
+7:7
+Type error: Argument 
+of type 'boolean' is 
+not assignable to 
+parameter of type 
+'string'.
+
+[0m [90m 15 |[39m   
+    aiResult[33m.[39m
+type [33m===[39m 
+[32m'action'[39m 
+[33m?[39m (aiResult[
+33m.[39maction[33m?[
+39m[33m.[39mtype 
+[33m||[39m [32m'unkn
+own_action'[39m) 
+[33m:[39m [32m'query
+'[39m[33m,[39m 
+ [90m 16 |[39m       
+aiResult[33m,[39m 
+[31m[1m>[22m[39m[9
+0m 17 |[39m       
+[36mfalse[39m
+ [90m    |[39m       
+[31m[1m^[22m[39m
+ [90m 18 |[39m     )
+ [90m 19 |[39m
+ [90m 20 |[39m     
+[36mreturn[39m { 
+success[33m:[39m [36
+mtrue[39m[33m,[39m 
+data[33m:[39m 
+aiResult }[0m
+Next.js build worker 
+exited with code: 1 
+and signal: null

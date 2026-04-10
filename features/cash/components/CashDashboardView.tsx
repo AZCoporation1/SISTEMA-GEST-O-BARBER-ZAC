@@ -13,6 +13,7 @@ import { LockOpen, Lock, Plus, ArrowDownRight, ArrowUpRight } from "lucide-react
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
 import { Badge } from "@/components/ui/badge"
+import { ExportDialog } from "@/features/import-export/components/ExportDialog"
 
 const ENTRY_LABELS: Record<string, string> = {
   "opening_balance": "Abertura de Caixa",
@@ -114,7 +115,8 @@ export function CashDashboardView() {
           </p>
         </div>
         
-        <div className="page-actions">
+        <div className="page-actions flex items-center gap-2">
+          <ExportDialog data={activeSession.entries || []} filename={`relatorio-caixa-${activeSession.id?.split('-')[0]}`} title="Operações do Caixa" />
           <Dialog open={isEntryModalOpen} onOpenChange={setIsEntryModalOpen}>
             <DialogTrigger asChild>
               <Button variant="outline"><Plus className="mr-2 h-4 w-4" /> Lançamento Avulso</Button>

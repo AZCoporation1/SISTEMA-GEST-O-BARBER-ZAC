@@ -11,18 +11,22 @@ export class ExportService {
    * `filename` should not include extension (e.g. "relatorio_estoque")
    * `data` must be an array of objects representing rows.
    */
-  static exportData(data: any[], filename: string, format: ExportFormat, title?: string) {
-    if (!data || data.length === 0) {
-      throw new Error("Não há dados para exportar.")
+  static exportData(data: any[], filename: string, format: ExportFormat, title?: string): boolean {
+    const safeData = data?.filter(Boolean) || []
+    
+    if (safeData.length === 0) {
+      return false
     }
 
     if (format === 'csv') {
-      this.downloadCSV(data, `${filename}.csv`)
+      this.downloadCSV(safeData, `${filename}.csv`)
     } else if (format === 'xlsx') {
-      this.downloadXLSX(data, `${filename}.xlsx`)
+      this.downloadXLSX(safeData, `${filename}.xlsx`)
     } else if (format === 'pdf') {
-      this.downloadPDF(data, `${filename}.pdf`, title || "Relatório Barber Zac")
+      this.downloadPDF(safeData, `${filename}.pdf`, title || "Relatório Barber Zac")
     }
+
+    return true
   }
 
   private static downloadCSV(data: any[], filename: string) {
@@ -56,6 +60,11 @@ export class ExportService {
     doc.text(`Gerado em: ${new Date().toLocaleString('pt-BR')}`, 14, 30)
 
     // Table Generation requires headers
+    if (!data[0]) {
+      doc.text("Sem dados disponíveis.", 14, 40)
+      doc.save(filename)
+      return
+    }
     const headers = Object.keys(data[0])
     const rows = data.map(item => headers.map(h => String(item[h] ?? "")))
 

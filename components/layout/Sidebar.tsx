@@ -1,7 +1,10 @@
 'use client'
 
+import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useAppSettings } from '@/features/settings/hooks/useSettings'
+import PWAInstallButton from '@/components/PWAInstallButton'
 import {
   LayoutDashboard,
   Package,
@@ -12,13 +15,24 @@ import {
   Receipt,
   Users,
   BarChart3,
-  FileUp,
   Settings,
   Calendar,
   Scissors,
+  ShieldCheck,
+  FileUp,
 } from 'lucide-react'
 
-const navItems = [
+export type NavItem = {
+  section: string
+  items: {
+    href: string
+    icon: React.ElementType
+    label: string
+    badge?: string
+  }[]
+}
+
+export const navItems: NavItem[] = [
   {
     section: 'Principal',
     items: [
@@ -58,6 +72,7 @@ const navItems = [
     section: 'Sistema',
     items: [
       { href: '/configuracoes', icon: Settings, label: 'Configurações' },
+      { href: '/auditoria', icon: ShieldCheck, label: 'Auditoria' },
       { href: '/agendamento', icon: Calendar, label: 'Agendamento', badge: 'Em breve' },
     ]
   },
@@ -65,6 +80,7 @@ const navItems = [
 
 export function Sidebar() {
   const pathname = usePathname()
+  const { organizationName } = useAppSettings()
 
   const isActive = (href: string) => {
     if (href === '/dashboard') return pathname === '/dashboard'
@@ -73,14 +89,21 @@ export function Sidebar() {
 
   return (
     <aside className="sidebar">
-      {/* Logo */}
+      {/* Brand */}
       <div className="sidebar-logo">
-        <div className="sidebar-logo-mark">
-          <Scissors size={16} />
+        <div className="w-12 h-12 flex items-center justify-center flex-shrink-0">
+          <Image 
+            src="/logo-b.png" 
+            alt={`${organizationName} Logo`}
+            width={48} 
+            height={48} 
+            className="w-full h-full object-contain"
+            priority
+          />
         </div>
         <div className="sidebar-logo-text">
-          <span className="sidebar-logo-name">Barber Zac</span>
-          <span className="sidebar-logo-sub">Gestão</span>
+          <span className="sidebar-logo-name">{organizationName}</span>
+          <span className="sidebar-logo-sub">Sistema de Gestão</span>
         </div>
       </div>
 
@@ -95,7 +118,7 @@ export function Sidebar() {
                 href={href}
                 className={`sidebar-item ${isActive(href) ? 'active' : ''}`}
               >
-                <Icon size={16} strokeWidth={1.75} />
+                <Icon size={17} strokeWidth={1.7} />
                 <span>{label}</span>
                 {badge && <span className="sidebar-badge">{badge}</span>}
               </Link>
@@ -104,15 +127,12 @@ export function Sidebar() {
         ))}
       </nav>
 
-      {/* Version footer */}
-      <div style={{
-        padding: '12px 16px',
-        borderTop: '1px solid var(--border)',
-        fontSize: '10px',
-        color: 'var(--text-muted)',
-        letterSpacing: '0.04em',
-      }}>
-        v1.0.0 · Instituto Barber Zac
+      {/* PWA Install + Footer */}
+      <div className="px-3 py-3 border-t border-[var(--border)] flex flex-col gap-2">
+        <PWAInstallButton />
+        <span className="text-[10px] text-[var(--text-muted)] tracking-wide font-medium px-2">
+          v1.0.0 · Instituto {organizationName}
+        </span>
       </div>
     </aside>
   )

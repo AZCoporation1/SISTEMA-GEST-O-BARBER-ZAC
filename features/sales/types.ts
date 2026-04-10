@@ -28,4 +28,5 @@ export type CartItem = {
   unitPrice: number;
   unitCost: number; // Snapshot for history
   discount: number;
+  maxStock?: number;
 }

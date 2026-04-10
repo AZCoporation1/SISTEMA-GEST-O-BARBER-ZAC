@@ -7,10 +7,16 @@ import { SettingsFormValues } from "../validators"
 import { useToast } from "@/hooks/use-toast"
 
 export function useAppSettings() {
-  return useQuery({
+  const query = useQuery({
     queryKey: ["appSettings"],
     queryFn: () => getSettings(),
+    staleTime: 30_000,
   })
+
+  return {
+    ...query,
+    organizationName: query.data?.organization_name || "Barber Zac",
+  }
 }
 
 export function useSettingsMutations() {

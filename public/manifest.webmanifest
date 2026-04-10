@@ -1,0 +1,25 @@
+{
+  "name": "IBZ Scoreboard",
+  "short_name": "IBZ Score",
+  "description": "Ranking e pontuação semanal do Instituto Barber Zac.",
+  "start_url": "/?source=pwa",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0A0F1A",
+  "theme_color": "#0B1220",
+  "lang": "pt-BR",
+  "id": "/",
+  "categories": ["productivity", "business"],
+  "icons": [
+    { "src": "/icons/ibz-main-420.png", "sizes": "420x420", "type": "image/png" },
+    { "src": "/icons/ibz-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icons/ibz-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/icons/ibz-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Ranking", "url": "/", "icons": [{ "src": "/icons/ibz-192.png", "sizes": "192x192" }] },
+    { "name": "Chat", "url": "/chat", "icons": [{ "src": "/icons/ibz-192.png", "sizes": "192x192" }] },
+    { "name": "Lançar", "url": "/lancar", "icons": [{ "src": "/icons/ibz-192.png", "sizes": "192x192" }] }
+  ]
+}

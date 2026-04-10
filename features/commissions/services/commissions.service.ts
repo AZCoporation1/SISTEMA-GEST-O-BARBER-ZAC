@@ -1,10 +1,9 @@
-// @ts-nocheck
-"use server"
-import { createServerClient } from "@/lib/supabase/server"
-import { CommissionFilters, CommissionEntryWithRelations } from "../types"
+import { createClient } from "@/lib/supabase/client"
+import type { CommissionEntryRow, CollaboratorRow, VwCommissionSummaryRow } from "@/types/supabase"
+import type { CommissionFilters, CommissionEntryWithRelations } from "../types"
 
 export async function getCommissionEntries(filters: CommissionFilters) {
-  const supabase = await createServerClient()
+  const supabase = createClient()
 
   let query = supabase
     .from("commission_entries")
@@ -35,11 +34,11 @@ export async function getCommissionEntries(filters: CommissionFilters) {
 
   const { data, error, count } = await query
   if (error) throw new Error(error.message)
-  return { data: data as any as CommissionEntryWithRelations[], count: count || 0 }
+  return { data: (data || []) as any as CommissionEntryWithRelations[], count: count || 0 }
 }
 
 export async function getCommissionSummary() {
-  const supabase = await createServerClient()
+  const supabase = createClient()
   const { data, error } = await supabase
     .from("vw_commission_summary")
     .select("*")
@@ -47,16 +46,16 @@ export async function getCommissionSummary() {
     .limit(12)
 
   if (error) throw new Error(error.message)
-  return data
+  return data as unknown as VwCommissionSummaryRow[]
 }
 
 export async function getCollaborators() {
-  const supabase = await createServerClient()
+  const supabase = createClient()
   const { data, error } = await supabase
     .from("collaborators")
     .select("id, name")
     .eq("is_active", true)
     .order("name")
   if (error) throw error
-  return data
+  return data as unknown as Pick<CollaboratorRow, 'id' | 'name'>[]
 }

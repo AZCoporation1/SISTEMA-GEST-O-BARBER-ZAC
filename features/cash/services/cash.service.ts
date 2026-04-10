@@ -1,10 +1,9 @@
-// @ts-nocheck
-"use server"
-import { createServerClient } from "@/lib/supabase/server"
-import { CashFilters, CashSessionWithRelations } from "../types"
+import { createClient } from "@/lib/supabase/client"
+import type { CashSessionRow, CashEntryRow, PaymentMethodRow } from "@/types/supabase"
+import type { CashFilters, CashSessionWithRelations } from "../types"
 
 export async function getActiveCashSession() {
-  const supabase = await createServerClient()
+  const supabase = createClient()
   
   const { data, error } = await supabase
     .from("cash_sessions")
@@ -22,7 +21,7 @@ export async function getActiveCashSession() {
     .limit(1)
     .single()
 
-  if (error && error.code !== "PGRST116") { // PGRST116 is "no rows returned"
+  if (error && error.code !== "PGRST116") {
     console.error("Error fetching active cash session:", error)
     throw new Error(error.message)
   }
@@ -31,7 +30,7 @@ export async function getActiveCashSession() {
 }
 
 export async function getCashSessions(filters: CashFilters) {
-  const supabase = await createServerClient()
+  const supabase = createClient()
   
   let query = supabase
     .from("cash_sessions")
@@ -68,12 +67,12 @@ export async function getCashSessions(filters: CashFilters) {
 }
 
 export async function getPaymentMethods() {
-  const supabase = await createServerClient()
+  const supabase = createClient()
   const { data, error } = await supabase
     .from("payment_methods")
     .select("*")
     .eq("is_active", true)
     
   if (error) throw error
-  return data
+  return data as unknown as PaymentMethodRow[]
 }

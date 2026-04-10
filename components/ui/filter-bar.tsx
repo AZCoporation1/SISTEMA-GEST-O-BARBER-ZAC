@@ -17,20 +17,20 @@ export function FilterBar({
   children,
 }: FilterBarProps) {
   return (
-    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 py-4">
-      <div className="flex flex-1 items-center gap-2 w-full max-w-sm">
+    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 py-4 w-full">
+      <div className="flex flex-1 items-center gap-2 w-full sm:max-w-sm">
         <div className="relative w-full">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder={placeholder}
             value={searchValue}
             onChange={(e) => onSearchChange?.(e.target.value)}
-            className="pl-8"
+            className="pl-8 w-full"
           />
         </div>
       </div>
       {children && (
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
           {children}
         </div>
       )}

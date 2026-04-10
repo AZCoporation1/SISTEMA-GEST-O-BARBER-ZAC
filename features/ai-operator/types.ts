@@ -9,12 +9,12 @@ export type AuditLogInsert = Database['public']['Tables']['audit_logs']['Insert'
 export type StockInconsistency = {
   product_id: string;
   name: string;
-  code: string;
-  category_name?: string;
-  qty_min: number;
-  qty_current: number;
-  cost_price: number | null;
-  anomaly_type: 'negative_stock' | 'zero_stock' | 'critical_stock' | 'missing_cost' | 'attention_stock';
+  external_code: string | null;
+  category_name?: string | null;
+  min_stock: number;
+  current_balance: number;
+  cost_price: number;
+  anomaly_type: 'negative_stock' | 'zero_stock' | 'critical_stock' | 'missing_cost';
   suggested_buy_qty: number;
   estimated_buy_cost: number;
 }

@@ -41,6 +41,7 @@ export function InventoryView() {
   const [categoryId, setCategoryId] = useState("all")
   const [brandId, setBrandId] = useState("all")
   const [status, setStatus] = useState<any>("all")
+  const [skuFamily, setSkuFamily] = useState<string>("")
 
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [isEditOpen, setIsEditOpen] = useState(false)
@@ -60,6 +61,7 @@ export function InventoryView() {
     search,
     categoryId: categoryId !== "all" ? categoryId : undefined,
     brandId: brandId !== "all" ? brandId : undefined,
+    skuFamily: skuFamily || undefined,
     status: status
   })
 
@@ -86,12 +88,22 @@ export function InventoryView() {
     {
       accessorKey: "product_name",
       header: "Produto",
-      cell: ({ row }) => (
-        <div>
-          <p className="font-medium">{row.original.product_name}</p>
-          <p className="text-xs text-muted-foreground">{row.original.category_name} • {row.original.brand_name || 'Sem marca'}</p>
-        </div>
-      )
+      cell: ({ row }) => {
+        const code = (row.original as any).external_code || (row.original as any).sku || null
+        return (
+          <div>
+            <div className="flex items-center gap-2">
+              {code && (
+                <span className="text-[11px] font-semibold tracking-wider text-[var(--accent)] font-mono bg-[var(--accent-subtle)] px-1.5 py-0.5 rounded" style={{ letterSpacing: '0.06em' }}>
+                  {code}
+                </span>
+              )}
+              <p className="font-medium">{row.original.product_name}</p>
+            </div>
+            <p className="text-xs text-[var(--text-secondary)] mt-0.5 ml-0">{row.original.category_name} · {row.original.brand_name || 'Sem marca'}</p>
+          </div>
+        )
+      }
     },
     {
       accessorKey: "current_balance",
@@ -188,24 +200,26 @@ export function InventoryView() {
 
   return (
     <div className="space-y-6">
-      <div className="page-header">
-        <div>
+      <div className="page-header flex-col sm:flex-row items-start sm:items-center">
+        <div className="w-full sm:w-auto">
           <h1 className="page-title">Estoque</h1>
-          <p className="page-subtitle">Gestão premium de produtos, posições e valores.</p>
+          <p className="page-subtitle text-xs sm:text-sm">Gestão premium de produtos e posições.</p>
         </div>
         
-        <div className="page-actions flex items-center gap-2">
-          <ExportDialog 
-            data={safeData} 
-            filename={`estoque_baiber_zac_${new Date().toISOString().split('T')[0]}`}
-            title="Relatório de Estoque - Barber Zac"
-            buttonText="Exportar"
-          />
+        <div className="page-actions w-full sm:w-auto flex flex-wrap items-center gap-2 mt-4 sm:mt-0">
+          <div className="flex-1 sm:flex-none">
+            <ExportDialog 
+              data={safeData} 
+              filename={`estoque_baiber_zac_${new Date().toISOString().split('T')[0]}`}
+              title="Relatório de Estoque - Barber Zac"
+              buttonText="Exportar"
+            />
+          </div>
           <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
             <DialogTrigger asChild>
-              <Button className="btn-gold"><Plus className="mr-2 h-4 w-4" /> Novo Produto</Button>
+              <Button className="btn-gold flex-1 sm:flex-none"><Plus className="mr-2 h-4 w-4" /> Novo Produto</Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[700px] h-[90vh] overflow-y-auto">
+            <DialogContent className="sm:max-w-[700px] h-auto max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Novo Produto</DialogTitle>
                 <DialogDescription>Cadastre um novo item detalhado no estoque.</DialogDescription>
@@ -243,10 +257,32 @@ export function InventoryView() {
       </div>
 
       <div className="data-table-wrapper p-4">
+        {/* Smart SKU Family Segmentation */}
+        <div className="flex items-center gap-1 mb-4 p-1 rounded-lg bg-[var(--card-bg)] border border-[var(--border)] w-fit">
+          {[
+            { value: "", label: "Todos" },
+            { value: "INSU", label: "INSU" },
+            { value: "BEBI", label: "BEBI" },
+            { value: "PERF", label: "PERF" },
+          ].map((tab) => (
+            <button
+              key={tab.value}
+              onClick={() => { setSkuFamily(tab.value); setPage(1) }}
+              className={`px-3 py-1.5 text-xs font-semibold tracking-wider rounded-md transition-all duration-150 ${
+                skuFamily === tab.value
+                  ? "bg-[var(--accent)] text-[var(--accent-foreground)] shadow-sm"
+                  : "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--accent-subtle)]"
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
         <FilterBar 
           searchValue={search} 
           onSearchChange={setSearch} 
-          placeholder="Buscar produto por nome..."
+          placeholder="Buscar produto por nome ou código..."
         >
           <Select value={categoryId} onValueChange={setCategoryId}>
             <SelectTrigger className="w-[150px] h-9">
@@ -254,7 +290,7 @@ export function InventoryView() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todas as Categorias</SelectItem>
-              {categories?.map((c: any) => (
+              {categories?.filter((c: any) => c.id).map((c: any) => (
                 <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
               ))}
             </SelectContent>
@@ -266,7 +302,7 @@ export function InventoryView() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todas as Marcas</SelectItem>
-              {brands?.map((b: any) => (
+              {brands?.filter((b: any) => b.id).map((b: any) => (
                 <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>
               ))}
             </SelectContent>

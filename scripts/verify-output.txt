@@ -1,0 +1,112 @@
+﻿
+ÔöüÔöüÔöü DATABASE STATE VERIFICATION ÔöüÔöüÔöü
+
+Categories: 28
+  [MIN] Minoxiddil
+  [PRO] Produtos de Limpeza
+  [1  ] Finalizador Capilar
+  [2  ] Insumos
+  [3  ] Home Care
+  [4  ] Lavat├│rio
+  [5  ] Minoxidil
+  [6  ] Produto de Limpeza
+  [7  ] Produto Limpeza de Pele
+  [8  ] Qu├¡micas
+  [9  ] Refrigerante
+  [10 ] Energ├®tico
+  [11 ] ├ügua
+  [12 ] Cerveja com ├ülcool
+  [13 ] Cerveja sem ├ülcool
+  [14 ] Oriental Especiado
+  [15 ] Amadeirado Especiado
+  [16 ] Oriental Baunilha
+  [17 ] Oriental Amadeirado
+  [18 ] Floral Frutado Gourmet
+  [19 ] Amadeirado Arom├ítico
+  [20 ] Arom├ítico Foug├¿re
+  [21 ] Oriental Floral
+  [22 ] Floral
+  [23 ] Floral Frutado
+  [24 ] Amadeirado
+  [25 ] Perfume de Bolso
+  [26 ] Perfume para Cabelo
+
+Brands: 32
+  Diamante
+  Barber Zac
+  Natylla
+  ├ügua
+  Fox for men
+  Barbaurbana
+  Classe A
+  Bozzano
+  Kirkland
+  Produ├º├úo Pr├│pria
+  Derby Extra Verde
+  Lamix
+  Medix
+  Yama
+  Seda
+  3D Line
+  Ype
+  Max Ton
+  Igimax
+  Barja
+  Play
+  Coca-Cola
+  RedBull
+  Crystal
+  Ambev
+  Antonio Banderas
+  Paco Rabanne
+  Lattafa
+  Maison Alhambra
+  Mugler
+  Armaf
+  Isabelle la Belle
+
+Products: 115
+Stock Movements: 84
+
+Inventory Positions (first 20):
+  1_1      Ativador de cachos                         Bal:    0  sem_estoque
+  1_10     Gel├®ia de UVA                              Bal:    5  abaixo_do_minimo
+  1_11     Leave-In                                   Bal:    5  abaixo_do_minimo
+  1_12     Balm para Barba                            Bal:    5  abaixo_do_minimo
+  1_13     Limpador Facil                             Bal:    5  abaixo_do_minimo
+  1_14     Mascara Black                              Bal:    5  abaixo_do_minimo
+  1_15     Espuma de Barbear Hidrata├º├úo               Bal:    3  abaixo_do_minimo
+  1_17     ├ôleo Finalizador                           Bal:    1  abaixo_do_minimo
+  1_18     ├│leo para Barba                            Bal:    3  abaixo_do_minimo
+  1_19     ├ôleo para Barba                            Bal:    5  abaixo_do_minimo
+  1_2      Pomada em P├│                               Bal:    2  abaixo_do_minimo
+  1_3      Cera UVA                                   Bal:    5  abaixo_do_minimo
+  1_4      Cera Caramelo                              Bal:    2  abaixo_do_minimo
+  1_5      Cera Black                                 Bal:    2  abaixo_do_minimo
+  1_6      Cera Orange                                Bal:    2  abaixo_do_minimo
+  1_7      Cera Efeito Seco                           Bal:    2  abaixo_do_minimo
+  1_8      Cera Premium Verde                         Bal:    2  abaixo_do_minimo
+  1_9      Cera Coffee                                Bal:    2  abaixo_do_minimo
+  10_1     Energetico RedBull Tradicional             Bal:    2  abaixo_do_minimo
+  10_2     Energetico RedBull Zero                    Bal:    6  abaixo_do_minimo
+
+Transactional Data (should be minimal):
+  Sales: 0
+  Cash Sessions: 0
+  Financial Movements: 0
+  Audit Logs: 0 (1 = go-live log)
+
+Payment Methods:
+  Ô£à Cartao de Credito
+  Ô£à Cartao de Debito
+  Ô£à Pix
+  Ô£à Dinheiro
+  Ô£à Cart├úo de D├®bito
+  Ô£à Cart├úo de Cr├®dito
+
+Organization: Instituto Barber Zac
+Customers: 0
+Collaborators: 0
+
+ÔöüÔöüÔöü VERIFICATION COMPLETE ÔöüÔöüÔöü
+

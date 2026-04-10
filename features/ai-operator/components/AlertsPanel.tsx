@@ -79,14 +79,18 @@ export function AlertsPanel() {
       <CardContent>
         <div className="space-y-4">
           {data.map((item: any, i: number) => {
-            const Config = ANOMALY_MAP[item.type as keyof typeof ANOMALY_MAP] || ANOMALY_MAP.attention_stock
+            const Config = ANOMALY_MAP[item.anomaly_type as keyof typeof ANOMALY_MAP] || ANOMALY_MAP.critical_stock
             const Icon = Config.icon
              return (
               <div key={item.product_id} className="flex items-start justify-between p-3 rounded-lg border bg-background/50 text-sm">
                 <div className="space-y-1">
                   <div className="flex items-center gap-2 flex-wrap">
+                    {item.external_code && (
+                      <span className="text-[11px] font-semibold tracking-wider text-[var(--accent)] font-mono bg-[var(--accent-subtle)] px-1.5 py-0.5 rounded" style={{ letterSpacing: '0.06em' }}>
+                        {item.external_code}
+                      </span>
+                    )}
                     <span className="font-medium">{item.name}</span>
-                    <Badge variant="outline" className="text-xs">{item.code}</Badge>
                     <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${Config.color}`}>
                       <Icon className="h-3 w-3 inline mr-1" />
                       {Config.label}
@@ -96,8 +100,8 @@ export function AlertsPanel() {
                      <p className="text-muted-foreground text-xs">Produto sem valor de compra preenchido. Margem de lucro não será calculada.</p>
                   ) : (
                      <div className="text-muted-foreground text-xs flex gap-3">
-                        <span>Atual: <strong className="text-foreground">{item.qty_current}</strong></span>
-                        <span>Mínimo: {item.qty_min}</span>
+                        <span>Atual: <strong className="text-foreground">{item.current_balance}</strong></span>
+                        <span>Mínimo: {item.min_stock}</span>
                         {item.suggested_buy_qty > 0 && (
                           <span className="text-emerald-600 dark:text-emerald-400">
                             Sugestão: {item.suggested_buy_qty}x (R$ {item.estimated_buy_cost.toFixed(2)})

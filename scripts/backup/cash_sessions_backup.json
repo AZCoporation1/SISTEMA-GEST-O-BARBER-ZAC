@@ -1,0 +1,30 @@
+[
+  {
+    "id": "6787b9d2-1341-40c7-b16d-0c6a23b05f27",
+    "session_date": "2026-03-17",
+    "opening_amount": 500,
+    "closing_amount": 100,
+    "expected_amount": 400,
+    "difference_amount": -300,
+    "status": "closed",
+    "opened_by": null,
+    "closed_by": "24b18f8a-9b60-4d15-9c9b-9f184c850c31",
+    "opened_at": "2026-03-17T02:29:11.027372+00:00",
+    "closed_at": "2026-03-18T15:14:18.729+00:00",
+    "notes": ""
+  },
+  {
+    "id": "774e463d-1c41-4e95-ad3f-eaaec14b9662",
+    "session_date": "2026-03-18",
+    "opening_amount": 500,
+    "closing_amount": null,
+    "expected_amount": null,
+    "difference_amount": null,
+    "status": "open",
+    "opened_by": "24b18f8a-9b60-4d15-9c9b-9f184c850c31",
+    "closed_by": null,
+    "opened_at": "2026-03-18T15:14:36.399946+00:00",
+    "closed_at": null,
+    "notes": "Dia 18/03"
+  }
+]
