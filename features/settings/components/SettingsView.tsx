@@ -13,6 +13,7 @@ import { Building2, Bell, Bot } from "lucide-react"
 
 import { useAppSettings, useSettingsMutations } from "../hooks/useSettings"
 import { settingsSchema, SettingsFormValues } from "../validators"
+import { PWAInstallGuide } from "./PWAInstallGuide"
 
 export function SettingsView() {
   const { data: settings, isLoading: isFetching } = useAppSettings()
@@ -160,6 +161,10 @@ export function SettingsView() {
           </div>
         </form>
       </Form>
+
+      {/* PWA Installation Guide — outside the form */}
+      <PWAInstallGuide />
     </div>
   )
 }
+
