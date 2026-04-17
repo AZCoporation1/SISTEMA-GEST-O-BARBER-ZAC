@@ -1,15 +1,15 @@
-import { CommissionsDashboard } from "@/features/commissions/components/CommissionsDashboard"
+import { ProfessionalsOverview } from "@/features/commissions/components/ProfessionalsOverview"
 import { Metadata } from "next"
 
 export const metadata: Metadata = {
-  title: "Comissões | Barber Zac ERP",
-  description: "Extrato e fechamento de comissões por colaborador",
+  title: "Profissionais & Comissões | Barber Zac ERP",
+  description: "Gestão de produção, adiantamentos e fechamentos quinzenais por profissional",
 }
 
 export default function ComissoesPage() {
   return (
     <div className="p-6">
-      <CommissionsDashboard />
+      <ProfessionalsOverview />
     </div>
   )
 }

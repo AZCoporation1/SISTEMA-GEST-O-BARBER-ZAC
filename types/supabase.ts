@@ -277,6 +277,10 @@ export interface CollaboratorRow {
   name: string
   role: 'barbeiro' | 'assistente' | 'gerente' | 'outro'
   is_active: boolean
+  display_name: string | null
+  default_commission_percent: number
+  settlement_primary_day: number
+  settlement_secondary_day: number
   created_at: string
   updated_at: string
 }
@@ -310,6 +314,72 @@ export interface AiCommandRow {
   executed_by: string | null
   created_at: string
   executed_at: string | null
+}
+
+export type AdvanceTypeEnum =
+  | 'cash_advance'
+  | 'pix_advance'
+  | 'stock_consumption'
+  | 'manual_deduction'
+  | 'deferred_deduction'
+
+export type AdvanceSourceMethodEnum =
+  | 'caixa'
+  | 'pix'
+  | 'estoque'
+  | 'manual'
+
+export type AdvanceStatusEnum = 'active' | 'cancelled' | 'applied'
+export type ClosureStatusEnum = 'draft' | 'confirmed' | 'paid' | 'cancelled'
+
+export interface ProfessionalAdvanceRow {
+  id: string
+  professional_id: string
+  occurred_at: string
+  type: AdvanceTypeEnum
+  source_method: AdvanceSourceMethodEnum
+  description: string
+  quantity: number
+  unit_amount: number
+  total_amount: number
+  product_id: string | null
+  cash_entry_id: string | null
+  financial_movement_id: string | null
+  stock_movement_id: string | null
+  closure_id: string | null
+  carry_over_to_next_period: boolean
+  status: AdvanceStatusEnum
+  created_by: string | null
+  notes: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface ProfessionalClosureRow {
+  id: string
+  professional_id: string
+  period_start: string
+  period_end: string
+  payment_reference_date: string
+  gross_total: number
+  commission_percent_snapshot: number
+  barber_share: number
+  barbershop_share: number
+  advances_total: number
+  deferred_total: number
+  net_payable: number
+  legit_text: string | null
+  status: ClosureStatusEnum
+  paid_method: string | null
+  paid_at: string | null
+  cash_entry_id: string | null
+  financial_movement_id: string | null
+  snapshot_json: Json | null
+  created_by: string | null
+  confirmed_by: string | null
+  notes: string | null
+  created_at: string
+  updated_at: string
 }
 
 // ── View Row Types ─────────────────────────────────────────
@@ -408,6 +478,8 @@ export interface Database {
       import_rows: GenericTable
       export_jobs: GenericTable
       audit_logs: GenericTable
+      professional_advances: GenericTable
+      professional_closures: GenericTable
       [key: string]: GenericTable
     }
     Views: {

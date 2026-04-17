@@ -50,7 +50,7 @@ export const navItems: NavItem[] = [
     section: 'Comercial',
     items: [
       { href: '/vendas', icon: ShoppingCart, label: 'Vendas' },
-      { href: '/comissoes', icon: Users, label: 'Comissões' },
+      { href: '/comissoes', icon: Scissors, label: 'Profissionais' },
     ]
   },
   {

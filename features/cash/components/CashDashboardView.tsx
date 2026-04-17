@@ -140,7 +140,7 @@ export function CashDashboardView() {
 
           <Dialog open={isCloseModalOpen} onOpenChange={setIsCloseModalOpen}>
             <DialogTrigger asChild>
-              <Button variant="destructive"><Lock className="mr-2 h-4 w-4" /> Fechar Caixa</Button>
+              <Button variant="destructive" disabled={isClosing}><Lock className="mr-2 h-4 w-4" /> Fechar Caixa</Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
@@ -171,4 +171,4 @@ export function CashDashboardView() {
       </div>
     </div>
   )
-}
+} 3

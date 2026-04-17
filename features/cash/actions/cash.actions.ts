@@ -68,6 +68,7 @@ export async function closeCashSession(sessionId: string, data: CloseSessionValu
     const { data: authData } = await supabase.auth.getUser()
     const userProfileId = await resolveUserProfileId(supabase, authData.user?.id)
 
+    // Guard: fetch the current session and verify it's still open
     const { data: currentSession } = await supabase.from("cash_sessions").select("*").eq("id", sessionId).single()
     if (!currentSession) throw new Error("Caixa não encontrado")
     if ((currentSession as any).status !== "open") throw new Error("Caixa já está fechado")
@@ -82,6 +83,8 @@ export async function closeCashSession(sessionId: string, data: CloseSessionValu
 
     const difference = validated.closing_amount - expected
 
+    // CRITICAL FIX: Use explicit UPDATE with both .eq("id") AND .eq("status", "open")
+    // This prevents race conditions where two requests could try to close the same session.
     const { data: updatedSession, error } = await supabase.from("cash_sessions").update({
       closed_by: userProfileId,
       closing_amount: validated.closing_amount,
@@ -90,9 +93,10 @@ export async function closeCashSession(sessionId: string, data: CloseSessionValu
       notes: validated.notes,
       closed_at: new Date().toISOString(),
       status: "closed",
-    }).eq("id", sessionId).select().single()
+    }).eq("id", sessionId).eq("status", "open").select().single()
 
     if (error) throw error
+    if (!updatedSession) throw new Error("Caixa já foi fechado por outra requisição.")
 
     await logAudit({
       action: 'UPDATE',
