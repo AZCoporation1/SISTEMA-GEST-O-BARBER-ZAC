@@ -22,7 +22,8 @@ export interface SalesFilters {
 export type CartItem = {
   id: string; // temp id for cart
   type: 'product' | 'service';
-  productId?: string;
+  productId?: string | null;
+  serviceId?: string | null;
   name: string;
   quantity: number;
   unitPrice: number;

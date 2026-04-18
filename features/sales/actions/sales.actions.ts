@@ -39,11 +39,28 @@ export async function processSale(data: SaleFormValues) {
     // Resolve user profile ID for FK fields
     const userProfileId = await resolveUserProfileId(supabase, authData.user?.id)
 
+    // Resolve Customer Name for Snapshot & Log Description
+    let finalCustomerNameSnapshot: string | null = null;
+    let humanReadableCustomer = "";
+
+    if (validated.customer_id) {
+      const { data: customer } = await supabase.from("customers").select("full_name, phone, mobile_phone").eq("id", validated.customer_id).single()
+      if (customer) {
+        finalCustomerNameSnapshot = customer.full_name
+        humanReadableCustomer = ` - ${customer.full_name}`
+        // Optionally capture phone snapshot too, if desired
+      }
+    } else if (validated.customer_name_override) {
+      finalCustomerNameSnapshot = validated.customer_name_override
+      humanReadableCustomer = ` - Cliente avulso: ${validated.customer_name_override}`
+    }
+
     // 1. Create Sale Record — DO NOT send `total` (it's GENERATED ALWAYS)
     const { data: newSale, error: saleError } = await supabase
       .from("sales")
       .insert({
         customer_id: validated.customer_id || null,
+        customer_name_snapshot: finalCustomerNameSnapshot,
         collaborator_id: validated.collaborator_id || null,
         payment_method_id: validated.payment_method_id,
         discount_amount: validated.discount_amount,
@@ -69,6 +86,7 @@ export async function processSale(data: SaleFormValues) {
       sale_id: newSale.id,
       item_type: item.type,
       product_id: item.type === "product" ? item.productId : null,
+      service_id: item.type === "service" ? item.serviceId || null : null,
       service_name: item.type === "service" ? item.name : null,
       quantity: item.quantity,
       unit_price_snapshot: item.unitPrice,
@@ -104,7 +122,7 @@ export async function processSale(data: SaleFormValues) {
       entry_type: "sale_income",
       amount: total,
       category: "Venda (PDV)",
-      description: `Venda #${newSale.id.split('-')[0]}`,
+      description: `Venda #${newSale.id.split('-')[0]}${humanReadableCustomer}`,
       payment_method_id: validated.payment_method_id,
       reference_type: "sale",
       reference_id: newSale.id,
@@ -127,7 +145,7 @@ export async function processSale(data: SaleFormValues) {
       amount: total,
       category: "Vendas",
       subcategory: "PDV",
-      description: `Receita Venda #${newSale.id.split('-')[0]}`,
+      description: `Receita Venda #${newSale.id.split('-')[0]}${humanReadableCustomer}`,
       occurred_on: newSale.sale_date,
       origin_type: "sale",
       origin_id: newSale.id

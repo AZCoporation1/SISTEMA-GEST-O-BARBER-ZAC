@@ -3,6 +3,7 @@
 import { useState, useMemo } from "react"
 import { usePOSDependencies, usePOSMutations } from "../hooks/useSales"
 import { useInventory } from "@/features/inventory/hooks/useInventory"
+import { useServices } from "@/features/services/hooks/useServices"
 import { CartItem } from "../types"
 import { SaleFormValues } from "../validators"
 import { Button } from "@/components/ui/button"
@@ -23,11 +24,13 @@ export function POSView() {
   const [selectedCollaborator, setSelectedCollaborator] = useState<string>("")
   const [paymentMethodId, setPaymentMethodId] = useState<string>("")
   const [notes, setNotes] = useState("")
+  const [customerNameOverride, setCustomerNameOverride] = useState("")
   const [searchQuery, setSearchQuery] = useState("")
   const [stockWarning, setStockWarning] = useState<string | null>(null)
   
   // Data hooks
   const { data: inventoryData, isLoading: isInventoryLoading } = useInventory({ page: 1, perPage: 1000, status: "active", search: "" })
+  const { data: servicesData } = useServices({ page: 1, perPage: 1000, status: "active" })
   const { customers, collaborators, paymentMethods, isLoading } = usePOSDependencies()
   const { processSale, isProcessing } = usePOSMutations()
 
@@ -104,20 +107,42 @@ export function POSView() {
   }
 
   // Service addition with editable name and price
+  // Service addition with editable name and price
+  const [selectedServiceId, setSelectedServiceId] = useState<string>("custom")
   const [serviceNameInput, setServiceNameInput] = useState("Serviço Avulso")
   const [servicePriceInput, setServicePriceInput] = useState(50)
+  
+  const catalogServices = servicesData?.data || []
+
+  const handleServiceSelection = (val: string) => {
+    setSelectedServiceId(val)
+    if (val !== "custom") {
+       const s = catalogServices.find((x: any) => x.id === val)
+       if (s) {
+         setServiceNameInput(s.name)
+         setServicePriceInput(s.price)
+       }
+    } else {
+       setServiceNameInput("Serviço Avulso")
+       setServicePriceInput(50)
+    }
+  }
   
   const handleAddService = () => {
     if (!serviceNameInput || servicePriceInput <= 0) return
     setCart(prev => [...prev, {
       id: `srv-${Date.now()}`,
       type: 'service',
+      serviceId: selectedServiceId === "custom" ? null : selectedServiceId,
       name: serviceNameInput,
       quantity: 1,
       unitPrice: servicePriceInput,
       unitCost: 0,
       discount: 0
     }])
+    setSelectedServiceId("custom")
+    setServiceNameInput("Serviço Avulso")
+    setServicePriceInput(50)
   }
 
   const updateQuantity = (id: string, delta: number) => {
@@ -164,6 +189,7 @@ export function POSView() {
 
     const payload: SaleFormValues = {
       customer_id: selectedCustomer && selectedCustomer !== "none" ? selectedCustomer : null,
+      customer_name_override: (!selectedCustomer || selectedCustomer === "none") && customerNameOverride.trim() !== "" ? customerNameOverride.trim() : null,
       collaborator_id: selectedCollaborator && selectedCollaborator !== "none" ? selectedCollaborator : null,
       payment_method_id: paymentMethodId,
       discount_amount: discountAmount,
@@ -172,6 +198,7 @@ export function POSView() {
         id: c.id,
         type: c.type,
         productId: c.productId,
+        serviceId: c.serviceId,
         name: c.name,
         quantity: c.quantity,
         unitPrice: c.unitPrice,
@@ -187,6 +214,7 @@ export function POSView() {
     setDiscountAmount(0)
     setNotes("")
     setSelectedCustomer("")
+    setCustomerNameOverride("")
     setSelectedCollaborator("")
     setPaymentMethodId("")
     setStockWarning(null)
@@ -221,14 +249,30 @@ export function POSView() {
             <div className="section-card-body">
               <div className="flex flex-col sm:flex-row gap-4 items-end">
                 <div className="flex-1 w-full text-left">
-                  <label className="text-[11px] font-medium text-muted-foreground block mb-1">Nome do Serviço</label>
-                  <Input
-                    value={serviceNameInput}
-                    onChange={e => setServiceNameInput(e.target.value)}
-                    placeholder="Ex: Corte Degradê"
-                    className="h-9 w-full"
-                  />
+                  <label className="text-[11px] font-medium text-muted-foreground block mb-1">Serviço</label>
+                  <Select value={selectedServiceId} onValueChange={handleServiceSelection}>
+                    <SelectTrigger className="h-9 w-full bg-background">
+                      <SelectValue placeholder="Selecione um serviço" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="custom">Serviço Avulso (Customizado)</SelectItem>
+                      {catalogServices.map((srv: any) => (
+                         <SelectItem key={srv.id} value={srv.id}>{srv.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
+                {selectedServiceId === 'custom' && (
+                  <div className="flex-1 w-full text-left">
+                    <label className="text-[11px] font-medium text-muted-foreground block mb-1">Nome</label>
+                    <Input
+                      value={serviceNameInput}
+                      onChange={e => setServiceNameInput(e.target.value)}
+                      placeholder="Ex: Corte Degradê"
+                      className="h-9 w-full"
+                    />
+                  </div>
+                )}
                 <div className="w-full sm:w-32 text-left">
                   <label className="text-[11px] font-medium text-muted-foreground block mb-1">Valor (R$)</label>
                   <Input
@@ -341,6 +385,18 @@ export function POSView() {
                 </SelectContent>
               </Select>
             </div>
+
+            {(!selectedCustomer || selectedCustomer === "none") && (
+              <div className="flex items-center gap-2 bg-background p-2 rounded-lg border animate-in slide-in-from-top-1 fade-in duration-200">
+                <User className="h-4 w-4 text-muted-foreground ml-2 opacity-50" />
+                <Input
+                  placeholder="Nome do cliente avulso (Opcional)"
+                  value={customerNameOverride}
+                  onChange={e => setCustomerNameOverride(e.target.value)}
+                  className="border-0 bg-transparent shrink focus-visible:ring-0 text-sm h-8 px-3 shadow-none"
+                />
+              </div>
+            )}
 
             <div className="flex items-center gap-2 bg-background p-2 rounded-lg border">
               <MapPin className="h-4 w-4 text-muted-foreground ml-2" />

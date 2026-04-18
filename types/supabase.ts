@@ -144,6 +144,37 @@ export interface StockMovementRow {
   created_at: string
 }
 
+export interface ServiceCategoryRow {
+  id: string
+  name: string
+  normalized_name: string
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface ServiceRow {
+  id: string
+  name: string
+  normalized_name: string
+  description: string | null
+  duration_minutes: number
+  price: number
+  commission_percent: number
+  category_id: string | null
+  price_type: string
+  return_days: number | null
+  is_bookable: boolean
+  show_price: boolean
+  simultaneous_slots: number
+  notes: string | null
+  image_url: string | null
+  is_active: boolean
+  created_by: string | null
+  created_at: string
+  updated_at: string
+}
+
 export interface SaleRow {
   id: string
   customer_id: string | null
@@ -158,6 +189,8 @@ export interface SaleRow {
   created_by: string | null
   created_at: string
   updated_at: string
+  customer_name_snapshot?: string | null
+  customer_phone_snapshot?: string | null
 }
 
 export interface SaleItemRow {
@@ -165,6 +198,7 @@ export interface SaleItemRow {
   sale_id: string
   item_type: 'product' | 'service' | 'combo'
   product_id: string | null
+  service_id?: string | null
   service_name: string | null
   quantity: number
   unit_cost_snapshot: number
@@ -288,9 +322,31 @@ export interface CollaboratorRow {
 export interface CustomerRow {
   id: string
   full_name: string
+  normalized_name?: string | null
+  mobile_phone?: string | null
   phone: string | null
   email: string | null
+  ddi?: string | null
+  cpf?: string | null
+  rg?: string | null
+  birth_date?: string | null
+  gender?: string | null
+  address_line?: string | null
+  neighborhood?: string | null
+  city?: string | null
+  state?: string | null
+  postal_code?: string | null
+  address_number?: string | null
+  complement?: string | null
   notes: string | null
+  referral_source?: string | null
+  legacy_login?: string | null
+  loyalty_points?: number | null
+  legacy_created_at?: string | null
+  legacy_last_visit_at?: string | null
+  days_since_last_visit?: number | null
+  avatar_url?: string | null
+  is_active?: boolean | null
   created_at: string
   updated_at: string
 }

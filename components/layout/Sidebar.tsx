@@ -20,6 +20,7 @@ import {
   Scissors,
   ShieldCheck,
   FileUp,
+  ListPlus
 } from 'lucide-react'
 
 export type NavItem = {
@@ -50,6 +51,8 @@ export const navItems: NavItem[] = [
     section: 'Comercial',
     items: [
       { href: '/vendas', icon: ShoppingCart, label: 'Vendas' },
+      { href: '/clientes', icon: Users, label: 'Clientes' },
+      { href: '/servicos', icon: ListPlus, label: 'Serviços' },
       { href: '/comissoes', icon: Scissors, label: 'Profissionais' },
     ]
   },
