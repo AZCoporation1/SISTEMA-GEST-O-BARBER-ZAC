@@ -4,10 +4,11 @@ import { useState } from "react"
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import Image from 'next/image'
-import { Menu } from "lucide-react"
+import { Menu, LogOut, User } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 import { navItems } from "./Sidebar"
+import { useAuth } from "@/components/auth-provider"
 import { useAppSettings } from "@/features/settings/hooks/useSettings"
 import PWAInstallButton from "@/components/PWAInstallButton"
 
@@ -15,14 +16,15 @@ export function Header() {
   const [open, setOpen] = useState(false)
   const pathname = usePathname()
   const { organizationName } = useAppSettings()
+  const { user, signOut, isOwner } = useAuth()
 
   const isActive = (href: string) => {
     if (href === '/dashboard') return pathname === '/dashboard'
     return pathname.startsWith(href)
   }
 
-  const hour = new Date().getHours()
-  const greeting = hour < 12 ? "Bom dia" : hour < 18 ? "Boa tarde" : "Boa noite"
+  const roleLabel = user?.systemRole === 'owner_admin_professional' ? 'Owner' : user?.systemRole === 'admin_total' ? 'Admin' : 'Profissional'
+  const roleBadgeClass = user?.systemRole === 'owner_admin_professional' ? 'owner' : user?.systemRole === 'admin_total' ? 'admin' : 'professional'
 
   return (
     <header className="topbar md:hidden">
@@ -82,6 +84,46 @@ export function Header() {
                   </nav>
                 </div>
               ))}
+
+              {/* Owner: link to professional area */}
+              {isOwner && (
+                <div>
+                  <div className="text-[9px] font-bold tracking-[0.14em] uppercase text-[var(--text-muted)] mb-2 mt-4 px-3">
+                    Minha Área
+                  </div>
+                  <Link
+                    href="/profissional"
+                    onClick={() => setOpen(false)}
+                    className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] border border-transparent`}
+                  >
+                    <User size={17} strokeWidth={1.7} />
+                    <span>Área Profissional</span>
+                  </Link>
+                </div>
+              )}
+            </div>
+
+            {/* User info + Logout */}
+            <div className="border-t border-[var(--border)] p-3 flex flex-col gap-2">
+              {user && (
+                <div className="flex items-center gap-2 px-2 py-1">
+                  <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'var(--accent-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: 'var(--accent)', flexShrink: 0 }}>
+                    {user.displayName?.[0] || user.fullName?.[0] || '?'}
+                  </div>
+                  <div className="flex flex-col min-w-0">
+                    <span className="text-[11px] font-semibold text-[var(--text-primary)] truncate">{user.displayName || user.fullName}</span>
+                    <span className={`user-badge ${roleBadgeClass}`}>{roleLabel}</span>
+                  </div>
+                </div>
+              )}
+              <button
+                onClick={() => { setOpen(false); signOut() }}
+                className="flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-[12px] font-semibold text-[var(--text-secondary)] border border-[var(--border)] hover:bg-[var(--bg-hover)]"
+                style={{ fontFamily: 'inherit', background: 'transparent', cursor: 'pointer', width: '100%' }}
+              >
+                <LogOut size={14} />
+                Sair
+              </button>
             </div>
           </SheetContent>
         </Sheet>
@@ -99,10 +141,10 @@ export function Header() {
         </div>
       </div>
 
-      {/* Greeting + PWA Install */}
+      {/* User + PWA */}
       <div className="flex items-center gap-2">
         <PWAInstallButton />
-        <span className="text-xs font-medium text-[var(--text-secondary)]">{greeting}</span>
+        {user && <span className={`user-badge ${roleBadgeClass}`}>{roleLabel}</span>}
       </div>
     </header>
   )

@@ -165,8 +165,10 @@ export async function registerAdvance(data: RegisterAdvanceInput) {
 // 2. CANCEL ADVANCE
 // ══════════════════════════════════════════════════════════
 
-export async function cancelAdvance(advanceId: string) {
+export async function cancelAdvance(advanceId: string, reason?: string) {
   const supabase = await createServerClient()
+  const { data: authData } = await supabase.auth.getUser()
+  const userProfileId = await resolveUserProfileId(supabase, authData.user?.id)
 
   try {
     const { data: advance, error: fetchErr } = await supabase
@@ -178,9 +180,75 @@ export async function cancelAdvance(advanceId: string) {
     if (fetchErr || !advance) throw new Error('Adiantamento não encontrado')
     if (advance.status !== 'active') throw new Error('Apenas adiantamentos ativos podem ser cancelados')
 
+    // ── Reverse linked cash entry (create inverse, don't delete) ──
+    if (advance.cash_entry_id) {
+      const { data: activeSession } = await supabase
+        .from('cash_sessions').select('id').eq('status', 'open').single()
+
+      if (activeSession) {
+        await supabase.from('cash_entries').insert({
+          cash_session_id: activeSession.id,
+          entry_type: 'manual_income',
+          amount: advance.total_amount,
+          category: 'Estorno Adiantamento',
+          description: `Estorno adiantamento cancelado: ${advance.description}`,
+          reference_type: 'advance_cancellation',
+          reference_id: advance.id,
+          reversal_of_entry_id: advance.cash_entry_id,
+          created_by: userProfileId,
+        })
+      }
+
+      // Mark original as reversed
+      await supabase.from('cash_entries')
+        .update({ status: 'reversed', cancelled_at: new Date().toISOString(), cancelled_by: userProfileId })
+        .eq('id', advance.cash_entry_id)
+    }
+
+    // ── Reverse linked financial movement ──
+    if (advance.financial_movement_id) {
+      const { data: origFin } = await supabase
+        .from('financial_movements').select('*').eq('id', advance.financial_movement_id).single()
+
+      if (origFin) {
+        await supabase.from('financial_movements').insert({
+          movement_type: 'received',
+          amount: origFin.amount,
+          category: 'Estorno',
+          subcategory: 'Estorno Adiantamento Profissional',
+          description: `Estorno: ${origFin.description}`,
+          origin_type: 'advance_cancellation',
+          origin_id: advance.id,
+          occurred_on: new Date().toISOString(),
+        })
+      }
+    }
+
+    // ── Reverse linked stock movement ──
+    if (advance.stock_movement_id) {
+      await supabase.from('stock_movements').insert({
+        product_id: advance.product_id,
+        movement_type: 'return_from_customer',
+        quantity: advance.quantity,
+        movement_reason: `Estorno consumo profissional cancelado: ${advance.description}`,
+        source_type: 'advance_cancellation',
+        destination_type: 'stock',
+        reference_type: 'professional_advance',
+        reference_id: advance.id,
+        movement_date: new Date().toISOString(),
+        performed_by: userProfileId,
+      })
+    }
+
+    // ── Update advance status ──
     const { error: updateErr } = await supabase
       .from('professional_advances')
-      .update({ status: 'cancelled' })
+      .update({
+        status: 'cancelled',
+        cancelled_by: userProfileId,
+        cancelled_at: new Date().toISOString(),
+        cancellation_reason: reason || null,
+      })
       .eq('id', advanceId)
 
     if (updateErr) throw updateErr
@@ -191,10 +259,13 @@ export async function cancelAdvance(advanceId: string) {
       entity_id: advanceId,
       oldData: advance,
       newData: { ...advance, status: 'cancelled' },
-      observation: `Adiantamento cancelado: ${advance.description}`
+      observation: `Adiantamento cancelado com estorno completo. Motivo: ${reason || 'Não informado'}. Caixa/financeiro/estoque revertidos.`
     })
 
     revalidatePath('/comissoes')
+    revalidatePath('/caixa')
+    revalidatePath('/estoque')
+    revalidatePath('/fluxo-de-caixa')
     return { success: true }
   } catch (error: any) {
     console.error('Cancel Advance Error:', error)
@@ -249,6 +320,25 @@ export async function generateClosurePreview(
       }
     }
 
+    // ── Perfume sales commissions (additional source) ──
+    const { data: perfumeSales } = await supabase
+      .from('perfume_sales')
+      .select('id, total_price, commission_amount_snapshot, perfume_name_snapshot, quantity')
+      .eq('professional_id', professionalId)
+      .neq('status', 'cancelled')
+      .gte('sale_date', periodStart)
+      .lte('sale_date', periodEnd)
+
+    let perfumeGrossTotal = 0
+    let perfumeCommissionTotal = 0
+    let perfumeSalesCount = 0
+
+    for (const ps of (perfumeSales || [])) {
+      perfumeSalesCount++
+      perfumeGrossTotal += Number(ps.total_price) || 0
+      perfumeCommissionTotal += Number(ps.commission_amount_snapshot) || 0
+    }
+
     // Fetch active advances in period (not carried over and not yet applied)
     const { data: advances } = await supabase
       .from('professional_advances')
@@ -270,8 +360,9 @@ export async function generateClosurePreview(
       .lte('occurred_at', periodEnd)
 
     const commissionPercent = Number(professional.default_commission_percent) || 47
-    const barberShare = grossTotal * (commissionPercent / 100)
-    const barbershopShare = grossTotal - barberShare
+    const barberShareFromSales = grossTotal * (commissionPercent / 100)
+    const barberShare = barberShareFromSales + perfumeCommissionTotal
+    const barbershopShare = grossTotal - barberShareFromSales
     const advancesTotal = (advances || []).reduce((sum: number, a: any) => sum + Number(a.total_amount), 0)
     const deferredTotal = (deferredItems || []).reduce((sum: number, a: any) => sum + Number(a.total_amount), 0)
     const netPayable = barberShare - advancesTotal
@@ -285,7 +376,7 @@ export async function generateClosurePreview(
       grossTotal,
       commissionPercent,
       barbershopShare,
-      barberShare,
+      barberShare: barberShareFromSales,
       advances: allAdvances.map((a: any) => ({
         description: a.description,
         total_amount: Number(a.total_amount),
@@ -294,6 +385,10 @@ export async function generateClosurePreview(
       advancesTotal,
       deferredTotal,
       netPayable,
+      // Perfume data for legit text
+      perfumeGrossTotal,
+      perfumeCommissionTotal,
+      perfumeSalesCount,
     })
 
     return {
@@ -315,6 +410,9 @@ export async function generateClosurePreview(
         deferredTotal,
         netPayable,
         legitText,
+        perfumeGrossTotal,
+        perfumeCommissionTotal,
+        perfumeSalesCount,
       }
     }
   } catch (error: any) {
@@ -557,8 +655,10 @@ export async function payClosureViaPix(closureId: string) {
 // 7. CANCEL CLOSURE
 // ══════════════════════════════════════════════════════════
 
-export async function cancelClosure(closureId: string) {
+export async function cancelClosure(closureId: string, reason?: string) {
   const supabase = await createServerClient()
+  const { data: authData } = await supabase.auth.getUser()
+  const userProfileId = await resolveUserProfileId(supabase, authData.user?.id)
 
   try {
     const { data: closure } = await supabase
@@ -568,8 +668,54 @@ export async function cancelClosure(closureId: string) {
       .single()
 
     if (!closure) throw new Error('Fechamento não encontrado')
-    if (closure.status === 'paid') throw new Error('Fechamentos já pagos não podem ser cancelados')
     if (closure.status === 'cancelled') throw new Error('Fechamento já está cancelado')
+
+    // ── If PAID: reverse all financial movements with inverse entries ──
+    if (closure.status === 'paid') {
+      // Reverse cash entry if exists
+      if (closure.cash_entry_id) {
+        const { data: activeSession } = await supabase
+          .from('cash_sessions').select('id').eq('status', 'open').single()
+
+        if (activeSession) {
+          await supabase.from('cash_entries').insert({
+            cash_session_id: activeSession.id,
+            entry_type: 'manual_income',
+            amount: closure.net_payable,
+            category: 'Estorno Pagamento Profissional',
+            description: `Estorno fechamento #${closure.id.split('-')[0]} revertido`,
+            reference_type: 'closure_reversal',
+            reference_id: closure.id,
+            reversal_of_entry_id: closure.cash_entry_id,
+            created_by: userProfileId,
+          })
+        }
+
+        // Mark original as reversed
+        await supabase.from('cash_entries')
+          .update({ status: 'reversed', cancelled_at: new Date().toISOString(), cancelled_by: userProfileId })
+          .eq('id', closure.cash_entry_id)
+      }
+
+      // Reverse financial movement if exists
+      if (closure.financial_movement_id) {
+        const { data: origFin } = await supabase
+          .from('financial_movements').select('*').eq('id', closure.financial_movement_id).single()
+
+        if (origFin) {
+          await supabase.from('financial_movements').insert({
+            movement_type: 'received',
+            amount: origFin.amount,
+            category: 'Estorno',
+            subcategory: 'Estorno Pagamento Profissional',
+            description: `Estorno: ${origFin.description}`,
+            origin_type: 'closure_reversal',
+            origin_id: closure.id,
+            occurred_on: new Date().toISOString(),
+          })
+        }
+      }
+    }
 
     // Revert advances back to active
     const { error: revertErr } = await supabase
@@ -583,21 +729,31 @@ export async function cancelClosure(closureId: string) {
 
     const { error: updateErr } = await supabase
       .from('professional_closures')
-      .update({ status: 'cancelled' })
+      .update({
+        status: 'cancelled',
+        cancelled_by: userProfileId,
+        cancelled_at: new Date().toISOString(),
+        cancellation_reason: reason || null,
+      })
       .eq('id', closureId)
 
     if (updateErr) throw updateErr
 
+    const wasPaid = closure.status === 'paid'
     await logAudit({
       action: 'UPDATE',
       entity: 'professional_closures',
       entity_id: closureId,
       oldData: closure,
       newData: { ...closure, status: 'cancelled' },
-      observation: `Fechamento cancelado. Adiantamentos revertidos para status ativo.`
+      observation: wasPaid
+        ? `Fechamento PAGO revertido com movimentos inversos. Motivo: ${reason || 'Não informado'}. Caixa/financeiro estornados.`
+        : `Fechamento cancelado. Motivo: ${reason || 'Não informado'}. Adiantamentos revertidos para status ativo.`
     })
 
     revalidatePath('/comissoes')
+    revalidatePath('/caixa')
+    revalidatePath('/fluxo-de-caixa')
     return { success: true }
   } catch (error: any) {
     console.error('Cancel Closure Error:', error)

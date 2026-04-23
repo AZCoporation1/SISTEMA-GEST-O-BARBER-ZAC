@@ -178,3 +178,114 @@ export async function addCashEntry(data: CashEntryValues) {
     return { success: false, error: error.message || "Erro ao adicionar lançamento" }
   }
 }
+
+// ══════════════════════════════════════════════════════════
+// REVERSE CASH ENTRY (Admin — non-destructive, creates inverse)
+// ══════════════════════════════════════════════════════════
+
+export async function reverseCashEntry(entryId: string, reason: string) {
+  try {
+    const supabase = await createServerClient()
+    const { data: authData } = await supabase.auth.getUser()
+    const userProfileId = await resolveUserProfileId(supabase, authData.user?.id)
+
+    // Fetch original
+    const { data: original, error: fetchErr } = await supabase
+      .from("cash_entries")
+      .select("*")
+      .eq("id", entryId)
+      .single()
+
+    if (fetchErr || !original) throw new Error("Lançamento não encontrado")
+    if ((original as any).status === "reversed") throw new Error("Lançamento já foi estornado")
+
+    // Determine inverse type
+    const isIncome = ["income", "manual_income", "sale_income", "reinforcement"].includes(original.entry_type)
+    const inverseType = isIncome ? "expense" : "manual_income"
+
+    // Get current open session
+    const { data: activeSession } = await supabase
+      .from("cash_sessions")
+      .select("id")
+      .eq("status", "open")
+      .single()
+
+    if (!activeSession) {
+      return { success: false, error: "Não há caixa aberto para registrar o estorno." }
+    }
+
+    // Create inverse cash entry
+    const { data: reverseEntry, error: revErr } = await supabase
+      .from("cash_entries")
+      .insert({
+        cash_session_id: activeSession.id,
+        entry_type: inverseType,
+        amount: original.amount,
+        category: "Estorno",
+        description: `Estorno: ${original.description || original.category}`,
+        reference_type: "cash_entry_reversal",
+        reference_id: entryId,
+        reversal_of_entry_id: entryId,
+        created_by: userProfileId,
+      })
+      .select()
+      .single()
+
+    if (revErr) throw new Error("Erro ao criar lançamento de estorno: " + revErr.message)
+
+    // Mark original as reversed
+    await supabase.from("cash_entries")
+      .update({
+        status: "reversed",
+        reversed_by_entry_id: reverseEntry.id,
+        cancellation_reason: reason,
+        cancelled_by: userProfileId,
+        cancelled_at: new Date().toISOString(),
+      })
+      .eq("id", entryId)
+
+    // Reverse financial movement if one was created
+    if (isIncome) {
+      // Original was income → mirrored as "received" → create inverse as "paid"
+      await supabase.from("financial_movements").insert({
+        movement_type: "paid" as any,
+        amount: original.amount,
+        category: "Estorno",
+        subcategory: "Estorno Lançamento de Caixa",
+        description: `Estorno: ${original.description || original.category}`,
+        origin_type: "cash_entry_reversal",
+        origin_id: reverseEntry.id,
+        occurred_on: new Date().toISOString(),
+      })
+    } else {
+      // Original was expense → mirrored as "paid" → create inverse as "received"
+      await supabase.from("financial_movements").insert({
+        movement_type: "received" as any,
+        amount: original.amount,
+        category: "Estorno",
+        subcategory: "Estorno Lançamento de Caixa",
+        description: `Estorno: ${original.description || original.category}`,
+        origin_type: "cash_entry_reversal",
+        origin_id: reverseEntry.id,
+        occurred_on: new Date().toISOString(),
+      })
+    }
+
+    await logAudit({
+      action: 'UPDATE',
+      entity: 'cash_entries',
+      entity_id: entryId,
+      oldData: original,
+      newData: { ...original, status: 'reversed' },
+      observation: `Lançamento de caixa estornado. Motivo: ${reason}. Movimento inverso criado.`
+    })
+
+    revalidatePath("/caixa")
+    revalidatePath("/dashboard")
+    revalidatePath("/fluxo-de-caixa")
+    return { success: true, data: reverseEntry }
+  } catch (error: any) {
+    console.error("Reverse Cash Entry Error:", error)
+    return { success: false, error: error.message || "Erro ao estornar lançamento" }
+  }
+}

@@ -3,6 +3,8 @@
 import { useState, useMemo } from "react"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useToast } from "@/hooks/use-toast"
+import { Textarea } from "@/components/ui/textarea"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { useProfessionals, useProfessionalClosures } from "../hooks/useProfessionals"
 import { getProfessionalSales, getProfessionalAdvances } from "../services/professionals.service"
 import { generateClosurePreview, payClosureViaCaixa, payClosureViaPix, cancelClosure } from "../actions/professionals.actions"
@@ -39,6 +41,7 @@ export function ProfessionalsOverview() {
   const [closurePreview, setClosurePreview] = useState<{ open: boolean; data: any }>({ open: false, data: null })
   const [legitViewer, setLegitViewer] = useState<{ open: boolean; text: string; name: string; label: string }>({ open: false, text: '', name: '', label: '' })
   const [isGenerating, setIsGenerating] = useState<string | null>(null)
+  const [cancelClosureDialog, setCancelClosureDialog] = useState<{ open: boolean; closureId: string; status: string }>({ open: false, closureId: '', status: '' })
 
   const periods = useMemo(() => getRecentPeriods(8), [])
   const currentPeriod = periods[selectedPeriodIdx]
@@ -131,12 +134,13 @@ export function ProfessionalsOverview() {
   })
 
   const cancelClosureMutation = useMutation({
-    mutationFn: (id: string) => cancelClosure(id),
+    mutationFn: ({ id, reason }: { id: string; reason: string }) => cancelClosure(id, reason),
     onSuccess: (res) => {
       if (res.success) {
         queryClient.invalidateQueries({ queryKey: ["professionalClosures"] })
         queryClient.invalidateQueries({ queryKey: ["professionalAdvances"] })
         toast({ title: "Fechamento cancelado" })
+        setCancelClosureDialog({ open: false, closureId: '', status: '' })
       } else {
         toast({ title: "Erro", description: res.error, variant: "destructive" })
       }
@@ -219,16 +223,22 @@ export function ProfessionalsOverview() {
               >
                 <CreditCard size={12} className="mr-1" /> PIX
               </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-7 px-2 text-xs text-red-500 hover:text-red-400"
-                disabled={cancelClosureMutation.isPending}
-                onClick={() => cancelClosureMutation.mutate(row.original.id)}
-              >
-                <XCircle size={12} />
-              </Button>
             </>
+          )}
+          {(row.original.status === 'confirmed' || row.original.status === 'paid') && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 px-2 text-xs text-red-500 hover:text-red-400"
+              onClick={() => setCancelClosureDialog({
+                open: true,
+                closureId: row.original.id,
+                status: row.original.status,
+              })}
+            >
+              <XCircle size={12} className="mr-1" />
+              {row.original.status === 'paid' ? 'Reverter' : 'Cancelar'}
+            </Button>
           )}
         </div>
       ),
@@ -415,6 +425,16 @@ export function ProfessionalsOverview() {
         professionalName={legitViewer.name}
         periodLabel={legitViewer.label}
       />
+
+      {/* Cancel/Reverse Closure Confirmation Dialog */}
+      <CancelClosureConfirmDialog
+        open={cancelClosureDialog.open}
+        onOpenChange={(open) => setCancelClosureDialog(prev => ({ ...prev, open }))}
+        closureId={cancelClosureDialog.closureId}
+        isPaid={cancelClosureDialog.status === 'paid'}
+        onConfirm={(reason) => cancelClosureMutation.mutate({ id: cancelClosureDialog.closureId, reason })}
+        isPending={cancelClosureMutation.isPending}
+      />
     </div>
   )
 }
@@ -438,5 +458,56 @@ function MiniMetric({ label, value, highlight, success, danger }: {
         'text-[var(--text-primary)]'
       }`}>{value}</p>
     </div>
+  )
+}
+
+// ── Cancel/Reverse Closure Confirm Dialog ──
+
+function CancelClosureConfirmDialog({ open, onOpenChange, closureId, isPaid, onConfirm, isPending }: {
+  open: boolean
+  onOpenChange: (v: boolean) => void
+  closureId: string
+  isPaid: boolean
+  onConfirm: (reason: string) => void
+  isPending: boolean
+}) {
+  const [reason, setReason] = useState('')
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2 text-red-400">
+            <XCircle size={18} />
+            {isPaid ? 'Reverter Fechamento Pago' : 'Cancelar Fechamento'}
+          </DialogTitle>
+          <DialogDescription>
+            {isPaid
+              ? 'Esta ação irá criar movimentos inversos no caixa e fluxo financeiro para reverter o pagamento. Os adiantamentos serão revertidos para status ativo.'
+              : 'Esta ação irá cancelar o fechamento e reverter os adiantamentos para status ativo.'
+            }
+          </DialogDescription>
+        </DialogHeader>
+        <div>
+          <label className="text-xs uppercase font-semibold text-[var(--text-secondary)]">Motivo *</label>
+          <Textarea
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            placeholder="Descreva o motivo do cancelamento/estorno..."
+            rows={3}
+          />
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={() => onOpenChange(false)}>Voltar</Button>
+          <Button
+            variant="destructive"
+            disabled={isPending || reason.length < 3}
+            onClick={() => onConfirm(reason)}
+          >
+            {isPending ? 'Processando...' : isPaid ? 'Confirmar Reversão' : 'Confirmar Cancelamento'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   )
 }

@@ -1,5 +1,6 @@
 // Barber Zac ERP — Supabase Database Types
 // Based on migration: 20260314_000002_professional_schema_overhaul.sql
+// Extended: 20260423_000010_auth_roles_professional_requests.sql
 
 export type Json =
   | string
@@ -32,6 +33,17 @@ export type CashEntryTypeEnum =
   | 'manual_income'
   | 'manual_expense'
 
+export type SystemRoleEnum = 'admin_total' | 'professional' | 'owner_admin_professional'
+
+export type ProfessionalRequestTypeEnum =
+  | 'inventory_sale'
+  | 'service_sale'
+  | 'perfume_sale'
+  | 'stock_withdrawal'
+  | 'manual_deduction'
+
+export type ProfessionalRequestStatusEnum = 'pending' | 'approved' | 'rejected' | 'cancelled'
+
 // ── Table Row Types ────────────────────────────────────────
 export interface AppSettingsRow {
   id: string
@@ -52,7 +64,14 @@ export interface UserProfileRow {
   full_name: string
   email: string
   role: 'admin' | 'gestor' | 'operador'
+  system_role: SystemRoleEnum
+  display_name: string | null
+  collaborator_id: string | null
   is_active: boolean
+  can_approve_professional_requests: boolean
+  can_view_all_professionals: boolean
+  can_manage_system: boolean
+  can_submit_professional_requests: boolean
   created_at: string
   updated_at: string
 }
@@ -236,6 +255,12 @@ export interface CashEntryRow {
   occurred_at: string
   created_by: string | null
   created_at: string
+  status: string | null
+  reversed_by_entry_id: string | null
+  reversal_of_entry_id: string | null
+  cancellation_reason: string | null
+  cancelled_by: string | null
+  cancelled_at: string | null
 }
 
 export interface FixedCostRow {
@@ -406,6 +431,9 @@ export interface ProfessionalAdvanceRow {
   carry_over_to_next_period: boolean
   status: AdvanceStatusEnum
   created_by: string | null
+  cancelled_by: string | null
+  cancelled_at: string | null
+  cancellation_reason: string | null
   notes: string | null
   created_at: string
   updated_at: string
@@ -433,7 +461,40 @@ export interface ProfessionalClosureRow {
   snapshot_json: Json | null
   created_by: string | null
   confirmed_by: string | null
+  cancelled_by: string | null
+  cancelled_at: string | null
+  cancellation_reason: string | null
   notes: string | null
+  created_at: string
+  updated_at: string
+}
+
+// ── Professional Requests (Approval Queue) ─────────────────
+export interface ProfessionalRequestRow {
+  id: string
+  professional_id: string
+  submitted_by: string
+  request_type: ProfessionalRequestTypeEnum
+  status: ProfessionalRequestStatusEnum
+  title: string
+  payload_json: Json
+  customer_id: string | null
+  customer_name_snapshot: string | null
+  customer_phone_snapshot: string | null
+  inventory_product_id: string | null
+  service_id: string | null
+  linked_sale_id: string | null
+  linked_perfume_sale_id: string | null
+  linked_advance_id: string | null
+  linked_cash_entry_id: string | null
+  linked_financial_movement_id: string | null
+  linked_stock_movement_id: string | null
+  admin_notes: string | null
+  rejection_reason: string | null
+  approved_by: string | null
+  approved_at: string | null
+  rejected_by: string | null
+  rejected_at: string | null
   created_at: string
   updated_at: string
 }
@@ -536,6 +597,11 @@ export interface Database {
       audit_logs: GenericTable
       professional_advances: GenericTable
       professional_closures: GenericTable
+      perfume_sales: GenericTable
+      perfume_sale_installments: GenericTable
+      services: GenericTable
+      service_categories: GenericTable
+      professional_requests: GenericTable
       [key: string]: GenericTable
     }
     Views: {
@@ -574,3 +640,59 @@ export const Constants = {
 
 // Convenience alias
 export type ProductWithStatus = VwInventoryPositionRow
+
+// ── Perfume Sales Types ────────────────────────────────────
+export type PerfumeSaleStatusEnum = 'active' | 'cancelled' | 'completed' | 'receivable_open' | 'receivable_settled'
+export type PerfumePaymentModeEnum = 'cash' | 'installments'
+export type PerfumeInstallmentStatusEnum = 'open' | 'paid' | 'overdue' | 'cancelled'
+
+export interface PerfumeSaleRow {
+  id: string
+  professional_id: string
+  customer_id: string | null
+  customer_name_snapshot: string
+  customer_phone_snapshot: string | null
+  inventory_product_id: string
+  external_code_snapshot: string | null
+  perfume_name_snapshot: string
+  sale_date: string
+  payment_mode: PerfumePaymentModeEnum
+  installment_count: number | null
+  due_day: number | null
+  unit_price_snapshot: number
+  quantity: number
+  total_price: number
+  commission_percent_snapshot: number
+  commission_amount_snapshot: number
+  payment_method_initial: string | null
+  status: PerfumeSaleStatusEnum
+  linked_cash_entry_id: string | null
+  linked_financial_movement_id: string | null
+  stock_movement_id: string | null
+  cancelled_by: string | null
+  cancelled_at: string | null
+  cancellation_reason: string | null
+  created_by: string | null
+  notes: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface PerfumeSaleInstallmentRow {
+  id: string
+  perfume_sale_id: string
+  installment_number: number
+  due_date: string
+  amount: number
+  status: PerfumeInstallmentStatusEnum
+  paid_at: string | null
+  paid_method: string | null
+  cash_entry_id: string | null
+  financial_movement_id: string | null
+  cancelled_by: string | null
+  cancelled_at: string | null
+  cancellation_reason: string | null
+  notes: string | null
+  created_at: string
+  updated_at: string
+}

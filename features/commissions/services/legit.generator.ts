@@ -25,6 +25,10 @@ export interface LegitData {
   advancesTotal: number
   deferredTotal: number
   netPayable: number
+  // Perfume commission data (additional source)
+  perfumeGrossTotal?: number
+  perfumeCommissionTotal?: number
+  perfumeSalesCount?: number
 }
 
 /**
@@ -62,6 +66,12 @@ export function generateLegitText(data: LegitData): string {
   lines.push(`Total Barbeiro: ${formatCurrencyBR(data.barberShare)}`)
   lines.push('')
 
+  // Perfume commissions section (if any)
+  if (data.perfumeSalesCount && data.perfumeSalesCount > 0) {
+    lines.push(`Comissão Perfumes: ${data.perfumeSalesCount} venda(s) — Bruto: ${formatCurrencyBR(data.perfumeGrossTotal || 0)} — Comissão: ${formatCurrencyBR(data.perfumeCommissionTotal || 0)}`)
+    lines.push('')
+  }
+
   // Pego (advances/deductions)
   if (data.advances.length > 0) {
     const advanceDescriptions = data.advances.map(a => {
@@ -78,7 +88,7 @@ export function generateLegitText(data: LegitData): string {
     lines.push('Pego: —')
   }
 
-  // Net payable
+  // Net payable (includes perfume commission)
   lines.push(`A pagar: ${formatCurrencyBR(data.netPayable)}`)
 
   return lines.join('\n')
