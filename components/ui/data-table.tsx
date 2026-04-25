@@ -23,7 +23,7 @@ import {
 import { Button } from "./button"
 import { Input } from "./input"
 import { useState } from "react"
-import { Search } from "lucide-react"
+import { Search, ChevronLeft, ChevronRight } from "lucide-react"
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[]
@@ -66,6 +66,21 @@ export function DataTable<TData, TValue>({
   const currentPage = table.getState().pagination.pageIndex + 1
   const totalPages = table.getPageCount()
   const totalRows = table.getFilteredRowModel().rows.length
+  const startRow = totalRows === 0 ? 0 : (currentPage - 1) * pageSize + 1
+  const endRow = Math.min(currentPage * pageSize, totalRows)
+
+  // Generate visible page numbers (max 5 shown)
+  const getPageNumbers = () => {
+    const pages: number[] = []
+    const maxVisible = 5
+    let start = Math.max(1, currentPage - Math.floor(maxVisible / 2))
+    let end = Math.min(totalPages, start + maxVisible - 1)
+    if (end - start + 1 < maxVisible) {
+      start = Math.max(1, end - maxVisible + 1)
+    }
+    for (let i = start; i <= end; i++) pages.push(i)
+    return pages
+  }
 
   return (
     <div>
@@ -134,29 +149,58 @@ export function DataTable<TData, TValue>({
           </TableBody>
         </Table>
       </div>
-      <div className="flex items-center justify-between py-4 flex-wrap gap-y-2">
-        <span className="text-xs text-[var(--text-secondary)]">
-          {totalRows} {totalRows === 1 ? 'item' : 'itens'} · Página {currentPage} de {totalPages || 1}
-        </span>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => table.previousPage()}
-            disabled={!table.getCanPreviousPage()}
-          >
-            Anterior
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => table.nextPage()}
-            disabled={!table.getCanNextPage()}
-          >
-            Próxima
-          </Button>
+
+      {/* Pagination Footer */}
+      {totalPages > 0 && (
+        <div className="flex items-center justify-between py-4 px-1 flex-wrap gap-y-3">
+          <div className="flex flex-col gap-0.5">
+            <span className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>
+              Exibindo <span style={{ color: 'var(--text-primary)', fontWeight: 700 }}>{startRow}–{endRow}</span> de{' '}
+              <span style={{ color: 'var(--accent)', fontWeight: 700 }}>{totalRows}</span>{' '}
+              {totalRows === 1 ? 'item' : 'itens'}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-1">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => table.previousPage()}
+              disabled={!table.getCanPreviousPage()}
+              className="h-8 w-8 p-0"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+
+            {getPageNumbers().map((pageNum) => (
+              <Button
+                key={pageNum}
+                variant={pageNum === currentPage ? "default" : "outline"}
+                size="sm"
+                onClick={() => table.setPageIndex(pageNum - 1)}
+                className="h-8 w-8 p-0 text-xs font-semibold"
+                style={pageNum === currentPage ? {
+                  background: 'var(--accent)',
+                  color: 'var(--accent-foreground)',
+                  borderColor: 'var(--accent)',
+                } : {}}
+              >
+                {pageNum}
+              </Button>
+            ))}
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => table.nextPage()}
+              disabled={!table.getCanNextPage()}
+              className="h-8 w-8 p-0"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   )
 }
