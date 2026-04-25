@@ -36,7 +36,6 @@ import { getProductById } from "../services/inventory.service"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 export function InventoryView() {
-  const [page, setPage] = useState(1)
   const [search, setSearch] = useState("")
   const [categoryId, setCategoryId] = useState("all")
   const [brandId, setBrandId] = useState("all")
@@ -55,9 +54,9 @@ export function InventoryView() {
   const { data: categories } = useCategories()
   const { data: brands } = useBrands()
 
+  // Fetch ALL matching items (perPage: 0 = no server-side pagination)
+  // DataTable handles client-side pagination with full dataset
   const { data: inventoryData, isLoading } = useInventory({
-    page,
-    perPage: 50,
     search,
     categoryId: categoryId !== "all" ? categoryId : undefined,
     brandId: brandId !== "all" ? brandId : undefined,
@@ -267,7 +266,7 @@ export function InventoryView() {
           ].map((tab) => (
             <button
               key={tab.value}
-              onClick={() => { setSkuFamily(tab.value); setPage(1) }}
+              onClick={() => { setSkuFamily(tab.value) }}
               className={`px-3 py-1.5 text-xs font-semibold tracking-wider rounded-md transition-all duration-150 ${
                 skuFamily === tab.value
                   ? "bg-[var(--accent)] text-[var(--accent-foreground)] shadow-sm"

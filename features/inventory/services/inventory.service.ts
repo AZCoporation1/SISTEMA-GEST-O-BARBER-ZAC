@@ -7,8 +7,8 @@ export interface InventoryFilters {
   brandId?: string
   skuFamily?: string   // 'PERF' | 'BEBI' | 'INSU' | undefined
   status?: string
-  page: number
-  perPage: number
+  page?: number
+  perPage?: number      // 0 or undefined = fetch all (client-side pagination)
 }
 
 export async function getInventoryPositions(filters: InventoryFilters) {
@@ -75,11 +75,16 @@ export async function getInventoryPositions(filters: InventoryFilters) {
     }
   }
 
-  const from = (filters.page - 1) * filters.perPage
-  const to = from + filters.perPage - 1
+  // Server-side pagination: only apply .range() if perPage > 0
+  // When perPage is 0 or undefined, fetch ALL matching items for client-side pagination
+  if (filters.perPage && filters.perPage > 0 && filters.page) {
+    const from = (filters.page - 1) * filters.perPage
+    const to = from + filters.perPage - 1
+    query = query.range(from, to)
+  }
   
   // Sort by external_code for Smart SKU organization, then by product_name
-  query = query.range(from, to).order("external_code", { ascending: true, nullsFirst: false }).order("product_name")
+  query = query.order("external_code", { ascending: true, nullsFirst: false }).order("product_name")
 
   const { data, error, count } = await query
 

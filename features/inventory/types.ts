@@ -17,6 +17,6 @@ export interface InventoryFilters {
   brandId?: string
   skuFamily?: string
   status?: "all" | "active" | "inactive" | "low_stock" | "out_of_stock" | "sem_estoque" | "abaixo_do_minimo" | "acima_do_maximo" | "normal"
-  page: number
-  perPage: number
+  page?: number
+  perPage?: number
 }
