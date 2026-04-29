@@ -129,6 +129,8 @@ export interface InventoryProductRow {
   markup_percent: number
   markup_value_generated: number
   sale_price_generated: number
+  sale_price_cash: number | null
+  sale_price_installment: number | null
   min_stock: number
   max_stock: number
   reorder_point: number | null
@@ -509,6 +511,8 @@ export interface VwInventoryPositionRow {
   cost_price: number
   markup_percent: number
   sale_price: number
+  sale_price_cash: number | null
+  sale_price_installment: number | null
   current_balance: number
   min_stock: number
   max_stock: number

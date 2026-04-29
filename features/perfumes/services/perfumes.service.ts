@@ -70,7 +70,7 @@ export async function fetchPerfumeProducts() {
   // First try PERF SKU prefix
   const { data: perfProducts } = await supabase
     .from('inventory_products')
-    .select('id, name, external_code, sku, cost_price, sale_price_generated, is_active, is_for_resale, category_id')
+    .select('id, name, external_code, sku, cost_price, sale_price_generated, sale_price_cash, sale_price_installment, is_active, is_for_resale, category_id')
     .eq('is_active', true)
     .eq('is_for_resale', true)
     .or('external_code.ilike.PERF%,sku.ilike.PERF%')
@@ -93,7 +93,7 @@ export async function fetchPerfumeProducts() {
   if (perfCategory) {
     const { data: catProducts } = await supabase
       .from('inventory_products')
-      .select('id, name, external_code, sku, cost_price, sale_price_generated, is_active, is_for_resale, category_id')
+      .select('id, name, external_code, sku, cost_price, sale_price_generated, sale_price_cash, sale_price_installment, is_active, is_for_resale, category_id')
       .eq('is_active', true)
       .eq('is_for_resale', true)
       .eq('category_id', perfCategory.id)
@@ -108,7 +108,7 @@ export async function fetchPerfumeProducts() {
   // Final fallback: all active resale products
   const { data: allResale } = await supabase
     .from('inventory_products')
-    .select('id, name, external_code, sku, cost_price, sale_price_generated, is_active, is_for_resale, category_id')
+    .select('id, name, external_code, sku, cost_price, sale_price_generated, sale_price_cash, sale_price_installment, is_active, is_for_resale, category_id')
     .eq('is_active', true)
     .eq('is_for_resale', true)
     .is('deleted_at', null)

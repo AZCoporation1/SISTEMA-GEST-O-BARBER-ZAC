@@ -554,10 +554,30 @@ function RegisterPerfumeSaleDialog({ open, onOpenChange }: { open: boolean; onOp
 
   const handleProductChange = (productId: string) => {
     const product = (products || []).find(p => p.id === productId)
+    const price = product
+      ? (form.payment_mode === 'cash'
+          ? (product.sale_price_cash ?? product.sale_price_generated ?? 0)
+          : (product.sale_price_installment ?? product.sale_price_generated ?? 0))
+      : 0
     setForm(prev => ({
       ...prev,
       inventory_product_id: productId,
-      unit_price: product?.sale_price_generated || 0,
+      unit_price: price,
+    }))
+  }
+
+  // Auto-update price when payment mode changes (if a product is selected)
+  const handlePaymentModeChange = (mode: 'cash' | 'installments') => {
+    const product = (products || []).find(p => p.id === form.inventory_product_id)
+    const price = product
+      ? (mode === 'cash'
+          ? (product.sale_price_cash ?? product.sale_price_generated ?? 0)
+          : (product.sale_price_installment ?? product.sale_price_generated ?? 0))
+      : form.unit_price
+    setForm(prev => ({
+      ...prev,
+      payment_mode: mode,
+      unit_price: price,
     }))
   }
 
@@ -742,7 +762,9 @@ function RegisterPerfumeSaleDialog({ open, onOpenChange }: { open: boolean; onOp
               <SelectContent>
                 {(products || []).map(p => (
                   <SelectItem key={p.id} value={p.id}>
-                    {p.name} {p.external_code ? `(${p.external_code})` : ""} — R$ {(p.sale_price_generated || 0).toFixed(2)}
+                    {p.name} {p.external_code ? `(${p.external_code})` : ""}
+                    {p.sale_price_cash ? ` — Vista R$${p.sale_price_cash.toFixed(2)}` : ""}
+                    {p.sale_price_installment ? ` / Prazo R$${p.sale_price_installment.toFixed(2)}` : ` — R$${(p.sale_price_generated || 0).toFixed(2)}`}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -791,7 +813,7 @@ function RegisterPerfumeSaleDialog({ open, onOpenChange }: { open: boolean; onOp
                     ? "border-emerald-500/50 bg-emerald-950/20 text-emerald-400"
                     : "border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--border-strong)]"
                 }`}
-                onClick={() => setForm(prev => ({ ...prev, payment_mode: "cash" }))}
+                onClick={() => handlePaymentModeChange("cash")}
               >
                 <DollarSign size={14} className="inline mr-1" /> À Vista
               </button>
@@ -802,7 +824,7 @@ function RegisterPerfumeSaleDialog({ open, onOpenChange }: { open: boolean; onOp
                     ? "border-amber-500/50 bg-amber-950/20 text-amber-400"
                     : "border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--border-strong)]"
                 }`}
-                onClick={() => setForm(prev => ({ ...prev, payment_mode: "installments" }))}
+                onClick={() => handlePaymentModeChange("installments")}
               >
                 <CreditCard size={14} className="inline mr-1" /> A Prazo
               </button>

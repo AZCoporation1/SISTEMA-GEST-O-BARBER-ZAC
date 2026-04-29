@@ -127,6 +127,24 @@ export function InventoryView() {
       header: "Preço de Venda",
       cell: ({ row }) => {
         const price = row.original.sale_price || 0
+        const ext = (row.original as any).external_code || ''
+        const isPerf = typeof ext === 'string' && ext.toUpperCase().startsWith('PERF')
+        const cashPrice = (row.original as any).sale_price_cash
+        const instPrice = (row.original as any).sale_price_installment
+
+        if (isPerf && (cashPrice || instPrice)) {
+          return (
+            <div className="flex flex-col gap-0.5">
+              {cashPrice != null && (
+                <span className="text-xs text-emerald-400 font-medium">Vista R$ {cashPrice.toFixed(2)}</span>
+              )}
+              {instPrice != null && (
+                <span className="text-xs text-amber-400 font-medium">Prazo R$ {instPrice.toFixed(2)}</span>
+              )}
+            </div>
+          )
+        }
+
         return <span className="font-bold text-emerald-600 dark:text-emerald-400">R$ {price.toFixed(2)}</span>
       }
     },
