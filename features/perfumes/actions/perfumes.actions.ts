@@ -20,7 +20,7 @@ export async function registerPerfumeSale(data: RegisterPerfumeSaleInput) {
     // ── Validate product exists and get snapshots ──
     const { data: product, error: prodErr } = await supabase
       .from('inventory_products')
-      .select('id, name, external_code, cost_price, sale_price_generated, is_active, is_for_resale')
+      .select('id, name, external_code, cost_price, sale_price_generated, sale_price_cash, sale_price_installment, is_active, is_for_resale')
       .eq('id', data.inventory_product_id)
       .single()
 
@@ -71,8 +71,18 @@ export async function registerPerfumeSale(data: RegisterPerfumeSaleInput) {
       }
     }
 
+    // ── Server-side dual pricing resolution ──
+    // Resolve the expected price based on payment mode + product pricing
+    const expectedPrice = data.payment_mode === 'cash'
+      ? (product.sale_price_cash ?? product.sale_price_generated ?? 0)
+      : (product.sale_price_installment ?? product.sale_price_generated ?? 0)
+
+    // Use the frontend-submitted price if provided (allows manual override),
+    // otherwise use the server-resolved price
+    const effectiveUnitPrice = data.unit_price > 0 ? data.unit_price : expectedPrice
+
     // ── Calculate totals ──
-    const totalPrice = data.unit_price * data.quantity
+    const totalPrice = effectiveUnitPrice * data.quantity
     const commissionAmount = totalPrice * (data.commission_percent / 100)
 
     // ── Stock deduction (immediate for both cash and installments) ──
@@ -86,7 +96,7 @@ export async function registerPerfumeSale(data: RegisterPerfumeSaleInput) {
         source_type: 'perfume_sale',
         destination_type: 'customer',
         unit_cost_snapshot: product.cost_price,
-        unit_sale_snapshot: data.unit_price,
+        unit_sale_snapshot: effectiveUnitPrice,
         total_cost_snapshot: product.cost_price * data.quantity,
         total_sale_snapshot: totalPrice,
         reference_type: 'perfume_sale',
@@ -171,7 +181,7 @@ export async function registerPerfumeSale(data: RegisterPerfumeSaleInput) {
         payment_mode: data.payment_mode,
         installment_count: data.installment_count || null,
         due_day: data.due_day || null,
-        unit_price_snapshot: data.unit_price,
+        unit_price_snapshot: effectiveUnitPrice,
         quantity: data.quantity,
         total_price: totalPrice,
         commission_percent_snapshot: data.commission_percent,
