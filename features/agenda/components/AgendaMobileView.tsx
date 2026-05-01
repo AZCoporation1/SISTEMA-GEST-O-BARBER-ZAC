@@ -2,7 +2,7 @@
 "use client"
 
 import { useState, useMemo } from "react"
-import { Plus, Lock, Clock, User, Phone, ChevronDown, CalendarDays, Scissors } from "lucide-react"
+import { Plus, Lock, Clock, User, Users, Phone, ChevronDown, CalendarDays, Scissors } from "lucide-react"
 import type { AppointmentWithRelations, AppointmentBlockRow, ProfessionalForAgenda, ProfessionalWorkingHoursRow } from "../types"
 import { APPOINTMENT_STATUS_LABELS, APPOINTMENT_STATUS_COLORS } from "../types"
 
