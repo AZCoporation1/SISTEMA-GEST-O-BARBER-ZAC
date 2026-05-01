@@ -108,18 +108,24 @@ export default function RecurrenceDialog({
 
   // Preview dates
   const previewDates = (() => {
+    if (!date) return []
     const dates: string[] = []
-    const baseDate = new Date(`${date}T12:00:00`)
-    const intervalDays = recurrenceType === "weekly" ? 7 : recurrenceType === "biweekly" ? 14 : 0
+    try {
+      const baseDate = new Date(`${date}T12:00:00`)
+      if (isNaN(baseDate.getTime())) return []
+      const intervalDays = recurrenceType === "weekly" ? 7 : recurrenceType === "biweekly" ? 14 : 0
 
-    for (let i = 0; i < recurrenceCount; i++) {
-      const d = new Date(baseDate)
-      if (recurrenceType === "monthly") {
-        d.setMonth(d.getMonth() + i)
-      } else {
-        d.setDate(d.getDate() + (intervalDays * i))
+      for (let i = 0; i < recurrenceCount; i++) {
+        const d = new Date(baseDate)
+        if (recurrenceType === "monthly") {
+          d.setMonth(d.getMonth() + i)
+        } else {
+          d.setDate(d.getDate() + (intervalDays * i))
+        }
+        dates.push(d.toISOString().split("T")[0])
       }
-      dates.push(d.toISOString().split("T")[0])
+    } catch {
+      return []
     }
     return dates
   })()

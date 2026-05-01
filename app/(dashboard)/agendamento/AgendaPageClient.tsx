@@ -14,6 +14,7 @@ import AgendaSettingsDialog from "@/features/agenda/components/AgendaSettingsDia
 import WaitlistSheet from "@/features/agenda/components/WaitlistSheet"
 import AgendaMobileView from "@/features/agenda/components/AgendaMobileView"
 import RecurrenceDialog from "@/features/agenda/components/RecurrenceDialog"
+import AgendaRuntimeDiagnostics from "@/features/agenda/components/AgendaRuntimeDiagnostics"
 import { useAgendaData, useAgendaSettings, useProfessionals, useWorkingHours, useBookableServices } from "@/features/agenda/hooks/useAgenda"
 import { useAuth } from "@/components/auth-provider"
 import type { AppointmentWithRelations, AppointmentWaitlistRow } from "@/features/agenda/types"
@@ -45,13 +46,20 @@ function useIsMobile(breakpoint = 768) {
 
 export default function AgendaPageClient() {
   const [selectedDate, setSelectedDate] = useState(getToday)
-  const { appointments, blocks, loading, refresh } = useAgendaData(selectedDate)
+  const { appointments: rawAppointments, blocks: rawBlocks, loading, refresh } = useAgendaData(selectedDate)
   const { settings, refresh: refreshSettings } = useAgendaSettings()
-  const { professionals } = useProfessionals()
-  const { hours: workingHours, refresh: refreshHours } = useWorkingHours()
-  const { services } = useBookableServices()
+  const { professionals: rawProfessionals } = useProfessionals()
+  const { hours: rawWorkingHours, refresh: refreshHours } = useWorkingHours()
+  const { services: rawServices } = useBookableServices()
   const { user, hasAdminAccess, isProfessional } = useAuth()
   const isMobile = useIsMobile()
+
+  // ── Safe defaults — prevent undefined.map/filter crashes ──
+  const appointments = rawAppointments ?? []
+  const blocks = rawBlocks ?? []
+  const professionals = rawProfessionals ?? []
+  const workingHours = rawWorkingHours ?? []
+  const services = rawServices ?? []
 
   // Determine professional restriction for `professional` role
   const restrictToProfessionalId = isProfessional && !hasAdminAccess
@@ -133,6 +141,7 @@ export default function AgendaPageClient() {
 
   return (
     <div className="page-content">
+      <AgendaRuntimeDiagnostics />
       {/* Header */}
       <div className="page-header">
         <div>
