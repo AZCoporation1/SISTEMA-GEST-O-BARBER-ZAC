@@ -1,0 +1,782 @@
+[
+  {
+    "external_code": "PERF 001",
+    "name": "1 Million 200ml",
+    "cost_price": 450,
+    "sale_price": 765,
+    "category": "Amadeirado Especiado",
+    "brand": "Paco Rabanne",
+    "is_active": true,
+    "id": "3fa0c929-f016-4beb-8757-568fe92fa102"
+  },
+  {
+    "external_code": "PERF 002",
+    "name": "9PM Rebel",
+    "cost_price": 379,
+    "sale_price": 644.3,
+    "category": "",
+    "brand": "",
+    "is_active": true,
+    "id": "78b105d9-39d7-4c43-8e67-7d498e9ef5ae"
+  },
+  {
+    "external_code": "PERF 003",
+    "name": "9PM_",
+    "cost_price": 279,
+    "sale_price": 474.3,
+    "category": "",
+    "brand": "",
+    "is_active": true,
+    "id": "6edbdf69-8779-451a-9835-05bcf22d13d6"
+  },
+  {
+    "external_code": "PERF 004",
+    "name": "Afeef",
+    "cost_price": 519,
+    "sale_price": 882.3,
+    "category": "",
+    "brand": "",
+    "is_active": true,
+    "id": "4bd7908e-af31-4714-80e9-7faf7399dc7a"
+  },
+  {
+    "external_code": "PERF 005",
+    "name": "Amber Rouge",
+    "cost_price": 479,
+    "sale_price": 814.3,
+    "category": "",
+    "brand": "",
+    "is_active": true,
+    "id": "5b049cd9-31de-4e1e-9e18-aacbe148d668"
+  },
+  {
+    "external_code": "PERF 006",
+    "name": "Angel",
+    "cost_price": 75,
+    "sale_price": 127.5,
+    "category": "Oriental Baunilha",
+    "brand": "Mugler",
+    "is_active": true,
+    "id": "f02d281a-be29-48cc-afdb-6314f652cb8f"
+  },
+  {
+    "external_code": "PERF 007",
+    "name": "Art of Universe",
+    "cost_price": 319,
+    "sale_price": 542.3,
+    "category": "",
+    "brand": "",
+    "is_active": true,
+    "id": "904e0c3b-51d0-4e8a-b9bd-41dcc22ca4b0"
+  },
+  {
+    "external_code": "PERF 008",
+    "name": "Asad  Bourbon EDP 100ml",
+    "cost_price": 540,
+    "sale_price": 540,
+    "category": "Amadeirado",
+    "brand": "Lataffa",
+    "is_active": true,
+    "id": "445c2dfc-cd1f-46ed-8fa9-4127bb6d142e"
+  },
+  {
+    "external_code": "PERF 009",
+    "name": "Asad Elixir EDP 100ml",
+    "cost_price": 516,
+    "sale_price": 542.32,
+    "category": "Amadeirado",
+    "brand": "Lataffa",
+    "is_active": true,
+    "id": "60ff18ec-fc7d-4265-a5aa-2f91242b5d50"
+  },
+  {
+    "external_code": "PERF 010",
+    "name": "Asad Zanziba",
+    "cost_price": 75,
+    "sale_price": 127.5,
+    "category": "Oriental Especiado",
+    "brand": "Lattafa",
+    "is_active": true,
+    "id": "2104429d-3780-4e3c-a45b-ecd5bc7b43b8"
+  },
+  {
+    "external_code": "PERF 011",
+    "name": "Assad",
+    "cost_price": 40,
+    "sale_price": 68,
+    "category": "Perfume de Bolso",
+    "brand": "Lattafa",
+    "is_active": true,
+    "id": "ccf67361-82f1-4b59-aaa5-863d32f53c4c"
+  },
+  {
+    "external_code": "PERF 012",
+    "name": "Assad",
+    "cost_price": 0,
+    "sale_price": 0,
+    "category": "Perfume para Cabelo",
+    "brand": "Lattafa",
+    "is_active": true,
+    "id": "b88942c1-570b-4c66-a1aa-a059d4ae5a2c"
+  },
+  {
+    "external_code": "PERF 013",
+    "name": "Assad Bourbon",
+    "cost_price": 320,
+    "sale_price": 544,
+    "category": "Perfume de Bolso",
+    "brand": "Lataffa",
+    "is_active": true,
+    "id": "05ad5b05-78ea-42b9-95f0-a0d42ace43ba"
+  },
+  {
+    "external_code": "PERF 014",
+    "name": "Atheeri",
+    "cost_price": 500,
+    "sale_price": 850,
+    "category": "",
+    "brand": "",
+    "is_active": true,
+    "id": "d9eb1fac-49c0-417d-aefa-8bbde7b79abb"
+  },
+  {
+    "external_code": "PERF 015",
+    "name": "Attar Al Wesal",
+    "cost_price": 245,
+    "sale_price": 416.5,
+    "category": "",
+    "brand": "Al Wataniah",
+    "is_active": true,
+    "id": "da9a6d6c-90d8-4dc7-ab3f-420cf101dd0e"
+  },
+  {
+    "external_code": "PERF 016",
+    "name": "Azure Fantasy",
+    "cost_price": 520,
+    "sale_price": 884,
+    "category": "",
+    "brand": "",
+    "is_active": true,
+    "id": "5d29896c-aea9-45e4-a9b0-91cc65e6390a"
+  },
+  {
+    "external_code": "PERF 017",
+    "name": "Bacara",
+    "cost_price": 10,
+    "sale_price": 17,
+    "category": "Perfume para Cabelo",
+    "brand": "",
+    "is_active": true,
+    "id": "c9a12d65-a71c-49a7-a6d0-4f9921fcab4c"
+  },
+  {
+    "external_code": "PERF 018",
+    "name": "Bade'e al oud",
+    "cost_price": 240,
+    "sale_price": 408,
+    "category": "Oriental Amadeirado",
+    "brand": "Lattafa",
+    "is_active": true,
+    "id": "1451df10-bf22-4bd9-acd6-d37437b28585"
+  },
+  {
+    "external_code": "PERF 019",
+    "name": "Classic Stone",
+    "cost_price": 329,
+    "sale_price": 559.3,
+    "category": "",
+    "brand": "",
+    "is_active": true,
+    "id": "b2425ce8-c727-4b47-abea-f74ea2140d18"
+  },
+  {
+    "external_code": "PERF 020",
+    "name": "Club de Nuit Intensse",
+    "cost_price": 315,
+    "sale_price": 535.5,
+    "category": "",
+    "brand": "",
+    "is_active": true,
+    "id": "f039a71b-4c2e-47d4-985e-70185348ea72"
+  },
+  {
+    "external_code": "PERF 021",
+    "name": "Club de Nuit Sillage",
+    "cost_price": 339,
+    "sale_price": 576.3,
+    "category": "",
+    "brand": "",
+    "is_active": true,
+    "id": "722df747-d648-42d8-9f63-450df1fe89a4"
+  },
+  {
+    "external_code": "PERF 022",
+    "name": "Club de Nuit Urban Elixir",
+    "cost_price": 299,
+    "sale_price": 508.3,
+    "category": "",
+    "brand": "",
+    "is_active": true,
+    "id": "b53b0230-bb28-4393-a61f-08be4aafe866"
+  },
+  {
+    "external_code": "PERF 023",
+    "name": "Cluib de Nuit Intense Man",
+    "cost_price": 25,
+    "sale_price": 42.5,
+    "category": "Perfume de Bolso",
+    "brand": "Armaf",
+    "is_active": true,
+    "id": "480f9226-e564-4d79-898a-af8577cd15f4"
+  },
+  {
+    "external_code": "PERF 024",
+    "name": "Creed Aventus Eau de Parfum 100ml",
+    "cost_price": 0,
+    "sale_price": 0,
+    "category": "",
+    "brand": "",
+    "is_active": true,
+    "id": "e5e7cbcb-2f2d-45e7-93d0-63a338cd2e6d"
+  },
+  {
+    "external_code": "PERF 025",
+    "name": "Dream of Haze",
+    "cost_price": 350,
+    "sale_price": 595,
+    "category": "",
+    "brand": "",
+    "is_active": true,
+    "id": "46a97c30-d6bf-410f-b7c4-2ab05ca5c473"
+  },
+  {
+    "external_code": "PERF 026",
+    "name": "Eternal Touch",
+    "cost_price": 60,
+    "sale_price": 102,
+    "category": "Amadeirado Aromático",
+    "brand": "Maison Alhambra",
+    "is_active": true,
+    "id": "50280453-93ab-4e81-a685-1ccaf6fcbb4f"
+  },
+  {
+    "external_code": "PERF 027",
+    "name": "Fakhar Black Árabe Lattafa 100Ml Original",
+    "cost_price": 0,
+    "sale_price": 0,
+    "category": "",
+    "brand": "",
+    "is_active": true,
+    "id": "e7ac7305-b564-4c0e-ab31-dd96d41fb130"
+  },
+  {
+    "external_code": "PERF 028",
+    "name": "Força do Leão",
+    "cost_price": 30,
+    "sale_price": 51,
+    "category": "Amadeirado",
+    "brand": "",
+    "is_active": true,
+    "id": "4cc298c1-0a4f-4012-bbed-64ee0808894b"
+  },
+  {
+    "external_code": "PERF 029",
+    "name": "Fusion Intense",
+    "cost_price": 60,
+    "sale_price": 102,
+    "category": "Amadeirado Especiado",
+    "brand": "Maison Alhambra",
+    "is_active": true,
+    "id": "77916ce3-e4c3-463d-8c57-222e6ff02029"
+  },
+  {
+    "external_code": "PERF 030",
+    "name": "Ghost",
+    "cost_price": 329,
+    "sale_price": 559.3,
+    "category": "",
+    "brand": "",
+    "is_active": true,
+    "id": "a8c86da9-cd5c-4a04-9809-592e1608b1fd"
+  },
+  {
+    "external_code": "PERF 031",
+    "name": "Hawas Elixir",
+    "cost_price": 319,
+    "sale_price": 542.3,
+    "category": "",
+    "brand": "",
+    "is_active": true,
+    "id": "02583c46-e9ec-41e4-a6ce-2e0d023009e5"
+  },
+  {
+    "external_code": "PERF 032",
+    "name": "Jubilant Noir",
+    "cost_price": 60,
+    "sale_price": 102,
+    "category": "Oriental Floral",
+    "brand": "Maison Alhambra",
+    "is_active": true,
+    "id": "bbe3dce8-0ac5-46eb-bb8b-ee1c300b8bac"
+  },
+  {
+    "external_code": "PERF 033",
+    "name": "Jubilant Oro",
+    "cost_price": 60,
+    "sale_price": 102,
+    "category": "Aromático Fougère",
+    "brand": "Maison Alhambra",
+    "is_active": true,
+    "id": "e04f61fd-d223-400b-96a8-dae5ac842783"
+  },
+  {
+    "external_code": "PERF 034",
+    "name": "Khamrah",
+    "cost_price": 288,
+    "sale_price": 489.6,
+    "category": "Oriental Baunilha",
+    "brand": "Lattafa",
+    "is_active": true,
+    "id": "bd5baaac-0289-4441-bcfc-9c72083dfd0a"
+  },
+  {
+    "external_code": "PERF 035",
+    "name": "Khamrah Dukhan",
+    "cost_price": 299.99,
+    "sale_price": 509.98,
+    "category": "",
+    "brand": "Lattafa",
+    "is_active": true,
+    "id": "27bdd07b-3718-4cda-8239-c4c8df41a63d"
+  },
+  {
+    "external_code": "PERF 036",
+    "name": "Khamrah Quarah EDP 100ml",
+    "cost_price": 560,
+    "sale_price": 560,
+    "category": "Amadeirado Especiado",
+    "brand": "Lattafa",
+    "is_active": true,
+    "id": "d484af47-4dc6-4962-95d5-7bc1342bfc03"
+  },
+  {
+    "external_code": "PERF 037",
+    "name": "Kharmrah",
+    "cost_price": 150,
+    "sale_price": 150,
+    "category": "Perfume de Bolso",
+    "brand": "Lataffa",
+    "is_active": true,
+    "id": "7e1a61a2-f9ae-4f5f-936c-820d5a6ed4cb"
+  },
+  {
+    "external_code": "PERF 038",
+    "name": "Kit the Secret 100ml e 150ml",
+    "cost_price": 150,
+    "sale_price": 255,
+    "category": "Oriental Especiado",
+    "brand": "Antonio Banderas",
+    "is_active": true,
+    "id": "8f35e1d6-2022-4681-a76b-26614cf3bd4b"
+  },
+  {
+    "external_code": "PERF 039",
+    "name": "La Voie",
+    "cost_price": 60,
+    "sale_price": 102,
+    "category": "Floral",
+    "brand": "Maison Alhambra",
+    "is_active": true,
+    "id": "7ebcb981-8fbb-41df-9977-455213cb9ed3"
+  },
+  {
+    "external_code": "PERF 040",
+    "name": "Lady Blue",
+    "cost_price": 40,
+    "sale_price": 68,
+    "category": "Amadeirado",
+    "brand": "Isabelle la Belle",
+    "is_active": true,
+    "id": "47b0979c-a5dd-48bc-9c80-4ad35a96b360"
+  },
+  {
+    "external_code": "PERF 041",
+    "name": "Liquid Brun",
+    "cost_price": 379,
+    "sale_price": 644.3,
+    "category": "",
+    "brand": "",
+    "is_active": true,
+    "id": "2daa98be-4d3f-4578-9025-564da3f13ab7"
+  },
+  {
+    "external_code": "PERF 042",
+    "name": "Malik Al Tayoor",
+    "cost_price": 280,
+    "sale_price": 476,
+    "category": "",
+    "brand": "",
+    "is_active": true,
+    "id": "6c3db18e-7440-45df-bc72-b63617afdb01"
+  },
+  {
+    "external_code": "PERF 043",
+    "name": "Man Black Edition",
+    "cost_price": 60,
+    "sale_price": 102,
+    "category": "Oriental Amadeirado",
+    "brand": "Maison Alhambra",
+    "is_active": true,
+    "id": "4aa844ba-8fb0-4258-aedc-a5190abf73df"
+  },
+  {
+    "external_code": "PERF 044",
+    "name": "Monocline Series Two",
+    "cost_price": 60,
+    "sale_price": 102,
+    "category": "Amadeirado",
+    "brand": "Maison Alhambra",
+    "is_active": true,
+    "id": "e35a1952-a6d4-4c3e-aa4d-62834704afab"
+  },
+  {
+    "external_code": "PERF 045",
+    "name": "Nebras",
+    "cost_price": 240,
+    "sale_price": 408,
+    "category": "",
+    "brand": "",
+    "is_active": true,
+    "id": "417b61df-670f-4490-8e5f-5377df83da29"
+  },
+  {
+    "external_code": "PERF 046",
+    "name": "Noble",
+    "cost_price": 550,
+    "sale_price": 935,
+    "category": "",
+    "brand": "",
+    "is_active": true,
+    "id": "7c95b708-8b78-4b80-b27f-75fc8fdfcda1"
+  },
+  {
+    "external_code": "PERF 047",
+    "name": "Odyssei Mandarin sky",
+    "cost_price": 289,
+    "sale_price": 491.3,
+    "category": "",
+    "brand": "",
+    "is_active": true,
+    "id": "80b96148-3133-4ea1-8d04-6ab7f5cded69"
+  },
+  {
+    "external_code": "PERF 048",
+    "name": "Perseus Exclusif",
+    "cost_price": 229,
+    "sale_price": 389.3,
+    "category": "",
+    "brand": "",
+    "is_active": true,
+    "id": "292a2334-0da3-4bc2-87d8-898bea0fe10e"
+  },
+  {
+    "external_code": "PERF 049",
+    "name": "Perseus Silver",
+    "cost_price": 229,
+    "sale_price": 389.3,
+    "category": "",
+    "brand": "",
+    "is_active": true,
+    "id": "fb2e0be3-d5dd-43a7-8fd5-009fea526cde"
+  },
+  {
+    "external_code": "PERF 050",
+    "name": "Pink Shimmer Secret",
+    "cost_price": 60,
+    "sale_price": 102,
+    "category": "Amadeirado",
+    "brand": "Maison Alhambra",
+    "is_active": true,
+    "id": "85c02e04-2355-4d23-8ca5-c067bd86e4d8"
+  },
+  {
+    "external_code": "PERF 051",
+    "name": "Pink Velvet",
+    "cost_price": 60,
+    "sale_price": 102,
+    "category": "Floral Frutado",
+    "brand": "Maison Alhambra",
+    "is_active": true,
+    "id": "647ec18e-3931-47d3-b06f-f2a98dd0a4c1"
+  },
+  {
+    "external_code": "PERF 052",
+    "name": "QAED",
+    "cost_price": 210,
+    "sale_price": 357,
+    "category": "",
+    "brand": "",
+    "is_active": true,
+    "id": "dee5f035-c365-424f-9920-e0e0b5f287eb"
+  },
+  {
+    "external_code": "PERF 053",
+    "name": "QAED Preto",
+    "cost_price": 0,
+    "sale_price": 0,
+    "category": "",
+    "brand": "",
+    "is_active": true,
+    "id": "aa139d05-b7d8-47f0-9d02-b8466c6d0124"
+  },
+  {
+    "external_code": "PERF 054",
+    "name": "Sabah",
+    "cost_price": 244.99,
+    "sale_price": 416.48,
+    "category": "",
+    "brand": "",
+    "is_active": true,
+    "id": "a3b17ba9-f354-4124-a845-bc325d80ab52"
+  },
+  {
+    "external_code": "PERF 055",
+    "name": "Safeer",
+    "cost_price": 199,
+    "sale_price": 338.3,
+    "category": "",
+    "brand": "",
+    "is_active": true,
+    "id": "8d71bfdf-52c5-46aa-a9dd-2f11fb9b715c"
+  },
+  {
+    "external_code": "PERF 056",
+    "name": "Salvo Elixir",
+    "cost_price": 159,
+    "sale_price": 270.3,
+    "category": "Bergamota",
+    "brand": "",
+    "is_active": true,
+    "id": "de1b0260-4f4e-4aab-a9b5-5cd2a958f3d0"
+  },
+  {
+    "external_code": "PERF 057",
+    "name": "Spectre Ghost",
+    "cost_price": 329.9,
+    "sale_price": 560.83,
+    "category": "",
+    "brand": "",
+    "is_active": true,
+    "id": "f9c205a2-622a-45bc-b0ba-0af60897e214"
+  },
+  {
+    "external_code": "PERF 058",
+    "name": "Story of Love",
+    "cost_price": 40,
+    "sale_price": 68,
+    "category": "Perfume de Bolso",
+    "brand": "",
+    "is_active": true,
+    "id": "d1fe8ec1-ce67-4818-a6ed-5bf1c4472425"
+  },
+  {
+    "external_code": "PERF 059",
+    "name": "Supremacy",
+    "cost_price": 419,
+    "sale_price": 712.3,
+    "category": "",
+    "brand": "",
+    "is_active": true,
+    "id": "171fe301-f2bc-49f3-a51d-086b2bf06f18"
+  },
+  {
+    "external_code": "PERF 060",
+    "name": "Turathi Blue",
+    "cost_price": 309.99,
+    "sale_price": 526.98,
+    "category": "",
+    "brand": "",
+    "is_active": true,
+    "id": "42fbc1f2-5173-4138-8a8d-8eb5b0de2af3"
+  },
+  {
+    "external_code": "PERF 061",
+    "name": "Victoria",
+    "cost_price": 269,
+    "sale_price": 457.3,
+    "category": "",
+    "brand": "",
+    "is_active": true,
+    "id": "39eaa6b4-71c4-492e-abcc-f6844f00212f"
+  },
+  {
+    "external_code": "PERF 062",
+    "name": "Voux Turquoise",
+    "cost_price": 330,
+    "sale_price": 561,
+    "category": "",
+    "brand": "",
+    "is_active": true,
+    "id": "1762dbfc-f485-4074-8757-07a12cf47609"
+  },
+  {
+    "external_code": "PERF 063",
+    "name": "Vulcan Feu",
+    "cost_price": 350,
+    "sale_price": 595,
+    "category": "",
+    "brand": "",
+    "is_active": true,
+    "id": "9475eb35-1d4d-4397-8739-1d567f92e662"
+  },
+  {
+    "external_code": "PERF 064",
+    "name": "Wazer",
+    "cost_price": 199,
+    "sale_price": 338.3,
+    "category": "",
+    "brand": "",
+    "is_active": true,
+    "id": "04c733c1-2337-475d-a3a7-3bf43ba7bf9b"
+  },
+  {
+    "external_code": "PERF 065",
+    "name": "Yara",
+    "cost_price": 75,
+    "sale_price": 127.5,
+    "category": "Oriental Baunilha",
+    "brand": "Lattafa",
+    "is_active": true,
+    "id": "d66c6efc-01da-46d5-a3ea-1fe52f76f8dc"
+  },
+  {
+    "external_code": "PERF 066",
+    "name": "Yara Moi",
+    "cost_price": 249,
+    "sale_price": 423.3,
+    "category": "",
+    "brand": "",
+    "is_active": true,
+    "id": "80af82d6-7300-4fc5-97b3-132f6ad09941"
+  },
+  {
+    "external_code": "PERF 067",
+    "name": "Yara Tous",
+    "cost_price": 75,
+    "sale_price": 127.5,
+    "category": "Floral Frutado Gourmet",
+    "brand": "Lattafa",
+    "is_active": true,
+    "id": "296559db-fa47-40cb-9861-14ee41e137c2"
+  },
+  {
+    "external_code": "PERF 068",
+    "name": "Avant Feminino 50ml",
+    "cost_price": 0,
+    "sale_price": 0,
+    "category": "Perfume de Bolso",
+    "brand": "Maison Alhambra",
+    "is_active": true,
+    "id": "6e5100c9-bc37-41df-80a6-d9226839323c"
+  },
+  {
+    "external_code": "PERF 069",
+    "name": "Badee AL OUD Subl EDP 100ml",
+    "cost_price": 375,
+    "sale_price": 375,
+    "category": "Amadeirado Aromático",
+    "brand": "Lataffa",
+    "is_active": true,
+    "id": "31bc2a8f-8273-4a70-884c-d5a0a10876ec"
+  },
+  {
+    "external_code": "PERF 070",
+    "name": "Opulent Dubai EDP 100ml",
+    "cost_price": 375,
+    "sale_price": 375,
+    "category": "Amadeirado Especiado",
+    "brand": "Lataffa",
+    "is_active": true,
+    "id": "2740903d-8975-45ec-b151-b32b609cd22f"
+  },
+  {
+    "external_code": "PERF 071",
+    "name": "Badee AL Oud Noble B EDP 100ml",
+    "cost_price": 375,
+    "sale_price": 375,
+    "category": "Aromático Fougère",
+    "brand": "",
+    "is_active": true,
+    "id": "ea549179-5628-413c-aca9-148b19c085db"
+  },
+  {
+    "external_code": "PERF 072",
+    "name": "Hawas Blac EDP 100ml",
+    "cost_price": 564,
+    "sale_price": 564,
+    "category": "Aromático Fougère",
+    "brand": "",
+    "is_active": true,
+    "id": "e6a4680a-4d93-4908-8952-3c02b472784e"
+  },
+  {
+    "external_code": "PERF 073",
+    "name": "Khamrah EDP 100ml tradicional",
+    "cost_price": 420,
+    "sale_price": 420,
+    "category": "Amadeirado Aromático",
+    "brand": "Lataffa",
+    "is_active": true,
+    "id": "f53919f0-a5d4-4b6e-81d9-315e7fee0aeb"
+  },
+  {
+    "external_code": "PERF 074",
+    "name": "PRID ART OF ARABIA I EDP 100ml",
+    "cost_price": 564,
+    "sale_price": 564,
+    "category": "Aromático Fougère",
+    "brand": "Lataffa",
+    "is_active": false,
+    "id": "6c2cd35c-923a-426f-bd41-2ec82cf976a3"
+  },
+  {
+    "external_code": "PERF 075",
+    "name": "CADIZ EDP 100ml",
+    "cost_price": 540,
+    "sale_price": 540,
+    "category": "Aromático Fougère",
+    "brand": "",
+    "is_active": true,
+    "id": "b5ee0142-42fe-4840-9c94-5706ccc95159"
+  },
+  {
+    "external_code": "PERF 076",
+    "name": "CLASSIC STONE ",
+    "cost_price": 660,
+    "sale_price": 660,
+    "category": "Aromático Fougère",
+    "brand": "",
+    "is_active": true,
+    "id": "8c093f42-19e7-4802-b925-9744ffe46919"
+  },
+  {
+    "external_code": "PERF 077",
+    "name": "SHERIF",
+    "cost_price": 420,
+    "sale_price": 420,
+    "category": "Aromático Fougère",
+    "brand": "Lataffa",
+    "is_active": true,
+    "id": "0843c0d6-af66-427e-bcb5-22d612e04ba8"
+  },
+  {
+    "external_code": "PERF 078",
+    "name": "MAKTUB LA VIE EDP 100ml",
+    "cost_price": 420,
+    "sale_price": 420,
+    "category": "Aromático Fougère",
+    "brand": "",
+    "is_active": true,
+    "id": "2b000f9f-97f0-4efb-a64e-32f0ac743f6d"
+  }
+]

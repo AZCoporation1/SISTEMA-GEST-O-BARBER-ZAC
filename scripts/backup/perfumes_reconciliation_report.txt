@@ -1,0 +1,75 @@
+═══ BARBER ZAC — PERFUME RECONCILIATION v2 ═══
+Mode: apply
+Timestamp: 2026-04-25T19:18:58.627Z
+Matching strategy: NORMALIZED NAME (DB codes are canonical and preserved)
+
+═══ PHASE 0: READING SOURCES ═══
+Workbook rows parsed: 74
+DB perfume products: 78
+  ⚠️ DB duplicate name: "Assad" (PERF 012) — already mapped to PERF 011
+  ⚠️ DB duplicate name: "CLASSIC STONE " (PERF 076) — already mapped to PERF 019
+
+═══ PHASE 1: DRY-RUN DIAGNOSIS ═══
+  🔗 Fuzzy matched: "Khamrah Dukan" → DB "Khamrah" (PERF 034)
+1. DB perfume products: 78
+2. Matching logic: normalized product name
+3. Workbook unique names: 66
+4. WB duplicates (same name): 8
+   DUP: Perf 059:Amber Rouge
+   DUP: Perf 028:Assad
+   DUP: Perf 057:Attar Al Wesal
+   DUP: Perf 060:Azure Fantasy
+   DUP: Perf 075:Jubilant Oro
+   DUP: Perf 039:Liquid Brun
+   DUP: Perf 061:Noble
+   DUP: Perf 062:Supremacy
+5. Matched to existing DB: 66
+6. Unmatched (potential new): 0
+7. DB-only (no WB match): 13
+   DB-ONLY: PERF 012 "Assad"
+   DB-ONLY: PERF 053 "QAED Preto"
+   DB-ONLY: PERF 068 "Avant Feminino 50ml"
+   DB-ONLY: PERF 069 "Badee AL OUD Subl EDP 100ml"
+   DB-ONLY: PERF 070 "Opulent Dubai EDP 100ml"
+   DB-ONLY: PERF 071 "Badee AL Oud Noble B EDP 100ml"
+   DB-ONLY: PERF 072 "Hawas Blac EDP 100ml"
+   DB-ONLY: PERF 073 "Khamrah EDP 100ml tradicional"
+   DB-ONLY: PERF 074 "PRID ART OF ARABIA I EDP 100ml"
+   DB-ONLY: PERF 075 "CADIZ EDP 100ml"
+   DB-ONLY: PERF 076 "CLASSIC STONE "
+   DB-ONLY: PERF 077 "SHERIF"
+   DB-ONLY: PERF 078 "MAKTUB LA VIE EDP 100ml"
+8. Highest DB PERF code: PERF 078
+9. Next available code: PERF 079
+10. WB rows with valid cost: 71/74
+    DB perfumes with zero cost: 5/78
+
+═══ PHASE 2: BACKUP / SAFETY SNAPSHOT ═══
+✅ JSON backup: C:\Users\granc\Desktop\Sistema de gestão Barber Zac\barber-zac\scripts\backup\perfumes_before_apply.json
+✅ XLSX backup: C:\Users\granc\Desktop\Sistema de gestão Barber Zac\barber-zac\scripts\backup\perfumes_before_apply.xlsx
+
+═══ PHASE 3: RECONCILIATION PLAN ═══
+  UPDATE PERF 034 "Khamrah": markup:70→65.28% (sale≈476)
+
+Update plan: 1 products to update
+Cost preserved (DB valid): 64
+Cost to update (DB=0, WB valid): 0
+Sale to update: 1
+No new perfumes to insert (all WB items matched DB)
+
+═══ PHASE 4: APPLYING TO LIVE SYSTEM ═══
+Updates: 1 OK, 0 failed
+✅ Audit log created
+
+═══ PHASE 6: FINAL CANONICAL EXPORT ═══
+✅ Final XLSX + CSV exported
+Final catalog: 78 perfumes (cost>0: 73, cat: 41, brand: 34)
+
+═══ PHASE 7: VALIDATION ═══
+1. No duplicate codes: ✅
+2. Total perfumes: 78
+3. Zero cost remaining: 5
+4. No code files changed: ✅
+5. No build required: ✅ (data-only)
+6. Cost never inferred from sale: ✅
+7. DB mutation scope: perfume catalog only ✅

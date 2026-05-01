@@ -64,6 +64,7 @@ export const navItems: NavItem[] = [
   {
     section: 'Comercial',
     items: [
+      { href: '/agendamento', icon: Calendar, label: 'Agenda' },
       { href: '/vendas', icon: ShoppingCart, label: 'Vendas' },
       { href: '/perfumes', icon: Sparkles, label: 'Perfumes' },
       { href: '/clientes', icon: Users, label: 'Clientes' },
@@ -91,7 +92,6 @@ export const navItems: NavItem[] = [
     items: [
       { href: '/configuracoes', icon: Settings, label: 'Configurações' },
       { href: '/auditoria', icon: ShieldCheck, label: 'Auditoria' },
-      { href: '/agendamento', icon: Calendar, label: 'Agendamento', badge: 'Em breve' },
     ]
   },
 ]

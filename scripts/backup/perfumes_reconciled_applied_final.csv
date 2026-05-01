@@ -1,0 +1,79 @@
+Código,Descrição,Categoria,Marca,Custo R$,Venda à Vista R$,Estoque Atual,Min,Max,Ativo
+PERF 001,1 Million 200ml,Amadeirado Especiado,Paco Rabanne,450,765,-1,0,10,Sim
+PERF 002,9PM Rebel,,,379,644.3,0,0,10,Sim
+PERF 003,9PM_,,,279,474.3,0,0,10,Sim
+PERF 004,Afeef,,,519,882.3,0,0,10,Sim
+PERF 005,Amber Rouge,,,479,814.3,0,0,10,Sim
+PERF 006,Angel,Oriental Baunilha,Mugler,75,127.5,-2,0,10,Sim
+PERF 007,Art of Universe,,,319,542.3,0,0,10,Sim
+PERF 008,Asad  Bourbon EDP 100ml,Amadeirado,Lataffa,540,540,0,0,10,Sim
+PERF 009,Asad Elixir EDP 100ml,Amadeirado,Lataffa,516,542.32,0,1,10,Sim
+PERF 010,Asad Zanziba,Oriental Especiado,Lattafa,75,127.5,1,0,10,Sim
+PERF 011,Assad,Perfume de Bolso,Lattafa,40,68,12,0,10,Sim
+PERF 012,Assad,Perfume para Cabelo,Lattafa,0,0,-1,0,10,Sim
+PERF 013,Assad Bourbon,Perfume de Bolso,Lataffa,320,544,6,0,10,Sim
+PERF 014,Atheeri,,,500,850,0,0,10,Sim
+PERF 015,Attar Al Wesal,,Al Wataniah,245,416.5,1,0,10,Sim
+PERF 016,Azure Fantasy,,,520,884,0,0,10,Sim
+PERF 017,Bacara,Perfume para Cabelo,,10,17,-1,0,10,Sim
+PERF 018,Bade'e al oud,Oriental Amadeirado,Lattafa,240,408,1,0,10,Sim
+PERF 019,Classic Stone,,,329,559.3,0,0,10,Sim
+PERF 020,Club de Nuit Intensse,,,315,535.5,0,0,10,Sim
+PERF 021,Club de Nuit Sillage,,,339,576.3,0,0,10,Sim
+PERF 022,Club de Nuit Urban Elixir,,,299,508.3,1,0,10,Sim
+PERF 023,Cluib de Nuit Intense Man,Perfume de Bolso,Armaf,25,42.5,9,0,10,Sim
+PERF 024,Creed Aventus Eau de Parfum 100ml,,,0,0,0,0,10,Sim
+PERF 025,Dream of Haze,,,350,595,0,0,10,Sim
+PERF 026,Eternal Touch,Amadeirado Aromático,Maison Alhambra,60,102,7,0,10,Sim
+PERF 027,Fakhar Black Árabe Lattafa 100Ml Original,,,0,0,0,0,10,Sim
+PERF 028,Força do Leão,Amadeirado,,30,51,-1,0,10,Sim
+PERF 029,Fusion Intense,Amadeirado Especiado,Maison Alhambra,60,102,2,0,10,Sim
+PERF 030,Ghost,,,329,559.3,0,0,10,Sim
+PERF 031,Hawas Elixir,,,319,542.3,0,0,10,Sim
+PERF 032,Jubilant Noir,Oriental Floral,Maison Alhambra,60,102,1,0,10,Sim
+PERF 033,Jubilant Oro,Aromático Fougère,Maison Alhambra,60,102,2,0,10,Sim
+PERF 034,Khamrah,Oriental Baunilha,Lattafa,288,476.01,0,0,10,Sim
+PERF 035,Khamrah Dukhan,,Lattafa,299.99,509.98,1,0,10,Sim
+PERF 036,Khamrah Quarah EDP 100ml,Amadeirado Especiado,Lattafa,560,560,1,0,10,Sim
+PERF 037,Kharmrah,Perfume de Bolso,Lataffa,150,150,9,0,10,Sim
+PERF 038,Kit the Secret 100ml e 150ml,Oriental Especiado,Antonio Banderas,150,255,-1,0,10,Sim
+PERF 039,La Voie,Floral,Maison Alhambra,60,102,2,0,10,Sim
+PERF 040,Lady Blue,Amadeirado,Isabelle la Belle,40,68,1,0,10,Sim
+PERF 041,Liquid Brun,,,379,644.3,0,0,10,Sim
+PERF 042,Malik Al Tayoor,,,280,476,1,0,10,Sim
+PERF 043,Man Black Edition,Oriental Amadeirado,Maison Alhambra,60,102,7,0,10,Sim
+PERF 044,Monocline Series Two,Amadeirado,Maison Alhambra,60,102,0,0,10,Sim
+PERF 045,Nebras,,,240,408,1,0,10,Sim
+PERF 046,Noble,,,550,935,1,0,10,Sim
+PERF 047,Odyssei Mandarin sky,,,289,491.3,0,0,10,Sim
+PERF 048,Perseus Exclusif,,,229,389.3,0,0,10,Sim
+PERF 049,Perseus Silver,,,229,389.3,0,0,10,Sim
+PERF 050,Pink Shimmer Secret,Amadeirado,Maison Alhambra,60,102,1,0,10,Sim
+PERF 051,Pink Velvet,Floral Frutado,Maison Alhambra,60,102,-2,0,10,Sim
+PERF 052,QAED,,,210,357,1,0,10,Sim
+PERF 053,QAED Preto,,,0,0,0,0,10,Sim
+PERF 054,Sabah,,,244.99,416.48,1,0,10,Sim
+PERF 055,Safeer,,,199,338.3,1,0,10,Sim
+PERF 056,Salvo Elixir,Bergamota,,159,270.3,1,0,10,Sim
+PERF 057,Spectre Ghost,,,329.9,560.83,0,0,10,Sim
+PERF 058,Story of Love,Perfume de Bolso,,40,68,9,0,10,Sim
+PERF 059,Supremacy,,,419,712.3,0,0,10,Sim
+PERF 060,Turathi Blue,,,309.99,526.98,1,0,10,Sim
+PERF 061,Victoria,,,269,457.3,0,0,10,Sim
+PERF 062,Voux Turquoise,,,330,561,1,0,10,Sim
+PERF 063,Vulcan Feu,,,350,595,1,0,10,Sim
+PERF 064,Wazer,,,199,338.3,0,0,10,Sim
+PERF 065,Yara,Oriental Baunilha,Lattafa,75,127.5,2,0,10,Sim
+PERF 066,Yara Moi,,,249,423.3,0,0,10,Sim
+PERF 067,Yara Tous,Floral Frutado Gourmet,Lattafa,75,127.5,0,0,10,Sim
+PERF 068,Avant Feminino 50ml,Perfume de Bolso,Maison Alhambra,0,0,-1,0,10,Sim
+PERF 069,Badee AL OUD Subl EDP 100ml,Amadeirado Aromático,Lataffa,375,375,0,0,10,Sim
+PERF 070,Opulent Dubai EDP 100ml,Amadeirado Especiado,Lataffa,375,375,0,0,10,Sim
+PERF 071,Badee AL Oud Noble B EDP 100ml,Aromático Fougère,,375,375,0,0,10,Sim
+PERF 072,Hawas Blac EDP 100ml,Aromático Fougère,,564,564,0,0,10,Sim
+PERF 073,Khamrah EDP 100ml tradicional,Amadeirado Aromático,Lataffa,420,420,0,0,10,Sim
+PERF 074,PRID ART OF ARABIA I EDP 100ml,Aromático Fougère,Lataffa,564,564,1,0,10,Não
+PERF 075,CADIZ EDP 100ml,Aromático Fougère,,540,540,0,0,10,Sim
+PERF 076,CLASSIC STONE ,Aromático Fougère,,660,660,0,0,10,Sim
+PERF 077,SHERIF,Aromático Fougère,Lataffa,420,420,0,0,10,Sim
+PERF 078,MAKTUB LA VIE EDP 100ml,Aromático Fougère,,420,420,0,0,10,Sim

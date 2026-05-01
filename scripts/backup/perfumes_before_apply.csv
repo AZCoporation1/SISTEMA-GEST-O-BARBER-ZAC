@@ -1,0 +1,79 @@
+external_code,name,cost_price,sale_price,markup_percent,category,brand,min_stock,max_stock,is_active,id
+PERF 001,1 Million 200ml,0,0,0,Amadeirado Especiado,Paco Rabanne,0,10,TRUE,3fa0c929-f016-4beb-8757-568fe92fa102
+PERF 002,9PM Rebel,0,0,0,,,0,10,TRUE,78b105d9-39d7-4c43-8e67-7d498e9ef5ae
+PERF 003,9PM_,0,0,0,,,0,10,TRUE,6edbdf69-8779-451a-9835-05bcf22d13d6
+PERF 004,Afeef,0,0,0,,,0,10,TRUE,4bd7908e-af31-4714-80e9-7faf7399dc7a
+PERF 005,Amber Rouge,0,0,0,,,0,10,TRUE,5b049cd9-31de-4e1e-9e18-aacbe148d668
+PERF 006,Angel,0,0,0,Oriental Baunilha,Mugler,0,10,TRUE,f02d281a-be29-48cc-afdb-6314f652cb8f
+PERF 007,Art of Universe,0,0,0,,,0,10,TRUE,904e0c3b-51d0-4e8a-b9bd-41dcc22ca4b0
+PERF 008,Asad  Bourbon EDP 100ml,540,540,0,Amadeirado,Lataffa,0,10,TRUE,445c2dfc-cd1f-46ed-8fa9-4127bb6d142e
+PERF 009,Asad Elixir EDP 100ml,516,516,0,Amadeirado,Lataffa,1,10,TRUE,60ff18ec-fc7d-4265-a5aa-2f91242b5d50
+PERF 010,Asad Zanziba,0,0,0,Oriental Especiado,Lattafa,0,10,TRUE,2104429d-3780-4e3c-a45b-ecd5bc7b43b8
+PERF 011,Assad,0,0,0,Perfume de Bolso,Lattafa,0,10,TRUE,ccf67361-82f1-4b59-aaa5-863d32f53c4c
+PERF 012,Assad,0,0,0,Perfume para Cabelo,Lattafa,0,10,TRUE,b88942c1-570b-4c66-a1aa-a059d4ae5a2c
+PERF 013,Assad Bourbon,0,0,0,Perfume de Bolso,Lataffa,0,10,TRUE,05ad5b05-78ea-42b9-95f0-a0d42ace43ba
+PERF 014,Atheeri,0,0,0,,,0,10,TRUE,d9eb1fac-49c0-417d-aefa-8bbde7b79abb
+PERF 015,Attar Al Wesal,0,0,0,,,0,10,TRUE,da9a6d6c-90d8-4dc7-ab3f-420cf101dd0e
+PERF 016,Azure Fantasy,0,0,0,,,0,10,TRUE,5d29896c-aea9-45e4-a9b0-91cc65e6390a
+PERF 017,Bacara,0,0,0,Perfume para Cabelo,,0,10,TRUE,c9a12d65-a71c-49a7-a6d0-4f9921fcab4c
+PERF 018,Bade'e al oud,0,0,0,Oriental Amadeirado,Lattafa,0,10,TRUE,1451df10-bf22-4bd9-acd6-d37437b28585
+PERF 019,Classic Stone,0,0,0,,,0,10,TRUE,b2425ce8-c727-4b47-abea-f74ea2140d18
+PERF 020,Club de Nuit Intensse,0,0,0,,,0,10,TRUE,f039a71b-4c2e-47d4-985e-70185348ea72
+PERF 021,Club de Nuit Sillage,0,0,0,,,0,10,TRUE,722df747-d648-42d8-9f63-450df1fe89a4
+PERF 022,Club de Nuit Urban Elixir,0,0,0,,,0,10,TRUE,b53b0230-bb28-4393-a61f-08be4aafe866
+PERF 023,Cluib de Nuit Intense Man,0,0,0,Perfume de Bolso,Armaf,0,10,TRUE,480f9226-e564-4d79-898a-af8577cd15f4
+PERF 024,Creed Aventus Eau de Parfum 100ml,0,0,0,,,0,10,TRUE,e5e7cbcb-2f2d-45e7-93d0-63a338cd2e6d
+PERF 025,Dream of Haze,0,0,0,,,0,10,TRUE,46a97c30-d6bf-410f-b7c4-2ab05ca5c473
+PERF 026,Eternal Touch,0,0,0,Amadeirado Aromático,Maison Alhambra,0,10,TRUE,50280453-93ab-4e81-a685-1ccaf6fcbb4f
+PERF 027,Fakhar Black Árabe Lattafa 100Ml Original,0,0,0,,,0,10,TRUE,e7ac7305-b564-4c0e-ab31-dd96d41fb130
+PERF 028,Força do Leão,0,0,0,Amadeirado,,0,10,TRUE,4cc298c1-0a4f-4012-bbed-64ee0808894b
+PERF 029,Fusion Intense,0,0,0,Amadeirado Especiado,Maison Alhambra,0,10,TRUE,77916ce3-e4c3-463d-8c57-222e6ff02029
+PERF 030,Ghost,0,0,0,,,0,10,TRUE,a8c86da9-cd5c-4a04-9809-592e1608b1fd
+PERF 031,Hawas Elixir,0,0,0,,,0,10,TRUE,02583c46-e9ec-41e4-a6ce-2e0d023009e5
+PERF 032,Jubilant Noir,0,0,0,Oriental Floral,Maison Alhambra,0,10,TRUE,bbe3dce8-0ac5-46eb-bb8b-ee1c300b8bac
+PERF 033,Jubilant Oro,0,0,0,Aromático Fougère,Maison Alhambra,0,10,TRUE,e04f61fd-d223-400b-96a8-dae5ac842783
+PERF 034,Khamrah,0,0,0,Oriental Baunilha,Lattafa,0,10,TRUE,bd5baaac-0289-4441-bcfc-9c72083dfd0a
+PERF 035,Khamrah Dukhan,0,0,0,,Lattafa,0,10,TRUE,27bdd07b-3718-4cda-8239-c4c8df41a63d
+PERF 036,Khamrah Quarah EDP 100ml,560,560,0,Amadeirado Especiado,Lattafa,0,10,TRUE,d484af47-4dc6-4962-95d5-7bc1342bfc03
+PERF 037,Kharmrah,150,150,0,Perfume de Bolso,Lataffa,0,10,TRUE,7e1a61a2-f9ae-4f5f-936c-820d5a6ed4cb
+PERF 038,Kit the Secret 100ml e 150ml,0,0,0,Oriental Especiado,Antonio Banderas,0,10,TRUE,8f35e1d6-2022-4681-a76b-26614cf3bd4b
+PERF 039,La Voie,0,0,0,Floral,Maison Alhambra,0,10,TRUE,7ebcb981-8fbb-41df-9977-455213cb9ed3
+PERF 040,Lady Blue,0,0,0,Amadeirado,Isabelle la Belle,0,10,TRUE,47b0979c-a5dd-48bc-9c80-4ad35a96b360
+PERF 041,Liquid Brun,0,0,0,,,0,10,TRUE,2daa98be-4d3f-4578-9025-564da3f13ab7
+PERF 042,Malik Al Tayoor,0,0,0,,,0,10,TRUE,6c3db18e-7440-45df-bc72-b63617afdb01
+PERF 043,Man Black Edition,0,0,0,Oriental Amadeirado,Maison Alhambra,0,10,TRUE,4aa844ba-8fb0-4258-aedc-a5190abf73df
+PERF 044,Monocline Series Two,0,0,0,Amadeirado,Maison Alhambra,0,10,TRUE,e35a1952-a6d4-4c3e-aa4d-62834704afab
+PERF 045,Nebras,0,0,0,,,0,10,TRUE,417b61df-670f-4490-8e5f-5377df83da29
+PERF 046,Noble,0,0,0,,,0,10,TRUE,7c95b708-8b78-4b80-b27f-75fc8fdfcda1
+PERF 047,Odyssei Mandarin sky,0,0,0,,,0,10,TRUE,80b96148-3133-4ea1-8d04-6ab7f5cded69
+PERF 048,Perseus Exclusif,0,0,0,,,0,10,TRUE,292a2334-0da3-4bc2-87d8-898bea0fe10e
+PERF 049,Perseus Silver,0,0,0,,,0,10,TRUE,fb2e0be3-d5dd-43a7-8fd5-009fea526cde
+PERF 050,Pink Shimmer Secret,0,0,0,Amadeirado,Maison Alhambra,0,10,TRUE,85c02e04-2355-4d23-8ca5-c067bd86e4d8
+PERF 051,Pink Velvet,0,0,0,Floral Frutado,Maison Alhambra,0,10,TRUE,647ec18e-3931-47d3-b06f-f2a98dd0a4c1
+PERF 052,QAED,0,0,0,,,0,10,TRUE,dee5f035-c365-424f-9920-e0e0b5f287eb
+PERF 053,QAED Preto,0,0,0,,,0,10,TRUE,aa139d05-b7d8-47f0-9d02-b8466c6d0124
+PERF 054,Sabah,0,0,0,,,0,10,TRUE,a3b17ba9-f354-4124-a845-bc325d80ab52
+PERF 055,Safeer,0,0,0,,,0,10,TRUE,8d71bfdf-52c5-46aa-a9dd-2f11fb9b715c
+PERF 056,Salvo Elixir,0,0,0,Bergamota,,0,10,TRUE,de1b0260-4f4e-4aab-a9b5-5cd2a958f3d0
+PERF 057,Spectre Ghost,0,0,0,,,0,10,TRUE,f9c205a2-622a-45bc-b0ba-0af60897e214
+PERF 058,Story of Love,0,0,0,Perfume de Bolso,,0,10,TRUE,d1fe8ec1-ce67-4818-a6ed-5bf1c4472425
+PERF 059,Supremacy,0,0,0,,,0,10,TRUE,171fe301-f2bc-49f3-a51d-086b2bf06f18
+PERF 060,Turathi Blue,0,0,0,,,0,10,TRUE,42fbc1f2-5173-4138-8a8d-8eb5b0de2af3
+PERF 061,Victoria,0,0,0,,,0,10,TRUE,39eaa6b4-71c4-492e-abcc-f6844f00212f
+PERF 062,Voux Turquoise,0,0,0,,,0,10,TRUE,1762dbfc-f485-4074-8757-07a12cf47609
+PERF 063,Vulcan Feu,0,0,0,,,0,10,TRUE,9475eb35-1d4d-4397-8739-1d567f92e662
+PERF 064,Wazer,0,0,0,,,0,10,TRUE,04c733c1-2337-475d-a3a7-3bf43ba7bf9b
+PERF 065,Yara,0,0,0,Oriental Baunilha,Lattafa,0,10,TRUE,d66c6efc-01da-46d5-a3ea-1fe52f76f8dc
+PERF 066,Yara Moi,0,0,0,,,0,10,TRUE,80af82d6-7300-4fc5-97b3-132f6ad09941
+PERF 067,Yara Tous,0,0,0,Floral Frutado Gourmet,Lattafa,0,10,TRUE,296559db-fa47-40cb-9861-14ee41e137c2
+PERF 068,Avant Feminino 50ml,0,0,0,Perfume de Bolso,Maison Alhambra,0,10,TRUE,6e5100c9-bc37-41df-80a6-d9226839323c
+PERF 069,Badee AL OUD Subl EDP 100ml,375,375,0,Amadeirado Aromático,Lataffa,0,10,TRUE,31bc2a8f-8273-4a70-884c-d5a0a10876ec
+PERF 070,Opulent Dubai EDP 100ml,375,375,0,Amadeirado Especiado,Lataffa,0,10,TRUE,2740903d-8975-45ec-b151-b32b609cd22f
+PERF 071,Badee AL Oud Noble B EDP 100ml,375,375,0,Aromático Fougère,,0,10,TRUE,ea549179-5628-413c-aca9-148b19c085db
+PERF 072,Hawas Blac EDP 100ml,564,564,0,Aromático Fougère,,0,10,TRUE,e6a4680a-4d93-4908-8952-3c02b472784e
+PERF 073,Khamrah EDP 100ml tradicional,420,420,0,Amadeirado Aromático,Lataffa,0,10,TRUE,f53919f0-a5d4-4b6e-81d9-315e7fee0aeb
+PERF 074,PRID ART OF ARABIA I EDP 100ml,564,564,0,Aromático Fougère,Lataffa,0,10,FALSE,6c2cd35c-923a-426f-bd41-2ec82cf976a3
+PERF 075,CADIZ EDP 100ml,540,540,0,Aromático Fougère,,0,10,TRUE,b5ee0142-42fe-4840-9c94-5706ccc95159
+PERF 076,CLASSIC STONE ,660,660,0,Aromático Fougère,,0,10,TRUE,8c093f42-19e7-4802-b925-9744ffe46919
+PERF 077,SHERIF,420,420,0,Aromático Fougère,Lataffa,0,10,TRUE,0843c0d6-af66-427e-bcb5-22d612e04ba8
+PERF 078,MAKTUB LA VIE EDP 100ml,420,420,0,Aromático Fougère,,0,10,TRUE,2b000f9f-97f0-4efb-a64e-32f0ac743f6d
