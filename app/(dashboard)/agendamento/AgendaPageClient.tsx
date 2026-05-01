@@ -378,9 +378,17 @@ export default function AgendaPageClient() {
           blocks={visibleBlocks}
           professionals={visibleProfessionals}
           workingHours={workingHours}
+          settings={settings}
           onSlotClick={(time, profId) => handleSlotClick(profId, time)}
           onAppointmentClick={handleAppointmentClick}
+          onBlockUnblocked={refresh}
+          onDateChange={setSelectedDate}
+          onNewAppointment={() => { setDefaultSlot(null); setEditingAppointment(null); setShowAppointmentDialog(true) }}
+          onNewBlock={() => setShowBlockDialog(true)}
+          onOpenWaitlist={() => setShowWaitlistSheet(true)}
           restrictToProfessionalId={restrictToProfessionalId}
+          hasAdminAccess={hasAdminAccess}
+          isProfessional={isProfessional}
         />
       ) : (
         <div style={{
