@@ -1,0 +1,28 @@
+# Customer Booking Portal Implementation
+
+- `[x]` 1. Catalog Fix & Enhancement (`app/cliente/agendar/page.tsx`)
+  - `[x]` Fix `categories(name)` to `service_categories(name)` in Supabase query.
+  - `[x]` Update UI to show services dynamically with price and duration.
+- `[x]` 2. Professional Selection (`app/cliente/agendar/profissional/page.tsx`)
+  - `[x]` Fetch active professionals (`collaborators`).
+  - `[x]` Use safe fallback for name (`display_name` ?? `name` ?? `full_name`).
+  - `[x]` Render professional list and pass state.
+- `[x]` 3. Date & Time Selection (`app/cliente/agendar/data-hora/page.tsx`)
+  - `[x]` Create calendar interface.
+  - `[x]` Fetch available slots from server when date/service/professional changes.
+- `[x]` 4. Slot Availability Service (`features/agenda/services/availability.service.ts`)
+  - `[x]` Validate working hours, agenda settings, active appointments, and blocks.
+  - `[x]` Generate contiguous slots based on service duration.
+- `[x]` 5. Confirmation & Auth Integration
+  - `[x]` Protect `/cliente/agendar/confirmacao` and trigger login if unauthenticated.
+  - `[x]` Create confirmation page showing all details.
+- `[x]` 6. Server Action (`features/agenda/actions/agenda.actions.ts`)
+  - `[x]` Implement `createCustomerAppointment(data)`.
+  - `[x]` Validate everything (auth, ownership, availability, constraints).
+  - `[x]` Insert into `appointments` with `source = 'customer'`.
+- `[x]` 7. Internal Agenda UI (`features/agenda/components/AgendaMobileView.tsx`)
+  - `[x]` Render customer appointments with distinct visual indicator (e.g. teal, "Cliente/App" label).
+- `[x]` 8. Validation
+  - `[x]` Run `tsc --noEmit`.
+  - `[x]` Run `next build`.
+  - `[x]` Verify Customer Booking Portal compiles and integrates properly.

@@ -83,6 +83,26 @@ export function getRecentPeriods(count: number = 6): FortnightPeriod[] {
 }
 
 /**
+ * Get the previous fortnight period before the current one.
+ */
+export function getPreviousFortnightPeriod(refDate?: Date): FortnightPeriod {
+  const current = getCurrentFortnightPeriod(refDate)
+  const prevDay = new Date(current.start)
+  prevDay.setDate(prevDay.getDate() - 1)
+  return getCurrentFortnightPeriod(prevDay)
+}
+
+/**
+ * Format a period in compact form: "06/05 a 20/05"
+ */
+export function formatFortnightPeriodCompact(period: FortnightPeriod): string {
+  const s = period.start
+  const e = period.end
+  const fmt = (d: Date) => `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`
+  return `${fmt(s)} a ${fmt(e)}`
+}
+
+/**
  * Format currency in pt-BR style: 1.234,56
  */
 export function formatCurrencyBR(value: number): string {

@@ -275,7 +275,10 @@ export default function AgendaDayGrid({
 
               // Appointment slot
               if (appointment && isFirst) {
-                const colors = APPOINTMENT_STATUS_COLORS[appointment.status]
+                let colors = APPOINTMENT_STATUS_COLORS[appointment.status] || APPOINTMENT_STATUS_COLORS.scheduled
+                if (appointment.source === 'customer' && appointment.status === 'scheduled') {
+                  colors = { bg: "rgba(20, 184, 166, 0.1)", border: "rgba(20, 184, 166, 0.3)", text: "#2dd4bf" }
+                }
                 const span = getAppointmentSlotSpan(appointment)
 
                 return (
@@ -327,8 +330,16 @@ export default function AgendaDayGrid({
                         overflow: "hidden",
                         textOverflow: "ellipsis",
                         lineHeight: 1.3,
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 4
                       }}>
                         {appointment.customer_name_snapshot || "Cliente"}
+                        {appointment.source === 'customer' && (
+                          <span style={{ color: "var(--accent)", display: "inline-flex" }}>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
+                          </span>
+                        )}
                       </div>
                       <div style={{
                         fontSize: 9,
@@ -340,6 +351,7 @@ export default function AgendaDayGrid({
                         marginTop: 1,
                       }}>
                         {appointment.service_name_snapshot || "Serviço"}
+                        {appointment.source === 'customer' && " • App Cliente"}
                       </div>
                       {span > 1 && (
                         <div style={{

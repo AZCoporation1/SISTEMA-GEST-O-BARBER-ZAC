@@ -131,3 +131,66 @@ export const ADVANCE_STATUS_COLORS: Record<string, string> = {
   cancelled: 'bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-400',
   applied: 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-400',
 }
+
+// ── Sale Status Labels (for history view) ───────────────
+
+export const SALE_STATUS_LABELS: Record<string, string> = {
+  pending: 'Pendente',
+  completed: 'Ativo',
+  cancelled: 'Cancelado',
+  refunded: 'Estornado',
+}
+
+export const SALE_STATUS_COLORS: Record<string, string> = {
+  pending: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-950 dark:text-yellow-400',
+  completed: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-400',
+  cancelled: 'bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-400',
+  refunded: 'bg-orange-100 text-orange-800 dark:bg-orange-950 dark:text-orange-400',
+}
+
+export const PERFUME_STATUS_LABELS: Record<string, string> = {
+  active: 'Ativo',
+  completed: 'Pago',
+  cancelled: 'Cancelado',
+  receivable_open: 'A Receber',
+  receivable_settled: 'Quitado',
+}
+
+export const PERFUME_STATUS_COLORS: Record<string, string> = {
+  active: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-400',
+  completed: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-400',
+  cancelled: 'bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-400',
+  receivable_open: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-950 dark:text-yellow-400',
+  receivable_settled: 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-400',
+}
+
+// ── Ledger Types ────────────────────────────────────────
+
+export interface ProfessionalLedgerSummary {
+  grossTotal: number
+  salesCount: number
+  servicesCount: number
+  productsCount: number
+  itemsQuantity: number
+  ticketMedio: number
+  commissionPercent: number
+  barberShareFromSales: number
+  barbershopShare: number
+  perfumeGrossTotal: number
+  perfumeCommissionTotal: number
+  perfumeSalesCount: number
+  barberShare: number
+  advancesTotal: number
+  stockWithdrawalsTotal: number
+  netPayable: number
+}
+
+export interface ProfessionalLedger {
+  summary: ProfessionalLedgerSummary
+  sales: any[]
+  advances: any[]
+  stockWithdrawals: any[]
+  perfumeSales: any[]
+  closures: any[]
+  auditEvents: any[]
+}

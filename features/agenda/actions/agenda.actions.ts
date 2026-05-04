@@ -1093,3 +1093,174 @@ export async function removeCommandItem(id: string) {
     return { success: false, error: err.message || "Erro ao remover item da comanda" }
   }
 }
+
+// ══════════════════════════════════════════════════════════
+// CREATE CUSTOMER APPOINTMENT (ÁREA DO CLIENTE)
+// ══════════════════════════════════════════════════════════
+
+interface CustomerAppointmentInput {
+  serviceId: string
+  professionalId: string
+  date: string
+  startTime: string
+  notes?: string
+}
+
+export async function createCustomerAppointment(data: CustomerAppointmentInput) {
+  try {
+    const supabase = await createServerClient()
+    
+    // 1. Verify Authentication (via session cookies)
+    const { data: authData } = await supabase.auth.getUser()
+    const userId = authData.user?.id
+    if (!userId) {
+      return { success: false, error: "Usuário não autenticado." }
+    }
+
+    // Use service-role client for all DB operations (bypass RLS)
+    const { createClient: createAdminClient } = await import('@supabase/supabase-js')
+    const adminDb = createAdminClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    )
+
+    // 2. Fetch Customer Record
+    const { data: customer, error: custErr } = await adminDb
+      .from('customers')
+      .select('id, full_name, phone, mobile_phone, is_active')
+      .eq('auth_user_id', userId)
+      .single() as { data: any, error: any }
+
+    if (custErr || !customer) {
+      return { success: false, error: "Registro de cliente não encontrado." }
+    }
+    if (!customer.is_active) {
+      return { success: false, error: "Sua conta está inativa. Entre em contato com a barbearia." }
+    }
+
+    // 3. Fetch Service
+    const { data: service, error: svcErr } = await adminDb
+      .from('services')
+      .select('id, name, price, duration_minutes, is_active, is_bookable')
+      .eq('id', data.serviceId)
+      .single()
+
+    if (svcErr || !service) {
+      return { success: false, error: "Serviço não encontrado." }
+    }
+    if (!service.is_active || !service.is_bookable) {
+      return { success: false, error: "Este serviço não está disponível para agendamento online." }
+    }
+    if (!service.duration_minutes) {
+      return { success: false, error: "Serviço sem duração configurada." }
+    }
+
+    // 4. Fetch Professional
+    const { data: professional, error: profErr } = await adminDb
+      .from('collaborators')
+      .select('id, name, is_active')
+      .eq('id', data.professionalId)
+      .single()
+
+    if (profErr || !professional) {
+      return { success: false, error: "Profissional não encontrado." }
+    }
+    if (!professional.is_active) {
+      return { success: false, error: "Profissional não está ativo no momento." }
+    }
+
+    // 5. Calculate Times
+    const startAt = combineDatetime(data.date, data.startTime)
+    const endDate = new Date(startAt)
+    endDate.setMinutes(endDate.getMinutes() + service.duration_minutes)
+    const endAt = endDate.toISOString()
+
+    // Prevent past dates
+    if (new Date(startAt) < new Date()) {
+      return { success: false, error: "Não é possível agendar em um horário que já passou." }
+    }
+
+    // 6. Conflict Check (Appointments)
+    const { data: conflicts } = await adminDb
+      .from('appointments')
+      .select('id')
+      .eq('professional_id', data.professionalId)
+      .not('status', 'in', '("cancelled","no_show")')
+      .lt('start_at', endAt)
+      .gt('end_at', startAt)
+
+    if (conflicts && conflicts.length > 0) {
+      const { data: settings } = await adminDb.from('agenda_settings').select('allow_overbooking').limit(1).single()
+      if (!settings?.allow_overbooking) {
+        return { success: false, error: "Infelizmente este horário não está mais disponível. Por favor, escolha outro." }
+      }
+    }
+
+    // 7. Block Check
+    const { data: blocks } = await adminDb
+      .from('appointment_blocks')
+      .select('id')
+      .eq('professional_id', data.professionalId)
+      .eq('is_active', true)
+      .lt('start_at', endAt)
+      .gt('end_at', startAt)
+
+    if (blocks && blocks.length > 0) {
+      return { success: false, error: "Horário indisponível (bloqueado)." }
+    }
+
+    // 8. Snapshots
+    const customerPhone = customer.mobile_phone || customer.phone || null
+
+    // 9. Insert Appointment
+    const { data: appointment, error: insertError } = await adminDb
+      .from('appointments')
+      .insert({
+        customer_id: customer.id,
+        customer_name_snapshot: customer.full_name,
+        customer_phone_snapshot: customerPhone,
+        professional_id: data.professionalId,
+        service_id: service.id,
+        service_name_snapshot: service.name,
+        service_price_snapshot: service.price,
+        service_duration_minutes_snapshot: service.duration_minutes,
+        start_at: startAt,
+        end_at: endAt,
+        status: 'scheduled',
+        source: 'customer',
+        notes: data.notes || null,
+      } as any)
+      .select()
+      .single() as { data: any, error: any }
+
+    if (insertError) throw insertError
+
+    // 10. Also add as command item
+    await adminDb.from('appointment_command_items').insert({
+      appointment_id: appointment.id,
+      item_type: 'service',
+      service_id: service.id,
+      description_snapshot: service.name,
+      quantity: 1,
+      unit_price_snapshot: service.price || 0,
+      professional_id: data.professionalId,
+    })
+
+    await logAudit({
+      action: 'INSERT',
+      entity: 'appointments',
+      entity_id: appointment.id,
+      newData: appointment,
+      observation: `Agendamento criado pelo APP CLIENTE: ${customer.full_name} — ${service.name} às ${data.startTime}`,
+    })
+
+    revalidatePath("/agendamento")
+    revalidatePath("/cliente/meus-agendamentos")
+    return { success: true, data: appointment }
+
+  } catch (err: any) {
+    console.error("createCustomerAppointment Error:", err)
+    return { success: false, error: err.message || "Erro interno ao criar agendamento." }
+  }
+}
+

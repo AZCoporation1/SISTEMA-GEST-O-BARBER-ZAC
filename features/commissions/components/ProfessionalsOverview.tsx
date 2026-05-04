@@ -5,12 +5,14 @@ import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useToast } from "@/hooks/use-toast"
 import { Textarea } from "@/components/ui/textarea"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { useProfessionals, useProfessionalClosures } from "../hooks/useProfessionals"
 import { getProfessionalSales, getProfessionalAdvances } from "../services/professionals.service"
 import { generateClosurePreview, payClosureViaCaixa, payClosureViaPix, cancelClosure } from "../actions/professionals.actions"
-import { getCurrentFortnightPeriod, getRecentPeriods, formatCurrencyBR, formatDateBR, formatFullDateBR, periodToISO } from "../services/periodUtils"
+import { getCurrentFortnightPeriod, getRecentPeriods, formatCurrencyBR, formatDateBR, formatFullDateBR, periodToISO, formatFortnightPeriodCompact } from "../services/periodUtils"
 import { RegisterAdvanceDialog } from "./RegisterAdvanceDialog"
 import { ClosurePreviewDialog, LegitViewer } from "./ClosurePreviewDialog"
+import { ProfessionalHistoryView } from "./ProfessionalHistoryView"
 import { CLOSURE_STATUS_LABELS, CLOSURE_STATUS_COLORS } from "../types"
 import { KPICard } from "@/components/ui/kpi-card"
 import { Button } from "@/components/ui/button"
@@ -42,6 +44,7 @@ export function ProfessionalsOverview() {
   const [legitViewer, setLegitViewer] = useState<{ open: boolean; text: string; name: string; label: string }>({ open: false, text: '', name: '', label: '' })
   const [isGenerating, setIsGenerating] = useState<string | null>(null)
   const [cancelClosureDialog, setCancelClosureDialog] = useState<{ open: boolean; closureId: string; status: string }>({ open: false, closureId: '', status: '' })
+  const [historyDrawer, setHistoryDrawer] = useState<{ open: boolean; profId: string; profName: string }>({ open: false, profId: '', profName: '' })
 
   const periods = useMemo(() => getRecentPeriods(8), [])
   const currentPeriod = periods[selectedPeriodIdx]
@@ -372,6 +375,14 @@ export function ProfessionalsOverview() {
                         {isGenerating === prof.id ? 'Gerando...' : 'Fechar Período'}
                       </Button>
                     </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="w-full text-xs h-7 mt-1 text-[var(--accent)] hover:text-[var(--accent-light)]"
+                      onClick={() => setHistoryDrawer({ open: true, profId: prof.id, profName: displayName })}
+                    >
+                      <Eye size={12} className="mr-1" /> Ver Histórico da Quinzena
+                    </Button>
                   </div>
                 </div>
               )
@@ -435,6 +446,30 @@ export function ProfessionalsOverview() {
         onConfirm={(reason) => cancelClosureMutation.mutate({ id: cancelClosureDialog.closureId, reason })}
         isPending={cancelClosureMutation.isPending}
       />
+
+      {/* Professional History Drawer */}
+      <Sheet open={historyDrawer.open} onOpenChange={(open) => setHistoryDrawer(prev => ({ ...prev, open }))}>
+        <SheetContent side="right" className="w-full sm:max-w-xl overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle className="flex items-center gap-2">
+              <Eye size={16} />
+              {historyDrawer.profName} — {formatFortnightPeriodCompact(currentPeriod)}
+            </SheetTitle>
+          </SheetHeader>
+          <div className="mt-4">
+            {historyDrawer.profId && (
+              <ProfessionalHistoryView
+                professionalId={historyDrawer.profId}
+                professionalName={historyDrawer.profName}
+                periodStart={periodISO.start}
+                periodEnd={periodISO.end}
+                periodLabel={currentPeriod.label}
+                isAdmin={true}
+              />
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   )
 }

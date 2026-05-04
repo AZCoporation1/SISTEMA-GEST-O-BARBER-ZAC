@@ -154,6 +154,8 @@ export async function registerAdvance(data: RegisterAdvanceInput) {
     revalidatePath('/caixa')
     revalidatePath('/estoque')
     revalidatePath('/fluxo-de-caixa')
+    revalidatePath('/profissional')
+    revalidatePath('/profissional/conta')
     return { success: true, data: advance }
   } catch (error: any) {
     console.error('Register Advance Error:', error)
@@ -266,6 +268,8 @@ export async function cancelAdvance(advanceId: string, reason?: string) {
     revalidatePath('/caixa')
     revalidatePath('/estoque')
     revalidatePath('/fluxo-de-caixa')
+    revalidatePath('/profissional')
+    revalidatePath('/profissional/conta')
     return { success: true }
   } catch (error: any) {
     console.error('Cancel Advance Error:', error)
@@ -480,6 +484,8 @@ export async function confirmClosure(data: ConfirmClosureInput) {
     })
 
     revalidatePath('/comissoes')
+    revalidatePath('/profissional')
+    revalidatePath('/profissional/conta')
     return { success: true, data: closure }
   } catch (error: any) {
     console.error('Confirm Closure Error:', error)
@@ -578,6 +584,8 @@ export async function payClosureViaCaixa(closureId: string) {
     revalidatePath('/comissoes')
     revalidatePath('/caixa')
     revalidatePath('/fluxo-de-caixa')
+    revalidatePath('/profissional')
+    revalidatePath('/profissional/conta')
     return { success: true }
   } catch (error: any) {
     console.error('Pay Closure Caixa Error:', error)
@@ -644,6 +652,8 @@ export async function payClosureViaPix(closureId: string) {
 
     revalidatePath('/comissoes')
     revalidatePath('/fluxo-de-caixa')
+    revalidatePath('/profissional')
+    revalidatePath('/profissional/conta')
     return { success: true }
   } catch (error: any) {
     console.error('Pay Closure PIX Error:', error)
@@ -754,9 +764,172 @@ export async function cancelClosure(closureId: string, reason?: string) {
     revalidatePath('/comissoes')
     revalidatePath('/caixa')
     revalidatePath('/fluxo-de-caixa')
+    revalidatePath('/profissional')
+    revalidatePath('/profissional/conta')
     return { success: true }
   } catch (error: any) {
     console.error('Cancel Closure Error:', error)
     return { success: false, error: error.message || 'Erro ao cancelar fechamento' }
+  }
+}
+
+// ══════════════════════════════════════════════════════════
+// 8. REVERSE PROFESSIONAL SALE (Admin — non-destructive estorno)
+// ══════════════════════════════════════════════════════════
+
+export async function reverseProfessionalSale(saleId: string, reason: string) {
+  const supabase = await createServerClient()
+  const { data: authData } = await supabase.auth.getUser()
+  const userProfileId = await resolveUserProfileId(supabase, authData.user?.id)
+
+  try {
+    // ── Validate admin/owner permission ──
+    if (!userProfileId) throw new Error('Usuário não autenticado')
+
+    const { data: profile } = await supabase
+      .from('user_profiles')
+      .select('system_role')
+      .eq('id', userProfileId)
+      .single()
+
+    if (!profile || !['admin_total', 'owner_admin_professional'].includes(profile.system_role)) {
+      throw new Error('Apenas administradores podem estornar vendas')
+    }
+
+    if (!reason || reason.trim().length < 3) {
+      throw new Error('Motivo obrigatório para estorno (mínimo 3 caracteres)')
+    }
+
+    // ── Fetch the sale with items ──
+    const { data: sale, error: fetchErr } = await supabase
+      .from('sales')
+      .select('*, items:sale_items(*)')
+      .eq('id', saleId)
+      .single()
+
+    if (fetchErr || !sale) throw new Error('Venda não encontrada')
+    if (sale.status === 'cancelled' || sale.status === 'refunded') {
+      throw new Error('Venda já está cancelada/estornada')
+    }
+
+    // ── Mark sale as cancelled (NOT hard delete) ──
+    const { error: updateErr } = await supabase
+      .from('sales')
+      .update({ status: 'cancelled' })
+      .eq('id', saleId)
+
+    if (updateErr) throw new Error('Erro ao marcar venda como cancelada: ' + updateErr.message)
+
+    // ── Reverse cash entry ──
+    // processSale creates cash_entries with reference_type='sale', reference_id=saleId
+    const { data: originalCashEntry } = await supabase
+      .from('cash_entries')
+      .select('*')
+      .eq('reference_type', 'sale')
+      .eq('reference_id', saleId)
+      .limit(1)
+      .single()
+
+    if (originalCashEntry && originalCashEntry.status !== 'reversed') {
+      // Create inverse in current open cash session (NOT modify closed session)
+      const { data: activeSession } = await supabase
+        .from('cash_sessions')
+        .select('id')
+        .eq('status', 'open')
+        .single()
+
+      if (activeSession) {
+        await supabase.from('cash_entries').insert({
+          cash_session_id: activeSession.id,
+          entry_type: 'expense',
+          amount: originalCashEntry.amount,
+          category: 'Estorno Venda',
+          description: `Estorno venda #${saleId.split('-')[0]}: ${reason}`,
+          reference_type: 'sale_reversal',
+          reference_id: saleId,
+          reversal_of_entry_id: originalCashEntry.id,
+          created_by: userProfileId,
+        })
+      }
+
+      // Mark original entry as reversed
+      await supabase.from('cash_entries')
+        .update({
+          status: 'reversed',
+          cancelled_at: new Date().toISOString(),
+          cancelled_by: userProfileId,
+          cancellation_reason: reason,
+        })
+        .eq('id', originalCashEntry.id)
+    }
+
+    // ── Reverse financial movement ──
+    // processSale creates financial_movements with origin_type='sale', origin_id=saleId
+    const { data: originalFinMov } = await supabase
+      .from('financial_movements')
+      .select('*')
+      .eq('origin_type', 'sale')
+      .eq('origin_id', saleId)
+      .limit(1)
+      .single()
+
+    if (originalFinMov) {
+      await supabase.from('financial_movements').insert({
+        movement_type: 'paid',
+        amount: originalFinMov.amount,
+        category: 'Estorno',
+        subcategory: 'Estorno de Venda',
+        description: `Estorno venda #${saleId.split('-')[0]}: ${reason}`,
+        origin_type: 'sale_reversal',
+        origin_id: saleId,
+        occurred_on: new Date().toISOString(),
+      })
+    }
+
+    // ── Reverse stock movements for product items ──
+    // Stock movements are created by DB trigger for sale_items with product_id
+    // Using return_from_customer (valid enum value, used by cancelPerfumeSale)
+    const productItems = ((sale as any).items || []).filter(
+      (item: any) => item.item_type === 'product' && item.product_id
+    )
+
+    for (const item of productItems) {
+      await supabase.from('stock_movements').insert({
+        product_id: item.product_id,
+        movement_type: 'return_from_customer',
+        quantity: item.quantity, // positive = return to stock
+        movement_reason: `Estorno venda #${saleId.split('-')[0]}: ${reason}`,
+        source_type: 'sale_reversal',
+        destination_type: 'stock',
+        reference_type: 'sale',
+        reference_id: saleId,
+        unit_cost_snapshot: item.unit_cost_snapshot || null,
+        unit_sale_snapshot: item.unit_price_snapshot || null,
+        movement_date: new Date().toISOString(),
+        performed_by: userProfileId,
+      })
+    }
+
+    // ── Audit ──
+    await logAudit({
+      action: 'UPDATE',
+      entity: 'sales',
+      entity_id: saleId,
+      oldData: sale,
+      newData: { ...sale, status: 'cancelled' },
+      observation: `Venda estornada por admin. Motivo: ${reason}. Caixa/financeiro/estoque revertidos. ${productItems.length} produto(s) retornado(s) ao estoque.`
+    })
+
+    revalidatePath('/comissoes')
+    revalidatePath('/vendas')
+    revalidatePath('/caixa')
+    revalidatePath('/estoque')
+    revalidatePath('/fluxo-de-caixa')
+    revalidatePath('/profissional')
+    revalidatePath('/profissional/conta')
+    return { success: true }
+  } catch (error: any) {
+    console.error('Reverse Professional Sale Error:', error)
+    return { success: false, error: error.message || 'Erro ao estornar venda' }
   }
 }

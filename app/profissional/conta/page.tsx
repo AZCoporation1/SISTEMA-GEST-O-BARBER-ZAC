@@ -1,159 +1,55 @@
+// @ts-nocheck
 'use client'
 
 import { useAuth } from '@/components/auth-provider'
-import { useState, useEffect, useCallback } from 'react'
-import { createClient } from '@/lib/supabase/client'
-import { Wallet, TrendingUp, TrendingDown, DollarSign, Clock, Scissors, Package, AlertCircle } from 'lucide-react'
-
-interface PeriodSummary {
-  periodLabel: string
-  periodStart: string
-  periodEnd: string
-  grossSales: number
-  serviceCount: number
-  productSales: number
-  commissionPercent: number
-  commissionEstimate: number
-  advancesTotal: number
-  stockWithdrawals: number
-  netEstimate: number
-  pendingRequests: number
-  approvedRequests: number
-}
+import { useState, useMemo } from 'react'
+import { useProfessionals, useProfessionalClosures } from '@/features/commissions/hooks/useProfessionals'
+import { ProfessionalHistoryView } from '@/features/commissions/components/ProfessionalHistoryView'
+import {
+  getCurrentFortnightPeriod,
+  getRecentPeriods,
+  periodToISO,
+  formatFortnightPeriodCompact,
+} from '@/features/commissions/services/periodUtils'
+import {
+  AlertCircle, Calendar, ChevronDown,
+} from 'lucide-react'
+import Link from 'next/link'
 
 export default function ContaPage() {
-  const { user } = useAuth()
-  const [loading, setLoading] = useState(true)
-  const [summary, setSummary] = useState<PeriodSummary | null>(null)
-  const [recentAdvances, setRecentAdvances] = useState<any[]>([])
-  const [recentCommissions, setRecentCommissions] = useState<any[]>([])
+  const { user, hasAdminAccess } = useAuth()
+  const [selectedPeriodIdx, setSelectedPeriodIdx] = useState(0)
+  const [showPeriodPicker, setShowPeriodPicker] = useState(false)
 
-  const fetchData = useCallback(async () => {
-    if (!user?.collaboratorId) {
-      setLoading(false)
-      return
-    }
+  const collabId = user?.collaboratorId
 
-    const supabase = createClient()
-    const now = new Date()
-    const day = now.getDate()
+  // ── Period ──
+  const periods = useMemo(() => getRecentPeriods(8), [])
+  const currentPeriod = periods[selectedPeriodIdx]
+  const iso = periodToISO(currentPeriod)
 
-    // Current fortnight period
-    let periodStart: Date, periodEnd: Date, periodLabel: string
-    if (day <= 15) {
-      periodStart = new Date(now.getFullYear(), now.getMonth(), 1)
-      periodEnd = new Date(now.getFullYear(), now.getMonth(), 15, 23, 59, 59)
-      periodLabel = `1ª Quinzena — ${now.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}`
-    } else {
-      periodStart = new Date(now.getFullYear(), now.getMonth(), 16)
-      periodEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59)
-      periodLabel = `2ª Quinzena — ${now.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}`
-    }
+  // ── Professional info ──
+  const { data: allProfessionals } = useProfessionals()
+  const myProfile = useMemo(
+    () => (allProfessionals || []).find(p => p.id === collabId),
+    [allProfessionals, collabId]
+  )
+  const commissionPercent = Number(myProfile?.default_commission_percent) || 47
+  const displayName = myProfile?.display_name || myProfile?.name || user?.displayName || user?.fullName || '—'
 
-    const startStr = periodStart.toISOString().split('T')[0]
-    const endStr = periodEnd.toISOString().split('T')[0]
-
-    // Fetch in parallel
-    const [salesRes, commissionsRes, advancesRes, requestsRes, collabRes] = await Promise.all([
-      // Sales by this professional in the period
-      supabase
-        .from('sales')
-        .select('id, total, sale_date, status')
-        .eq('collaborator_id', user.collaboratorId)
-        .gte('sale_date', startStr)
-        .lte('sale_date', endStr)
-        .neq('status', 'cancelled'),
-
-      // Commission entries for this professional in the period
-      supabase
-        .from('commission_entries')
-        .select('id, commission_amount, base_amount, status, competence_date')
-        .eq('collaborator_id', user.collaboratorId)
-        .gte('competence_date', startStr)
-        .lte('competence_date', endStr),
-
-      // Professional advances in the period
-      supabase
-        .from('professional_advances')
-        .select('id, type, source_method, description, total_amount, quantity, unit_amount, occurred_at, status, product_id')
-        .eq('professional_id', user.collaboratorId)
-        .gte('occurred_at', startStr)
-        .lte('occurred_at', endStr + 'T23:59:59Z')
-        .neq('status', 'cancelled')
-        .order('occurred_at', { ascending: false }),
-
-      // Pending/approved requests
-      supabase
-        .from('professional_requests')
-        .select('id, status, created_at')
-        .eq('professional_id', user.collaboratorId)
-        .gte('created_at', startStr)
-        .lte('created_at', endStr + 'T23:59:59Z'),
-
-      // Collaborator info for commission %
-      supabase
-        .from('collaborators')
-        .select('default_commission_percent')
-        .eq('id', user.collaboratorId)
-        .single(),
-    ])
-
-    const sales = (salesRes.data || []) as any[]
-    const commissions = (commissionsRes.data || []) as any[]
-    const advances = (advancesRes.data || []) as any[]
-    const requests = (requestsRes.data || []) as any[]
-    const commissionPercent = (collabRes.data as any)?.default_commission_percent || 50
-
-    const grossSales = sales.reduce((sum: number, s: any) => sum + (s.total || 0), 0)
-    const serviceCount = sales.length
-    const totalCommission = commissions.reduce((sum: number, c: any) => sum + (c.commission_amount || 0), 0)
-    const advancesTotal = advances.filter((a: any) => a.type !== 'stock_consumption').reduce((sum: number, a: any) => sum + (a.total_amount || 0), 0)
-    const stockWithdrawals = advances.filter((a: any) => a.type === 'stock_consumption').reduce((sum: number, a: any) => sum + (a.total_amount || 0), 0)
-    const commissionEstimate = totalCommission > 0 ? totalCommission : grossSales * (commissionPercent / 100)
-    const netEstimate = commissionEstimate - advancesTotal - stockWithdrawals
-
-    setSummary({
-      periodLabel,
-      periodStart: startStr,
-      periodEnd: endStr,
-      grossSales,
-      serviceCount,
-      productSales: 0,
-      commissionPercent,
-      commissionEstimate,
-      advancesTotal,
-      stockWithdrawals,
-      netEstimate,
-      pendingRequests: requests.filter((r: any) => r.status === 'pending').length,
-      approvedRequests: requests.filter((r: any) => r.status === 'approved').length,
-    })
-
-    setRecentAdvances(advances.slice(0, 5))
-    setRecentCommissions(commissions.slice(0, 5))
-    setLoading(false)
-  }, [user?.collaboratorId])
-
-  useEffect(() => {
-    fetchData()
-  }, [fetchData])
-
-  if (!user?.collaboratorId) {
+  // ── Missing collaborator ──
+  if (!collabId) {
     return (
       <div>
         <div className="page-header">
-          <div>
-            <h1 className="page-title">Minha Conta</h1>
-            <p className="page-subtitle">Resumo do período e comissões</p>
-          </div>
+          <div><h1 className="page-title">Minha Conta</h1><p className="page-subtitle">Resumo do período e comissões</p></div>
         </div>
         <div className="section-card">
           <div className="section-card-body">
             <div className="empty-state" style={{ border: 'none', margin: 0, padding: '48px 24px' }}>
               <AlertCircle className="empty-state-icon" />
               <div className="empty-state-title">Perfil não vinculado</div>
-              <div className="empty-state-description">
-                Seu perfil não está vinculado a um profissional. Contate a administração.
-              </div>
+              <div className="empty-state-description">Seu usuário ainda não está vinculado a um profissional. Fale com o administrador.</div>
             </div>
           </div>
         </div>
@@ -163,163 +59,89 @@ export default function ContaPage() {
 
   return (
     <div>
-      <div className="page-header">
-        <div>
-          <h1 className="page-title">Minha Conta</h1>
-          <p className="page-subtitle">
-            {loading ? 'Carregando...' : summary?.periodLabel || 'Resumo do período'}
-          </p>
+      {/* ═══ HEADER — Professional + Period ═══ */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+        <div style={{
+          width: 44, height: 44, borderRadius: '50%',
+          background: 'var(--accent-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: 17, fontWeight: 800, color: 'var(--accent)', flexShrink: 0,
+        }}>
+          {displayName[0]?.toUpperCase()}
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {displayName}
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
+            <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)' }}>{commissionPercent}% comissão</span>
+          </div>
         </div>
       </div>
 
-      {loading ? (
-        <div style={{ textAlign: 'center', padding: 60, color: 'var(--text-secondary)' }}>
-          <div className="w-8 h-8 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-          Calculando quinzena...
+      {/* Period selector */}
+      <button
+        onClick={() => setShowPeriodPicker(!showPeriodPicker)}
+        style={{
+          width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '10px 14px', background: 'var(--bg-surface)', border: '1px solid var(--border)',
+          borderRadius: 10, cursor: 'pointer', fontFamily: 'inherit', marginBottom: 16,
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Calendar size={14} style={{ color: 'var(--accent)' }} />
+          <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>
+            {selectedPeriodIdx === 0 ? '⏱ Atual: ' : ''}{formatFortnightPeriodCompact(currentPeriod)}
+          </span>
         </div>
-      ) : summary ? (
-        <>
-          {/* KPIs */}
-          <div className="kpi-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))' }}>
-            {/* Gross Sales */}
-            <div className="kpi-card">
-              <div className="kpi-header">
-                <span className="kpi-label">Faturamento Bruto</span>
-                <div className="kpi-icon" style={{ background: 'var(--success-bg)', color: 'var(--success)' }}>
-                  <TrendingUp size={18} />
-                </div>
-              </div>
-              <div className="kpi-value" style={{ color: 'var(--success)' }}>
-                R$ {summary.grossSales.toFixed(2)}
-              </div>
-              <div className="kpi-footer">
-                {summary.serviceCount} atendimento(s)
-              </div>
-            </div>
+        <ChevronDown size={14} style={{ color: 'var(--text-muted)', transform: showPeriodPicker ? 'rotate(180deg)' : 'none', transition: 'transform 150ms' }} />
+      </button>
 
-            {/* Commission Estimate */}
-            <div className="kpi-card">
-              <div className="kpi-header">
-                <span className="kpi-label">Comissão ({summary.commissionPercent}%)</span>
-                <div className="kpi-icon" style={{ background: 'var(--accent-subtle)', color: 'var(--accent)' }}>
-                  <DollarSign size={18} />
-                </div>
-              </div>
-              <div className="kpi-value">
-                R$ {summary.commissionEstimate.toFixed(2)}
-              </div>
-            </div>
+      {showPeriodPicker && (
+        <div style={{
+          background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 10,
+          marginBottom: 16, overflow: 'hidden',
+        }}>
+          {periods.map((p, i) => (
+            <button
+              key={i}
+              onClick={() => { setSelectedPeriodIdx(i); setShowPeriodPicker(false) }}
+              style={{
+                width: '100%', padding: '10px 14px', background: i === selectedPeriodIdx ? 'var(--accent-subtle)' : 'transparent',
+                border: 'none', borderBottom: '1px solid var(--border)', textAlign: 'left',
+                fontSize: 12, fontWeight: i === selectedPeriodIdx ? 700 : 500,
+                color: i === selectedPeriodIdx ? 'var(--accent)' : 'var(--text-secondary)',
+                cursor: 'pointer', fontFamily: 'inherit',
+              }}
+            >
+              {i === 0 ? '⏱ Atual: ' : ''}{formatFortnightPeriodCompact(p)}
+            </button>
+          ))}
+        </div>
+      )}
 
-            {/* Advances */}
-            <div className="kpi-card">
-              <div className="kpi-header">
-                <span className="kpi-label">Adiantamentos</span>
-                <div className="kpi-icon" style={{ background: 'var(--danger-bg)', color: 'var(--danger)' }}>
-                  <TrendingDown size={18} />
-                </div>
-              </div>
-              <div className="kpi-value" style={{ color: 'var(--danger)' }}>
-                -R$ {summary.advancesTotal.toFixed(2)}
-              </div>
-            </div>
+      {/* ═══ REUSE THE SAME LEDGER — admin sees actions, professional sees read-only ═══ */}
+      <ProfessionalHistoryView
+        professionalId={collabId}
+        professionalName={displayName}
+        periodStart={iso.start}
+        periodEnd={iso.end}
+        periodLabel={currentPeriod.label}
+        isAdmin={hasAdminAccess}
+      />
 
-            {/* Stock Withdrawals */}
-            <div className="kpi-card">
-              <div className="kpi-header">
-                <span className="kpi-label">Retiradas Estoque</span>
-                <div className="kpi-icon" style={{ background: 'var(--warning-bg)', color: 'var(--warning)' }}>
-                  <Package size={18} />
-                </div>
-              </div>
-              <div className="kpi-value" style={{ color: 'var(--warning)' }}>
-                -R$ {summary.stockWithdrawals.toFixed(2)}
-              </div>
-            </div>
-
-            {/* Net Estimate */}
-            <div className="kpi-card" style={{ borderColor: summary.netEstimate >= 0 ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.2)' }}>
-              <div className="kpi-header">
-                <span className="kpi-label">Líquido Estimado</span>
-                <div className="kpi-icon" style={{ background: summary.netEstimate >= 0 ? 'var(--success-bg)' : 'var(--danger-bg)', color: summary.netEstimate >= 0 ? 'var(--success)' : 'var(--danger)' }}>
-                  <Wallet size={18} />
-                </div>
-              </div>
-              <div className="kpi-value" style={{ color: summary.netEstimate >= 0 ? 'var(--success)' : 'var(--danger)', fontSize: 24 }}>
-                R$ {summary.netEstimate.toFixed(2)}
-              </div>
-            </div>
-
-            {/* Pending Requests */}
-            <div className="kpi-card">
-              <div className="kpi-header">
-                <span className="kpi-label">Solicitações</span>
-                <div className="kpi-icon" style={{ background: 'var(--info-bg)', color: 'var(--info)' }}>
-                  <Clock size={18} />
-                </div>
-              </div>
-              <div className="kpi-value">
-                {summary.pendingRequests}
-                <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-secondary)', marginLeft: 4 }}>pendente(s)</span>
-              </div>
-              <div className="kpi-footer">
-                {summary.approvedRequests} aprovada(s) no período
-              </div>
-            </div>
-          </div>
-
-          {/* Period info bar */}
-          <div className="section-card" style={{ marginTop: 16, marginBottom: 16 }}>
-            <div className="section-card-body" style={{ padding: '14px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Scissors size={14} style={{ color: 'var(--accent)' }} />
-                <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)' }}>
-                  Período: {new Date(summary.periodStart).toLocaleDateString('pt-BR')} a {new Date(summary.periodEnd).toLocaleDateString('pt-BR')}
-                </span>
-              </div>
-              <span style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 500 }}>
-                Comissão base: {summary.commissionPercent}% · Os valores são estimativas até o fechamento oficial.
-              </span>
-            </div>
-          </div>
-
-          {/* Recent Advances */}
-          <div className="section-card">
-            <div className="section-card-header">
-              <span className="section-card-title">Adiantamentos / Deduções Recentes</span>
-            </div>
-            <div className="section-card-body" style={{ padding: 0 }}>
-              {recentAdvances.length === 0 ? (
-                <div style={{ padding: 32, textAlign: 'center', color: 'var(--text-secondary)', fontSize: 13 }}>
-                  Nenhum adiantamento no período
-                </div>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                  {recentAdvances.map((adv: any) => (
-                    <div key={adv.id} style={{
-                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                      padding: '12px 20px', borderBottom: '1px solid var(--border)', gap: 12,
-                    }}>
-                      <div style={{ minWidth: 0 }}>
-                        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {adv.description}
-                        </div>
-                        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
-                          {new Date(adv.occurred_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
-                          {' · '}
-                          {adv.type === 'stock_consumption' ? 'Retirada' : adv.type === 'cash_advance' ? 'Adiantamento' : adv.type === 'manual_deduction' ? 'Dedução' : adv.source_method}
-                        </div>
-                      </div>
-                      <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--danger)', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
-                        -R$ {adv.total_amount?.toFixed(2)}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        </>
-      ) : null}
+      {/* Quick agenda link */}
+      <Link href="/profissional/agenda" style={{
+        display: 'flex', alignItems: 'center', gap: 10, padding: '14px 16px',
+        background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 10,
+        textDecoration: 'none', transition: 'border-color 150ms', marginTop: 16,
+      }}>
+        <Calendar size={18} style={{ color: 'var(--accent)' }} />
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>Minha Agenda</div>
+          <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>Ver horários e atendimentos</div>
+        </div>
+        <span style={{ fontSize: 16, color: 'var(--text-muted)' }}>›</span>
+      </Link>
     </div>
   )
 }

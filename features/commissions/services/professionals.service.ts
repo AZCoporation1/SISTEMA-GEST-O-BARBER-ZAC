@@ -173,3 +173,52 @@ export async function getProductsForAdvance() {
   if (error) throw new Error(error.message)
   return data || []
 }
+
+// ── Professional Sales List (individual sales for detail view) ──
+
+export async function getProfessionalSalesList(
+  professionalId: string,
+  periodStart: string,
+  periodEnd: string
+) {
+  const supabase = createClient()
+  const { data, error } = await supabase
+    .from('sales')
+    .select(`
+      id,
+      total,
+      sale_date,
+      payment_method,
+      customer_name,
+      items:sale_items (id, item_type, quantity, total)
+    `)
+    .eq('collaborator_id', professionalId)
+    .eq('status', 'completed')
+    .gte('sale_date', periodStart)
+    .lte('sale_date', periodEnd)
+    .order('sale_date', { ascending: false })
+
+  if (error) throw new Error(error.message)
+  return data || []
+}
+
+// ── Professional Perfume Sales ───────────────────────────
+
+export async function getProfessionalPerfumeSales(
+  professionalId: string,
+  periodStart: string,
+  periodEnd: string
+) {
+  const supabase = createClient()
+  const { data, error } = await supabase
+    .from('perfume_sales')
+    .select('id, total_price, commission_amount_snapshot, perfume_name_snapshot, quantity, sale_date')
+    .eq('professional_id', professionalId)
+    .neq('status', 'cancelled')
+    .gte('sale_date', periodStart)
+    .lte('sale_date', periodEnd)
+    .order('sale_date', { ascending: false })
+
+  if (error) throw new Error(error.message)
+  return data || []
+}

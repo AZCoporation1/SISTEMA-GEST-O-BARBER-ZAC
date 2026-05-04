@@ -4,11 +4,12 @@ import { useAuth } from '@/components/auth-provider'
 import { usePathname, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
-import { LayoutDashboard, PlusCircle, ClipboardList, Wallet, LogOut, Menu, X } from 'lucide-react'
+import { LayoutDashboard, PlusCircle, ClipboardList, Wallet, LogOut, Menu, X, Calendar } from 'lucide-react'
 import { useState } from 'react'
 
 const proNavItems = [
   { href: '/profissional', label: 'Meu Painel', icon: LayoutDashboard },
+  { href: '/profissional/agenda', label: 'Agenda', icon: Calendar },
   { href: '/profissional/registrar', label: 'Registrar', icon: PlusCircle },
   { href: '/profissional/solicitacoes', label: 'Solicitações', icon: ClipboardList },
   { href: '/profissional/conta', label: 'Minha Conta', icon: Wallet },

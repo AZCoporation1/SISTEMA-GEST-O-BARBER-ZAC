@@ -11,12 +11,14 @@ export interface AuthUser {
   email: string
   fullName: string
   displayName: string | null
-  systemRole: SystemRoleEnum
+  systemRole: SystemRoleEnum | 'customer'
   collaboratorId: string | null
   canApprove: boolean
   canViewAllProfessionals: boolean
   canManageSystem: boolean
   canSubmitRequests: boolean
+  isCustomer: boolean
+  customerId?: string
 }
 
 interface AuthContextType {
@@ -27,6 +29,7 @@ interface AuthContextType {
   isOwner: boolean
   hasAdminAccess: boolean
   hasProfessionalAccess: boolean
+  isCustomer: boolean
   signOut: () => Promise<void>
 }
 
@@ -38,6 +41,7 @@ const AuthContext = createContext<AuthContextType>({
   isOwner: false,
   hasAdminAccess: false,
   hasProfessionalAccess: false,
+  isCustomer: false,
   signOut: async () => {},
 })
 
@@ -58,9 +62,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!session) {
       setUser(null)
       setIsLoading(false)
-      // Only redirect if not already on login page
-      if (pathname !== '/login') {
-        router.replace('/login')
+      
+      const isCustomerRoute = pathname === '/cliente' || pathname.startsWith('/cliente/')
+      const isCustomerPublic = isCustomerRoute && !pathname.startsWith('/cliente/meus-agendamentos') && !pathname.startsWith('/cliente/agendar/confirmacao')
+      const isPublic = pathname === '/login' || isCustomerPublic
+      
+      if (!isPublic) {
+        if (isCustomerRoute) {
+          router.replace('/cliente/login')
+        } else {
+          router.replace('/login')
+        }
       }
       return
     }
@@ -87,22 +99,49 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         canViewAllProfessionals: profile.can_view_all_professionals || false,
         canManageSystem: profile.can_manage_system || false,
         canSubmitRequests: profile.can_submit_professional_requests || false,
+        isCustomer: false,
       })
     } else {
-      // Profile doesn't exist yet (edge case) — still authenticated but no profile
-      setUser({
-        id: '',
-        authUserId: session.user.id,
-        email: session.user.email || '',
-        fullName: session.user.email?.split('@')[0] || 'Usuário',
-        displayName: null,
-        systemRole: 'professional',
-        collaboratorId: null,
-        canApprove: false,
-        canViewAllProfessionals: false,
-        canManageSystem: false,
-        canSubmitRequests: false,
-      })
+      // Check if user is a customer
+      const { data: customerData } = await supabase
+        .from('customers')
+        .select('id, full_name, email')
+        .eq('auth_user_id', session.user.id)
+        .single() as { data: any }
+
+      if (customerData) {
+        setUser({
+          id: customerData.id, // Using customer id here for convenience, though it's not a profile id
+          authUserId: session.user.id,
+          email: customerData.email || session.user.email || '',
+          fullName: customerData.full_name || session.user.email?.split('@')[0] || 'Cliente',
+          displayName: null,
+          systemRole: 'customer',
+          collaboratorId: null,
+          canApprove: false,
+          canViewAllProfessionals: false,
+          canManageSystem: false,
+          canSubmitRequests: false,
+          isCustomer: true,
+          customerId: customerData.id,
+        })
+      } else {
+        // Profile doesn't exist yet and not a customer — still authenticated but no profile
+        setUser({
+          id: '',
+          authUserId: session.user.id,
+          email: session.user.email || '',
+          fullName: session.user.email?.split('@')[0] || 'Usuário',
+          displayName: null,
+          systemRole: 'professional',
+          collaboratorId: null,
+          canApprove: false,
+          canViewAllProfessionals: false,
+          canManageSystem: false,
+          canSubmitRequests: false,
+          isCustomer: false,
+        })
+      }
     }
 
     setIsLoading(false)
@@ -116,8 +155,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (!session) {
         setUser(null)
-        if (pathname !== '/login') {
-          router.replace('/login')
+        
+        const isCustomerRoute = pathname === '/cliente' || pathname.startsWith('/cliente/')
+        const isCustomerPublic = isCustomerRoute && !pathname.startsWith('/cliente/meus-agendamentos') && !pathname.startsWith('/cliente/agendar/confirmacao')
+        const isPublic = pathname === '/login' || isCustomerPublic
+        
+        if (!isPublic) {
+          if (isCustomerRoute) {
+            router.replace('/cliente/login')
+          } else {
+            router.replace('/login')
+          }
         }
       } else {
         fetchProfile()
@@ -137,6 +185,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const isAdmin = user?.systemRole === 'admin_total'
   const isProfessional = user?.systemRole === 'professional'
   const isOwner = user?.systemRole === 'owner_admin_professional'
+  const isCustomer = user?.isCustomer || false
   const hasAdminAccess = isAdmin || isOwner
   const hasProfessionalAccess = isProfessional || isOwner
 
@@ -152,7 +201,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, isAdmin, isProfessional, isOwner, hasAdminAccess, hasProfessionalAccess, signOut }}>
+    <AuthContext.Provider value={{ user, isLoading, isAdmin, isProfessional, isOwner, hasAdminAccess, hasProfessionalAccess, isCustomer, signOut }}>
       {children}
     </AuthContext.Provider>
   )

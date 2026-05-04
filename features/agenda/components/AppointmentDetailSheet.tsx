@@ -118,6 +118,21 @@ export default function AppointmentDetailSheet({
           }}>
             {APPOINTMENT_STATUS_LABELS[appointment.status]}
           </span>
+          {appointment.source === 'customer' && (
+            <span style={{
+              padding: "3px 10px",
+              borderRadius: 6,
+              fontSize: 10,
+              fontWeight: 700,
+              background: "rgba(20, 184, 166, 0.1)",
+              color: "#2dd4bf",
+              border: "1px solid rgba(20, 184, 166, 0.3)",
+              textTransform: "uppercase",
+              letterSpacing: "0.06em",
+            }}>
+              APP CLIENTE
+            </span>
+          )}
           <span style={{ fontSize: 11, color: "var(--text-muted)" }}>
             #{appointment.id.split("-")[0]}
           </span>

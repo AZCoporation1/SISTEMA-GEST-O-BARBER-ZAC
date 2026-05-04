@@ -2,7 +2,7 @@
 "use client"
 
 import { useState, useMemo } from "react"
-import { Plus, Lock, Clock, User, Users, Phone, ChevronLeft, ChevronRight, CalendarPlus, Scissors, List } from "lucide-react"
+import { Plus, Lock, Clock, User, Users, Phone, ChevronLeft, ChevronRight, CalendarPlus, Scissors, List, Globe } from "lucide-react"
 import type { AppointmentWithRelations, AppointmentBlockRow, ProfessionalForAgenda, ProfessionalWorkingHoursRow, AgendaSettingsRow } from "../types"
 import { APPOINTMENT_STATUS_LABELS, APPOINTMENT_STATUS_COLORS } from "../types"
 import MobileSlotActionSheet from "./MobileSlotActionSheet"
@@ -285,7 +285,10 @@ export default function AgendaMobileView({
               const appt = within && !block ? getApptAtSlot(time) : null
               const first = appt ? isFirstSlot(appt, time) : false
               const span = appt && first ? getSpan(appt) : 1
-              const colors = appt ? APPOINTMENT_STATUS_COLORS[appt.status] || APPOINTMENT_STATUS_COLORS.scheduled : null
+              let colors = appt ? APPOINTMENT_STATUS_COLORS[appt.status] || APPOINTMENT_STATUS_COLORS.scheduled : null
+              if (appt && appt.source === 'customer' && appt.status === 'scheduled') {
+                colors = { bg: "rgba(20, 184, 166, 0.1)", border: "rgba(20, 184, 166, 0.3)", text: "#2dd4bf" }
+              }
 
               return (
                 <div key={time} style={{
@@ -347,12 +350,18 @@ export default function AgendaMobileView({
                             {APPOINTMENT_STATUS_LABELS[appt.status]}
                           </span>
                         </div>
-                        <div style={{ fontSize: 11, fontWeight: 600, color: "var(--text-primary)", marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                        <div style={{ fontSize: 11, fontWeight: 600, color: "var(--text-primary)", marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", display: "flex", alignItems: "center", gap: 4 }}>
                           {appt.customer_name_snapshot || "Walk-in"}
+                          {appt.source === 'customer' && (
+                            <Globe size={10} style={{ color: "var(--accent)" }} />
+                          )}
                         </div>
                         {appt.service_name_snapshot && (
                           <div style={{ fontSize: 9, color: "var(--text-muted)", marginTop: 1, display: "flex", alignItems: "center", gap: 3 }}>
                             <Scissors size={8} /> {appt.service_name_snapshot}
+                            {appt.source === 'customer' && (
+                              <span style={{ color: "var(--accent)", fontWeight: 500 }}>• App Cliente</span>
+                            )}
                           </div>
                         )}
                       </button>

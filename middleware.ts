@@ -4,6 +4,11 @@ import { NextResponse, type NextRequest } from 'next/server'
 // Routes that don't require authentication
 const PUBLIC_ROUTES = ['/login']
 
+// Customer routes are handled via prefix matching
+const isCustomerRoute = (pathname: string) => pathname === '/cliente' || pathname.startsWith('/cliente/')
+const isProtectedCustomerRoute = (pathname: string) => pathname.startsWith('/cliente/meus-agendamentos') || pathname.startsWith('/cliente/agendar/confirmacao')
+const isPublicCustomerRoute = (pathname: string) => isCustomerRoute(pathname) && !isProtectedCustomerRoute(pathname)
+
 // Routes exclusively for admin/owner users
 const ADMIN_ROUTES = [
   '/dashboard',
@@ -55,18 +60,20 @@ export async function middleware(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   const pathname = request.nextUrl.pathname
 
-  // Allow public routes
+  // Allow internal public routes (e.g. /login)
   if (PUBLIC_ROUTES.some(r => pathname === r || pathname.startsWith(r + '/'))) {
-    // If authenticated, redirect to appropriate home
     if (user) {
-      const { data: profile } = await supabase
-        .from('user_profiles')
-        .select('system_role')
-        .eq('auth_user_id', user.id)
-        .single()
+      // Determine role
+      const { data: profile } = await supabase.from('user_profiles').select('system_role').eq('auth_user_id', user.id).single()
+      let role = profile?.system_role
+      if (!role) {
+        const { data: cust } = await supabase.from('customers').select('id').eq('auth_user_id', user.id).single() as { data: any }
+        if (cust) role = 'customer'
+      }
 
-      const role = profile?.system_role || 'professional'
-
+      if (role === 'customer') {
+        return NextResponse.redirect(new URL('/cliente/meus-agendamentos', request.url))
+      }
       if (role === 'professional') {
         return NextResponse.redirect(new URL('/profissional', request.url))
       }
@@ -75,10 +82,30 @@ export async function middleware(request: NextRequest) {
     return supabaseResponse
   }
 
-  // Not authenticated → redirect to login
+  // Handle customer public routes
+  if (isPublicCustomerRoute(pathname)) {
+    // If user is authenticated as customer and tries to access /cliente/login, redirect to dashboard
+    if (user && pathname === '/cliente/login') {
+      const { data: profile } = await supabase.from('user_profiles').select('system_role').eq('auth_user_id', user.id).single()
+      if (!profile?.system_role) {
+        const { data: cust } = await supabase.from('customers').select('id').eq('auth_user_id', user.id).single() as { data: any }
+        if (cust) return NextResponse.redirect(new URL('/cliente/meus-agendamentos', request.url))
+      }
+    }
+    // Allow public access
+    if (!user) {
+      return supabaseResponse
+    }
+  }
+
+  // Not authenticated and not on a public route → redirect to appropriate login
   if (!user) {
     const url = request.nextUrl.clone()
-    url.pathname = '/login'
+    if (isCustomerRoute(pathname)) {
+      url.pathname = '/cliente/login'
+    } else {
+      url.pathname = '/login'
+    }
     return NextResponse.redirect(url)
   }
 
@@ -89,15 +116,39 @@ export async function middleware(request: NextRequest) {
     .eq('auth_user_id', user.id)
     .single()
 
-  const role = profile?.system_role || 'professional'
+  let role = profile?.system_role
+  
+  if (!role) {
+    const { data: cust } = await supabase.from('customers').select('id').eq('auth_user_id', user.id).single() as { data: any }
+    if (cust) {
+      role = 'customer'
+    } else {
+      role = 'professional' // fallback
+    }
+  }
 
   // Root redirect
   if (pathname === '/') {
     if (role === 'professional') {
       return NextResponse.redirect(new URL('/profissional', request.url))
     }
+    if (role === 'customer') {
+      return NextResponse.redirect(new URL('/cliente/meus-agendamentos', request.url))
+    }
     return NextResponse.redirect(new URL('/dashboard', request.url))
   }
+
+  // Customer trying to access internal routes -> redirect to customer portal
+  if (role === 'customer') {
+    if (!pathname.startsWith('/cliente')) {
+      return NextResponse.redirect(new URL('/cliente', request.url))
+    }
+    // Let them access anything inside /cliente
+    return supabaseResponse
+  }
+
+  // Professional or Admin trying to access /cliente → allow access for testing
+  // (their role is still respected inside the customer flow)
 
   // Professional trying to access admin routes → redirect to professional home
   if (role === 'professional') {
@@ -116,7 +167,6 @@ export async function middleware(request: NextRequest) {
   }
 
   // Owner can access everything — no redirect needed
-
   return supabaseResponse
 }
 
