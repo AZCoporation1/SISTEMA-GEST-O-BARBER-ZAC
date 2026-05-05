@@ -120,6 +120,7 @@ export interface PublicCatalogService {
   price: number
   durationMinutes: number
   categoryName: string
+  description: string | null
 }
 
 export async function getPublicBookingCatalog(): Promise<{
@@ -132,7 +133,7 @@ export async function getPublicBookingCatalog(): Promise<{
 
     const { data, error } = await supabase
       .from("services")
-      .select("id, name, duration_minutes, price, is_active, is_bookable, service_categories(name)")
+      .select("id, name, description, duration_minutes, price, is_active, is_bookable, service_categories(name)")
       .eq("is_active", true)
       .eq("is_bookable", true)
       .gt("duration_minutes", 0)
@@ -153,6 +154,7 @@ export async function getPublicBookingCatalog(): Promise<{
       price: s.price || 0,
       durationMinutes: s.duration_minutes,
       categoryName: s.service_categories?.name || 'Geral',
+      description: s.description || null,
     }))
 
     return { success: true, data: catalog }

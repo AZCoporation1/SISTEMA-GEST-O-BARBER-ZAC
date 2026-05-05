@@ -9,6 +9,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { createServerClient } from "@/lib/supabase/server"
 import { z } from "zod"
+import { ensureCustomerForAuthUser as _ensureSync } from '@/features/customers/services/customer-auth-sync.service'
 
 function getAdminClient() {
   return createClient(
@@ -194,7 +195,7 @@ export async function customerLogin(data: z.infer<typeof customerLoginSchema>) {
     }
 
     // Ensure customer record exists and is linked (auto-sync)
-    await ensureCustomerForAuthUser(authUserId, {
+    await _ensureSync(authUserId, {
       email: normalizedEmail,
       fullName: authData.user.user_metadata?.full_name,
       phone: authData.user.user_metadata?.phone,
@@ -208,105 +209,14 @@ export async function customerLogin(data: z.infer<typeof customerLoginSchema>) {
 }
 
 /**
- * Ensure a customer record exists for the given auth user.
- * Called after login to sync customer data.
- * Uses SERVICE_ROLE_KEY to bypass RLS.
+ * Wrapper for ensureCustomerForAuthUser from the shared service.
+ * Must be an async function because this is a "use server" file.
  */
 export async function ensureCustomerForAuthUser(
   authUserId: string,
   optionalData?: { email?: string; fullName?: string; phone?: string }
-): Promise<{ customerId: string | null }> {
-  try {
-    const adminClient = getAdminClient()
-
-    // 1. Look up by auth_user_id
-    const { data: existing } = await adminClient
-      .from("customers")
-      .select("id")
-      .eq("auth_user_id", authUserId)
-      .maybeSingle()
-
-    if (existing) {
-      // Update last_login_at
-      await adminClient
-        .from("customers")
-        .update({ last_login_at: new Date().toISOString() })
-        .eq("id", existing.id)
-      return { customerId: existing.id }
-    }
-
-    // 2. Look up by email
-    if (optionalData?.email) {
-      const { data: byEmail } = await adminClient
-        .from("customers")
-        .select("id, auth_user_id")
-        .eq("email", optionalData.email.trim().toLowerCase())
-        .maybeSingle()
-
-      if (byEmail) {
-        // Link unlinked customer
-        if (!byEmail.auth_user_id) {
-          await adminClient
-            .from("customers")
-            .update({ 
-              auth_user_id: authUserId,
-              last_login_at: new Date().toISOString()
-            })
-            .eq("id", byEmail.id)
-        }
-        return { customerId: byEmail.id }
-      }
-    }
-
-    // 3. Look up by phone
-    if (optionalData?.phone) {
-      const normalizedPhone = optionalData.phone.replace(/\D/g, '')
-      if (normalizedPhone.length >= 10) {
-        const { data: byPhone } = await adminClient
-          .from("customers")
-          .select("id, auth_user_id")
-          .eq("mobile_phone", normalizedPhone)
-          .maybeSingle()
-
-        if (byPhone && !byPhone.auth_user_id) {
-          await adminClient
-            .from("customers")
-            .update({ 
-              auth_user_id: authUserId,
-              email: optionalData.email?.trim().toLowerCase(),
-              last_login_at: new Date().toISOString()
-            })
-            .eq("id", byPhone.id)
-          return { customerId: byPhone.id }
-        }
-      }
-    }
-
-    // 4. Create new customer
-    const { data: newCustomer, error: insertErr } = await adminClient
-      .from("customers")
-      .insert({
-        auth_user_id: authUserId,
-        full_name: optionalData?.fullName || 'Cliente',
-        normalized_name: (optionalData?.fullName || 'cliente').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""),
-        email: optionalData?.email?.trim().toLowerCase(),
-        mobile_phone: optionalData?.phone?.replace(/\D/g, ''),
-        is_active: true,
-        last_login_at: new Date().toISOString()
-      })
-      .select("id")
-      .single()
-
-    if (insertErr) {
-      console.error("ensureCustomerForAuthUser insert error:", insertErr)
-      return { customerId: null }
-    }
-
-    return { customerId: newCustomer?.id || null }
-  } catch (err: any) {
-    console.error("ensureCustomerForAuthUser error:", err)
-    return { customerId: null }
-  }
+) {
+  return _ensureSync(authUserId, optionalData)
 }
 
 export async function customerLogout() {

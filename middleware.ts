@@ -98,8 +98,12 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // Not authenticated and not on a public route → redirect to appropriate login
+  // Not authenticated and not on a public route → redirect appropriately
   if (!user) {
+    // Root domain → go to /cliente (public landing)
+    if (pathname === '/') {
+      return NextResponse.redirect(new URL('/cliente', request.url))
+    }
     const url = request.nextUrl.clone()
     if (isCustomerRoute(pathname)) {
       url.pathname = '/cliente/login'

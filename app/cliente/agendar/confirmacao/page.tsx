@@ -3,10 +3,10 @@
 import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Loader2, Calendar as CalendarIcon, Clock, Scissors, CheckCircle2, AlertCircle } from 'lucide-react'
+import { ArrowLeft, Loader2, Calendar as CalendarIcon, Clock, Scissors, CheckCircle2, AlertCircle, User, Phone, MessageSquare } from 'lucide-react'
 import { createCustomerAppointment } from '@/features/agenda/actions/agenda.actions'
 import { getPublicBookingService, getPublicBookingProfessionals } from '@/features/agenda/actions/public-booking.actions'
-import { ensureCustomerForAuthUser } from '@/features/customers/actions/customer-auth.actions'
+import { ensureCustomerForAuthUser } from '@/features/customers/services/customer-auth-sync.service'
 import { toast } from 'sonner'
 import { format, parseISO } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
@@ -24,7 +24,10 @@ export default function AgendarConfirmacaoPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [service, setService] = useState<{ name: string; price: number; durationMinutes: number } | null>(null)
   const [professional, setProfessional] = useState<{ displayName: string } | null>(null)
+  const [customerInfo, setCustomerInfo] = useState<{ name: string; phone: string } | null>(null)
+  const [customerReady, setCustomerReady] = useState(false)
   const [missingParams, setMissingParams] = useState(false)
+  const [notes, setNotes] = useState('')
 
   useEffect(() => {
     if (!serviceId || !professionalId || !date || !time) {
@@ -45,11 +48,22 @@ export default function AgendarConfirmacaoPage() {
       }
 
       // Ensure customer record exists for this auth user
-      await ensureCustomerForAuthUser(session.user.id, {
+      const ensureResult = await ensureCustomerForAuthUser(session.user.id, {
         email: session.user.email,
         fullName: session.user.user_metadata?.full_name,
         phone: session.user.user_metadata?.phone,
       })
+
+      if (ensureResult.customerId) {
+        setCustomerReady(true)
+        setCustomerInfo({
+          name: ensureResult.fullName || session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'Cliente',
+          phone: ensureResult.phone || session.user.user_metadata?.phone || '',
+        })
+      } else {
+        setCustomerReady(false)
+        toast.error("Não foi possível vincular seu registro de cliente. Tente fazer logout e login novamente.")
+      }
 
       // Fetch service and professional data via service-role actions (bypasses RLS)
       const [svcRes, profRes] = await Promise.all([
@@ -75,13 +89,18 @@ export default function AgendarConfirmacaoPage() {
   }, [serviceId, professionalId, date, time, router])
 
   const handleConfirm = async () => {
+    if (!customerReady) {
+      toast.error("Registro de cliente não vinculado. Tente fazer logout e login novamente.")
+      return
+    }
     setIsSubmitting(true)
     try {
       const res = await createCustomerAppointment({
         serviceId: serviceId!,
         professionalId: professionalId!,
         date: date!,
-        startTime: time!
+        startTime: time!,
+        notes: notes.trim() || undefined,
       })
 
       if (!res.success) {
@@ -137,6 +156,17 @@ export default function AgendarConfirmacaoPage() {
         <h1 className="text-xl font-bold text-white">Confirmação</h1>
       </div>
 
+      {/* Customer sync error */}
+      {!customerReady && (
+        <div className="p-4 rounded-2xl border border-red-800/50 bg-red-900/20 text-red-300 text-sm flex items-start gap-3">
+          <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
+          <div>
+            <p className="font-medium">Conta não vinculada</p>
+            <p className="text-red-400 mt-1">Não foi possível vincular seu registro de cliente. Tente fazer logout e login novamente.</p>
+          </div>
+        </div>
+      )}
+
       <div className="p-6 rounded-2xl border border-zinc-800 bg-zinc-900/40 space-y-6">
         
         {/* Service */}
@@ -172,13 +202,48 @@ export default function AgendarConfirmacaoPage() {
           </div>
         </div>
 
+        {/* Customer */}
+        {customerInfo && (
+          <div>
+            <h3 className="text-xs font-medium text-zinc-500 uppercase tracking-wider mb-2">Cliente</h3>
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-2 text-zinc-200">
+                <User className="w-4 h-4 text-zinc-400" />
+                <span>{customerInfo.name}</span>
+              </div>
+              {customerInfo.phone && (
+                <div className="flex items-center gap-2 text-zinc-400 text-sm">
+                  <Phone className="w-3.5 h-3.5" />
+                  <span>{customerInfo.phone.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3')}</span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Notes */}
+        <div>
+          <h3 className="text-xs font-medium text-zinc-500 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+            <MessageSquare className="w-3.5 h-3.5" />
+            Observação (opcional)
+          </h3>
+          <textarea
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="Alguma observação para o profissional..."
+            maxLength={200}
+            rows={2}
+            className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-sm text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-zinc-700 resize-none"
+          />
+        </div>
+
       </div>
 
       <div className="pt-6">
         <button
           onClick={handleConfirm}
-          disabled={isSubmitting}
-          className="w-full flex items-center justify-center gap-2 h-14 rounded-2xl bg-zinc-100 text-zinc-900 font-semibold hover:bg-white disabled:opacity-50 transition-colors"
+          disabled={isSubmitting || !customerReady}
+          className="w-full flex items-center justify-center gap-2 h-14 rounded-2xl bg-zinc-100 text-zinc-900 font-semibold hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           {isSubmitting ? (
             <Loader2 className="w-5 h-5 animate-spin" />

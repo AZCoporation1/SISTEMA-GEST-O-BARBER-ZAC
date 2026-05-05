@@ -1112,8 +1112,8 @@ export async function createCustomerAppointment(data: CustomerAppointmentInput) 
     
     // 1. Verify Authentication (via session cookies)
     const { data: authData } = await supabase.auth.getUser()
-    const userId = authData.user?.id
-    if (!userId) {
+    const authUser = authData.user
+    if (!authUser?.id) {
       return { success: false, error: "Usuário não autenticado." }
     }
 
@@ -1124,11 +1124,23 @@ export async function createCustomerAppointment(data: CustomerAppointmentInput) 
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     )
 
-    // 2. Fetch Customer Record
+    // 2. ENSURE customer record exists (idempotent sync)
+    const { ensureCustomerForAuthUser } = await import('@/features/customers/services/customer-auth-sync.service')
+    const ensureResult = await ensureCustomerForAuthUser(authUser.id, {
+      email: authUser.email,
+      fullName: authUser.user_metadata?.full_name,
+      phone: authUser.user_metadata?.phone,
+    })
+
+    if (!ensureResult.customerId) {
+      return { success: false, error: "Não foi possível vincular seu registro de cliente. Tente fazer logout e login novamente." }
+    }
+
+    // 3. Fetch full Customer Record (now guaranteed to exist)
     const { data: customer, error: custErr } = await adminDb
       .from('customers')
       .select('id, full_name, phone, mobile_phone, is_active')
-      .eq('auth_user_id', userId)
+      .eq('id', ensureResult.customerId)
       .single() as { data: any, error: any }
 
     if (custErr || !customer) {
