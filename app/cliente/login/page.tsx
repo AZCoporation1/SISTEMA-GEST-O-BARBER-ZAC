@@ -4,7 +4,7 @@ import { useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { ArrowLeft, Loader2, UserPlus, LogIn, Eye, EyeOff } from 'lucide-react'
+import { ArrowLeft, Loader2, UserPlus, LogIn, Eye, EyeOff, Scissors } from 'lucide-react'
 import { customerLogin, customerSignUp } from '@/features/customers/actions/customer-auth.actions'
 import { toast } from 'sonner'
 import Link from 'next/link'
@@ -105,34 +105,36 @@ function ClienteLoginContent() {
   }
 
   return (
-    <div className="flex flex-col h-full space-y-6 pt-4 pb-12 animate-in fade-in px-4">
+    <div className="flex flex-col h-full space-y-6 pt-2 pb-12 animate-in fade-in">
       
+      {/* Back button */}
       <div className="flex items-center">
-        <Button variant="ghost" size="icon" className="h-8 w-8 text-zinc-400" asChild>
+        <Button variant="ghost" size="icon" className="h-9 w-9 text-zinc-400 hover:text-zinc-200 rounded-xl" asChild>
           <Link href="/cliente">
             <ArrowLeft className="h-4 w-4" />
           </Link>
         </Button>
       </div>
 
-      <div className="space-y-2">
-        <h1 className="text-2xl font-bold text-white">
+      {/* Header */}
+      <div className="space-y-2 px-1">
+        <h1 className="text-2xl font-bold text-white tracking-tight">
           {isLogin ? 'Acesse sua conta' : 'Crie sua conta'}
         </h1>
-        <p className="text-sm text-zinc-400">
+        <p className="text-sm text-zinc-500 leading-relaxed">
           {isLogin 
-            ? 'Para continuar com o agendamento, faça login.' 
+            ? 'Entre para agendar e acompanhar seus horários.' 
             : 'Preencha os dados abaixo para se cadastrar.'}
         </p>
       </div>
 
       {/* OAuth Buttons */}
-      <div className="space-y-3">
+      <div className="space-y-2.5">
         <button
           type="button"
           onClick={() => handleOAuth('google')}
           disabled={isOAuthLoading !== null}
-          className="w-full flex items-center justify-center gap-3 h-12 rounded-xl border border-zinc-800 bg-zinc-900/50 text-zinc-200 font-medium hover:bg-zinc-800/80 hover:border-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="w-full flex items-center justify-center gap-3 h-12 rounded-xl border border-zinc-800/80 bg-zinc-900/60 text-zinc-200 font-medium hover:bg-zinc-800/80 hover:border-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-150 active:scale-[0.98]"
         >
           {isOAuthLoading === 'google' ? (
             <Loader2 className="w-4 h-4 animate-spin" />
@@ -150,68 +152,68 @@ function ClienteLoginContent() {
         <button
           type="button"
           onClick={() => toast.info('Login com Apple estará disponível em breve.')}
-          className="w-full flex items-center justify-center gap-3 h-12 rounded-xl border border-zinc-800/50 bg-zinc-900/30 text-zinc-500 font-medium cursor-default transition-colors"
+          className="w-full flex items-center justify-center gap-3 h-12 rounded-xl border border-zinc-800/40 bg-zinc-900/30 text-zinc-500 font-medium cursor-default transition-colors"
         >
-          <svg className="w-5 h-5 opacity-50" viewBox="0 0 24 24" fill="currentColor">
+          <svg className="w-5 h-5 opacity-40" viewBox="0 0 24 24" fill="currentColor">
             <path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/>
           </svg>
           Continuar com Apple
-          <span className="text-[10px] uppercase tracking-wider bg-zinc-800 px-2 py-0.5 rounded-full">Em breve</span>
+          <span className="text-[9px] uppercase tracking-widest font-semibold bg-zinc-800/80 px-1.5 py-0.5 rounded border border-zinc-700/30">Em breve</span>
         </button>
       </div>
 
       {/* Divider */}
-      <div className="flex items-center gap-3">
-        <div className="flex-1 h-px bg-zinc-800" />
-        <span className="text-xs text-zinc-600 uppercase tracking-wider">ou</span>
-        <div className="flex-1 h-px bg-zinc-800" />
+      <div className="flex items-center gap-3 py-1">
+        <div className="flex-1 h-px bg-zinc-800/60" />
+        <span className="text-[10px] text-zinc-600 uppercase tracking-widest font-medium">ou com e-mail</span>
+        <div className="flex-1 h-px bg-zinc-800/60" />
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
         {!isLogin && (
-          <div className="space-y-2">
-            <label className="text-xs font-medium text-zinc-300">Nome completo</label>
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium text-zinc-400">Nome completo</label>
             <Input 
               required
               placeholder="Ex: João da Silva"
               value={fullName}
               onChange={e => setFullName(e.target.value)}
-              className="bg-zinc-900 border-zinc-800 focus-visible:ring-zinc-700"
+              className="bg-zinc-900/80 border-zinc-800/80 focus-visible:ring-zinc-700 focus-visible:border-zinc-700 h-11 rounded-xl text-sm"
               autoComplete="name"
             />
           </div>
         )}
 
-        <div className="space-y-2">
-          <label className="text-xs font-medium text-zinc-300">E-mail</label>
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-zinc-400">E-mail</label>
           <Input 
             required
             type="email"
             placeholder="seu@email.com"
             value={email}
             onChange={e => setEmail(e.target.value)}
-            className="bg-zinc-900 border-zinc-800 focus-visible:ring-zinc-700"
+            className="bg-zinc-900/80 border-zinc-800/80 focus-visible:ring-zinc-700 focus-visible:border-zinc-700 h-11 rounded-xl text-sm"
             autoComplete="email"
           />
         </div>
 
         {!isLogin && (
-          <div className="space-y-2">
-            <label className="text-xs font-medium text-zinc-300">Telefone (WhatsApp)</label>
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium text-zinc-400">Telefone (WhatsApp)</label>
             <Input 
               required
               type="tel"
               placeholder="(11) 99999-9999"
               value={phone}
               onChange={e => handlePhoneChange(e.target.value)}
-              className="bg-zinc-900 border-zinc-800 focus-visible:ring-zinc-700"
+              className="bg-zinc-900/80 border-zinc-800/80 focus-visible:ring-zinc-700 focus-visible:border-zinc-700 h-11 rounded-xl text-sm"
               autoComplete="tel"
             />
           </div>
         )}
 
-        <div className="space-y-2">
-          <label className="text-xs font-medium text-zinc-300">Senha</label>
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-zinc-400">Senha</label>
           <div className="relative">
             <Input 
               required
@@ -219,44 +221,46 @@ function ClienteLoginContent() {
               placeholder="••••••••"
               value={password}
               onChange={e => setPassword(e.target.value)}
-              className="bg-zinc-900 border-zinc-800 focus-visible:ring-zinc-700 pr-10"
+              className="bg-zinc-900/80 border-zinc-800/80 focus-visible:ring-zinc-700 focus-visible:border-zinc-700 h-11 rounded-xl text-sm pr-10"
               autoComplete={isLogin ? "current-password" : "new-password"}
               minLength={6}
             />
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 transition-colors"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 transition-colors p-0.5"
               tabIndex={-1}
             >
               {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
             </button>
           </div>
           {!isLogin && (
-            <p className="text-[10px] text-zinc-600">Mínimo de 6 caracteres</p>
+            <p className="text-[10px] text-zinc-600 pl-1">Mínimo de 6 caracteres</p>
           )}
         </div>
 
-        <Button 
-          type="submit" 
-          disabled={isLoading}
-          className="w-full bg-zinc-100 text-zinc-900 hover:bg-white h-12 mt-4 font-semibold"
-        >
-          {isLoading ? (
-            <Loader2 className="w-5 h-5 animate-spin" />
-          ) : isLogin ? (
-            <span className="flex items-center gap-2"><LogIn className="w-4 h-4" /> Entrar</span>
-          ) : (
-            <span className="flex items-center gap-2"><UserPlus className="w-4 h-4" /> Cadastrar</span>
-          )}
-        </Button>
+        <div className="pt-2">
+          <Button 
+            type="submit" 
+            disabled={isLoading}
+            className="w-full bg-white text-zinc-900 hover:bg-zinc-100 h-12 font-semibold rounded-xl active:scale-[0.98] transition-all duration-150 shadow-sm"
+          >
+            {isLoading ? (
+              <Loader2 className="w-5 h-5 animate-spin" />
+            ) : isLogin ? (
+              <span className="flex items-center gap-2"><LogIn className="w-4 h-4" /> Entrar</span>
+            ) : (
+              <span className="flex items-center gap-2"><UserPlus className="w-4 h-4" /> Cadastrar</span>
+            )}
+          </Button>
+        </div>
       </form>
 
-      <div className="text-center pt-4">
+      <div className="text-center pt-2">
         <button 
           onClick={() => setIsLogin(!isLogin)}
           type="button"
-          className="text-sm text-zinc-400 hover:text-white transition-colors"
+          className="text-sm text-zinc-500 hover:text-white transition-colors font-medium"
         >
           {isLogin ? 'Não tem uma conta? Cadastre-se' : 'Já tem uma conta? Faça login'}
         </button>
