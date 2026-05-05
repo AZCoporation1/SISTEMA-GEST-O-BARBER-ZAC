@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, Loader2, Calendar as CalendarIcon, Clock, Scissors, CheckCircle2, AlertCircle, User, Phone, MessageSquare, RefreshCw, LogOut, ShieldAlert } from 'lucide-react'
@@ -12,7 +12,7 @@ import { format, parseISO } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { createClient } from '@/lib/supabase/client'
 
-export default function AgendarConfirmacaoPage() {
+function ConfirmacaoContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const serviceId = searchParams.get('serviceId')
@@ -332,5 +332,17 @@ export default function AgendarConfirmacaoPage() {
         </button>
       </div>
     </div>
+  )
+}
+
+export default function AgendarConfirmacaoPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center h-full min-h-[50vh]">
+        <Loader2 className="w-8 h-8 animate-spin text-zinc-500" />
+      </div>
+    }>
+      <ConfirmacaoContent />
+    </Suspense>
   )
 }

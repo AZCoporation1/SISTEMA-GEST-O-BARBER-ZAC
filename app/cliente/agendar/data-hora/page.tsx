@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, Loader2, Calendar as CalendarIcon } from 'lucide-react'
@@ -8,7 +8,7 @@ import { getCustomerAvailableSlots, Slot } from '@/features/agenda/services/avai
 import { addDays, format, isBefore, startOfToday } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 
-export default function AgendarDataHoraPage() {
+function DataHoraContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const serviceId = searchParams.get('serviceId')
@@ -148,5 +148,17 @@ export default function AgendarDataHoraPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function AgendarDataHoraPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center h-full min-h-[50vh]">
+        <Loader2 className="w-8 h-8 animate-spin text-zinc-500" />
+      </div>
+    }>
+      <DataHoraContent />
+    </Suspense>
   )
 }

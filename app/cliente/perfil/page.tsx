@@ -52,10 +52,16 @@ export default function PerfilPage() {
       setError(res.error || "Erro ao carregar perfil.")
       setIsInternalUser(res.isInternalUser ?? false)
     } else {
-      setProfile(res.data as ProfileData)
-      setEditName(res.data.fullName || '')
-      setEditPhone(res.data.phone || '')
+      const data = res.data as ProfileData
+      setProfile(data)
+      setEditName(data.fullName || '')
+      setEditPhone(data.phone || '')
       setIsInternalUser(res.isInternalUser ?? false)
+      // If phone is missing (e.g. Google OAuth), auto-enter edit mode
+      if (!data.phone) {
+        setIsEditing(true)
+        setTimeout(() => toast.info("Complete seu telefone para agendar."), 500)
+      }
     }
     setIsLoading(false)
   }

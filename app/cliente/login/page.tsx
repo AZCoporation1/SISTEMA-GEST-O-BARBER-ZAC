@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from 'react'
+import { useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -10,7 +10,7 @@ import { toast } from 'sonner'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 
-export default function ClienteLoginPage() {
+function ClienteLoginContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const rawCallback = searchParams.get('callbackUrl') || '/cliente/meus-agendamentos'
@@ -149,18 +149,14 @@ export default function ClienteLoginPage() {
 
         <button
           type="button"
-          onClick={() => handleOAuth('apple')}
-          disabled={isOAuthLoading !== null}
-          className="w-full flex items-center justify-center gap-3 h-12 rounded-xl border border-zinc-800 bg-zinc-900/50 text-zinc-200 font-medium hover:bg-zinc-800/80 hover:border-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          onClick={() => toast.info('Login com Apple estará disponível em breve.')}
+          className="w-full flex items-center justify-center gap-3 h-12 rounded-xl border border-zinc-800/50 bg-zinc-900/30 text-zinc-500 font-medium cursor-default transition-colors"
         >
-          {isOAuthLoading === 'apple' ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
-          ) : (
-            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/>
-            </svg>
-          )}
+          <svg className="w-5 h-5 opacity-50" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/>
+          </svg>
           Continuar com Apple
+          <span className="text-[10px] uppercase tracking-wider bg-zinc-800 px-2 py-0.5 rounded-full">Em breve</span>
         </button>
       </div>
 
@@ -267,5 +263,17 @@ export default function ClienteLoginPage() {
       </div>
 
     </div>
+  )
+}
+
+export default function ClienteLoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center h-full min-h-[50vh]">
+        <Loader2 className="w-8 h-8 animate-spin text-zinc-500" />
+      </div>
+    }>
+      <ClienteLoginContent />
+    </Suspense>
   )
 }
