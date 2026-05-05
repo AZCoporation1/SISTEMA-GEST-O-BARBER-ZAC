@@ -23,7 +23,11 @@ function getAdminClient() {
 export interface EnsureCustomerResult {
   customerId: string | null
   fullName: string | null
+  email: string | null
   phone: string | null
+  avatarUrl: string | null
+  loyaltyPoints: number | null
+  error?: string
 }
 
 /**
@@ -36,6 +40,7 @@ export interface EnsureCustomerResult {
  *   3. phone (normalized)
  * 
  * If found without auth_user_id → link it.
+ * If found with DIFFERENT auth_user_id → block (don't overwrite).
  * If not found → create new.
  * Never duplicates. Never overwrites good data with empty.
  */
@@ -43,15 +48,30 @@ export async function ensureCustomerForAuthUser(
   authUserId: string,
   optionalData?: { email?: string; fullName?: string; phone?: string }
 ): Promise<EnsureCustomerResult> {
+  const empty: EnsureCustomerResult = {
+    customerId: null, fullName: null, email: null, phone: null,
+    avatarUrl: null, loyaltyPoints: null,
+  }
+
+  if (!authUserId) {
+    console.error("[CustomerSync] ensureCustomerForAuthUser called without authUserId")
+    return { ...empty, error: "ID de autenticação ausente." }
+  }
+
   try {
     const adminClient = getAdminClient()
 
     // 1. Look up by auth_user_id
-    const { data: existing } = await adminClient
+    const { data: existing, error: lookupErr } = await adminClient
       .from("customers")
-      .select("id, full_name, phone, mobile_phone")
+      .select("id, full_name, email, phone, mobile_phone, avatar_url, loyalty_points")
       .eq("auth_user_id", authUserId)
-      .maybeSingle() as { data: any }
+      .maybeSingle() as { data: any; error: any }
+
+    if (lookupErr) {
+      console.error("[CustomerSync] Lookup by auth_user_id failed:", lookupErr)
+      return { ...empty, error: "Erro ao buscar registro de cliente." }
+    }
 
     if (existing) {
       // Update last_login_at only
@@ -62,21 +82,37 @@ export async function ensureCustomerForAuthUser(
       return {
         customerId: existing.id,
         fullName: existing.full_name,
+        email: existing.email,
         phone: existing.mobile_phone || existing.phone,
+        avatarUrl: existing.avatar_url || null,
+        loyaltyPoints: existing.loyalty_points ?? null,
       }
     }
 
     // 2. Look up by email (normalized)
     if (optionalData?.email) {
       const normalizedEmail = optionalData.email.trim().toLowerCase()
-      const { data: byEmail } = await adminClient
+      const { data: byEmail, error: emailErr } = await adminClient
         .from("customers")
-        .select("id, auth_user_id, full_name, phone, mobile_phone")
+        .select("id, auth_user_id, full_name, email, phone, mobile_phone, avatar_url, loyalty_points")
         .eq("email", normalizedEmail)
-        .maybeSingle() as { data: any }
+        .maybeSingle() as { data: any; error: any }
+
+      if (emailErr) {
+        console.error("[CustomerSync] Lookup by email failed:", emailErr)
+      }
 
       if (byEmail) {
-        // Link unlinked customer — don't overwrite if already linked to someone else
+        // Already linked to a DIFFERENT auth user → block
+        if (byEmail.auth_user_id && byEmail.auth_user_id !== authUserId) {
+          console.warn(`[CustomerSync] Customer ${byEmail.id} already linked to different auth user ${byEmail.auth_user_id}`)
+          return {
+            ...empty,
+            error: "Este e-mail já está vinculado a outra conta. Entre com a conta correta ou fale com a barbearia.",
+          }
+        }
+
+        // Link unlinked customer
         const updates: Record<string, any> = {
           last_login_at: new Date().toISOString(),
         }
@@ -96,7 +132,10 @@ export async function ensureCustomerForAuthUser(
         return {
           customerId: byEmail.id,
           fullName: byEmail.full_name || optionalData.fullName || null,
+          email: byEmail.email || normalizedEmail,
           phone: byEmail.mobile_phone || byEmail.phone || optionalData.phone || null,
+          avatarUrl: byEmail.avatar_url || null,
+          loyaltyPoints: byEmail.loyalty_points ?? null,
         }
       }
     }
@@ -105,13 +144,27 @@ export async function ensureCustomerForAuthUser(
     if (optionalData?.phone) {
       const normalizedPhone = optionalData.phone.replace(/\D/g, '')
       if (normalizedPhone.length >= 10) {
-        const { data: byPhone } = await adminClient
+        const { data: byPhone, error: phoneErr } = await adminClient
           .from("customers")
-          .select("id, auth_user_id, full_name, phone, mobile_phone")
+          .select("id, auth_user_id, full_name, email, phone, mobile_phone, avatar_url, loyalty_points")
           .eq("mobile_phone", normalizedPhone)
-          .maybeSingle() as { data: any }
+          .maybeSingle() as { data: any; error: any }
 
-        if (byPhone && !byPhone.auth_user_id) {
+        if (phoneErr) {
+          console.error("[CustomerSync] Lookup by phone failed:", phoneErr)
+        }
+
+        if (byPhone) {
+          // Already linked to a DIFFERENT auth user → block
+          if (byPhone.auth_user_id && byPhone.auth_user_id !== authUserId) {
+            console.warn(`[CustomerSync] Customer ${byPhone.id} already linked to different auth user ${byPhone.auth_user_id}`)
+            return {
+              ...empty,
+              error: "Este telefone já está vinculado a outra conta. Entre com a conta correta ou fale com a barbearia.",
+            }
+          }
+
+          // Link unlinked customer
           const updates: Record<string, any> = {
             auth_user_id: authUserId,
             last_login_at: new Date().toISOString(),
@@ -128,7 +181,10 @@ export async function ensureCustomerForAuthUser(
           return {
             customerId: byPhone.id,
             fullName: byPhone.full_name || optionalData.fullName || null,
+            email: byPhone.email || optionalData.email || null,
             phone: byPhone.mobile_phone || byPhone.phone || null,
+            avatarUrl: byPhone.avatar_url || null,
+            loyaltyPoints: byPhone.loyalty_points ?? null,
           }
         }
       }
@@ -151,21 +207,25 @@ export async function ensureCustomerForAuthUser(
         is_active: true,
         last_login_at: new Date().toISOString(),
       })
-      .select("id, full_name, mobile_phone")
+      .select("id, full_name, email, mobile_phone, avatar_url, loyalty_points")
       .single() as { data: any; error: any }
 
     if (insertErr) {
-      console.error("ensureCustomerForAuthUser insert error:", insertErr)
-      return { customerId: null, fullName: null, phone: null }
+      console.error("[CustomerSync] Insert new customer failed:", insertErr)
+      return { ...empty, error: "Não foi possível criar registro de cliente. Tente novamente." }
     }
 
+    console.log(`[CustomerSync] Created new customer ${newCustomer?.id} for auth user ${authUserId}`)
     return {
       customerId: newCustomer?.id || null,
       fullName: newCustomer?.full_name || fullName,
+      email: newCustomer?.email || normalizedEmail || null,
       phone: newCustomer?.mobile_phone || normalizedPhone || null,
+      avatarUrl: newCustomer?.avatar_url || null,
+      loyaltyPoints: newCustomer?.loyalty_points ?? null,
     }
   } catch (err: any) {
-    console.error("ensureCustomerForAuthUser error:", err)
-    return { customerId: null, fullName: null, phone: null }
+    console.error("[CustomerSync] Unexpected error:", err?.message || err)
+    return { ...empty, error: "Erro inesperado ao sincronizar cliente." }
   }
 }

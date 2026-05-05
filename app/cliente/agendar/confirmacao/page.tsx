@@ -3,10 +3,10 @@
 import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Loader2, Calendar as CalendarIcon, Clock, Scissors, CheckCircle2, AlertCircle, User, Phone, MessageSquare } from 'lucide-react'
+import { ArrowLeft, Loader2, Calendar as CalendarIcon, Clock, Scissors, CheckCircle2, AlertCircle, User, Phone, MessageSquare, RefreshCw, LogOut, ShieldAlert } from 'lucide-react'
 import { createCustomerAppointment } from '@/features/agenda/actions/agenda.actions'
 import { getPublicBookingService, getPublicBookingProfessionals } from '@/features/agenda/actions/public-booking.actions'
-import { ensureCustomerForAuthUser } from '@/features/customers/services/customer-auth-sync.service'
+import { ensureCustomerForAuthUser } from '@/features/customers/actions/customer-auth.actions'
 import { toast } from 'sonner'
 import { format, parseISO } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
@@ -26,6 +26,8 @@ export default function AgendarConfirmacaoPage() {
   const [professional, setProfessional] = useState<{ displayName: string } | null>(null)
   const [customerInfo, setCustomerInfo] = useState<{ name: string; phone: string } | null>(null)
   const [customerReady, setCustomerReady] = useState(false)
+  const [isInternalUser, setIsInternalUser] = useState(false)
+  const [syncError, setSyncError] = useState<string | null>(null)
   const [missingParams, setMissingParams] = useState(false)
   const [notes, setNotes] = useState('')
 
@@ -41,13 +43,23 @@ export default function AgendarConfirmacaoPage() {
       
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) {
-        // Redirect to login preserving the current booking state
         const currentPath = `/cliente/agendar/confirmacao?serviceId=${serviceId}&professionalId=${professionalId}&date=${date}&time=${time}`
         router.push(`/cliente/login?callbackUrl=${encodeURIComponent(currentPath)}`)
         return
       }
 
-      // Ensure customer record exists for this auth user
+      // Check if internal user
+      const { data: profile } = await supabase
+        .from('user_profiles')
+        .select('system_role')
+        .eq('auth_user_id', session.user.id)
+        .maybeSingle() as { data: any }
+
+      if ((profile as any)?.system_role) {
+        setIsInternalUser(true)
+      }
+
+      // Ensure customer record exists (calls server action which uses service_role)
       const ensureResult = await ensureCustomerForAuthUser(session.user.id, {
         email: session.user.email,
         fullName: session.user.user_metadata?.full_name,
@@ -62,10 +74,10 @@ export default function AgendarConfirmacaoPage() {
         })
       } else {
         setCustomerReady(false)
-        toast.error("Não foi possível vincular seu registro de cliente. Tente fazer logout e login novamente.")
+        setSyncError(ensureResult.error || "Não foi possível vincular seu registro de cliente.")
       }
 
-      // Fetch service and professional data via service-role actions (bypasses RLS)
+      // Fetch service and professional data
       const [svcRes, profRes] = await Promise.all([
         getPublicBookingService(serviceId!),
         getPublicBookingProfessionals(),
@@ -88,9 +100,40 @@ export default function AgendarConfirmacaoPage() {
     fetchData()
   }, [serviceId, professionalId, date, time, router])
 
+  const handleRetrySync = async () => {
+    setSyncError(null)
+    const supabase = createClient()
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) return
+
+    const ensureResult = await ensureCustomerForAuthUser(session.user.id, {
+      email: session.user.email,
+      fullName: session.user.user_metadata?.full_name,
+      phone: session.user.user_metadata?.phone,
+    })
+
+    if (ensureResult.customerId) {
+      setCustomerReady(true)
+      setCustomerInfo({
+        name: ensureResult.fullName || session.user.email?.split('@')[0] || 'Cliente',
+        phone: ensureResult.phone || '',
+      })
+      toast.success("Conta vinculada com sucesso!")
+    } else {
+      setSyncError(ensureResult.error || "Não foi possível vincular.")
+    }
+  }
+
+  const handleLogout = async () => {
+    const supabase = createClient()
+    await supabase.auth.signOut()
+    toast.success("Você saiu da sua conta.")
+    router.replace('/cliente')
+  }
+
   const handleConfirm = async () => {
     if (!customerReady) {
-      toast.error("Registro de cliente não vinculado. Tente fazer logout e login novamente.")
+      toast.error("Registro de cliente não vinculado.")
       return
     }
     setIsSubmitting(true)
@@ -136,7 +179,7 @@ export default function AgendarConfirmacaoPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-full">
+      <div className="flex items-center justify-center h-full min-h-[50vh]">
         <Loader2 className="w-8 h-8 animate-spin text-zinc-500" />
       </div>
     )
@@ -156,13 +199,46 @@ export default function AgendarConfirmacaoPage() {
         <h1 className="text-xl font-bold text-white">Confirmação</h1>
       </div>
 
+      {/* Internal user warning */}
+      {isInternalUser && !customerReady && (
+        <div className="p-4 rounded-2xl border border-amber-800/40 bg-amber-900/10 text-amber-300 text-sm flex items-start gap-3">
+          <ShieldAlert className="w-5 h-5 shrink-0 mt-0.5" />
+          <div className="space-y-2">
+            <p className="font-medium">Conta do sistema interno</p>
+            <p className="text-amber-400/80">Esta conta pertence ao ERP. Para agendar como cliente, saia e entre com uma conta de cliente.</p>
+            <div className="flex gap-2 pt-1">
+              <Link href="/dashboard" className="text-xs px-3 py-1.5 rounded-lg bg-amber-800/30 hover:bg-amber-800/50 transition-colors">
+                Voltar ao ERP
+              </Link>
+              <button onClick={handleLogout} className="text-xs px-3 py-1.5 rounded-lg bg-zinc-800/50 hover:bg-zinc-800 transition-colors">
+                Sair da conta
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Customer sync error */}
-      {!customerReady && (
+      {syncError && !isInternalUser && (
         <div className="p-4 rounded-2xl border border-red-800/50 bg-red-900/20 text-red-300 text-sm flex items-start gap-3">
           <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
-          <div>
+          <div className="space-y-2">
             <p className="font-medium">Conta não vinculada</p>
-            <p className="text-red-400 mt-1">Não foi possível vincular seu registro de cliente. Tente fazer logout e login novamente.</p>
+            <p className="text-red-400">{syncError}</p>
+            <div className="flex gap-2 pt-1">
+              <button
+                onClick={handleRetrySync}
+                className="text-xs px-3 py-1.5 rounded-lg bg-red-800/30 hover:bg-red-800/50 transition-colors flex items-center gap-1"
+              >
+                <RefreshCw className="w-3 h-3" /> Tentar novamente
+              </button>
+              <button
+                onClick={handleLogout}
+                className="text-xs px-3 py-1.5 rounded-lg bg-zinc-800/50 hover:bg-zinc-800 transition-colors flex items-center gap-1"
+              >
+                <LogOut className="w-3 h-3" /> Sair e entrar novamente
+              </button>
+            </div>
           </div>
         </div>
       )}

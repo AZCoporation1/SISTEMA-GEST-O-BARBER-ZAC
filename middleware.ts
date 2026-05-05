@@ -6,7 +6,10 @@ const PUBLIC_ROUTES = ['/login']
 
 // Customer routes are handled via prefix matching
 const isCustomerRoute = (pathname: string) => pathname === '/cliente' || pathname.startsWith('/cliente/')
-const isProtectedCustomerRoute = (pathname: string) => pathname.startsWith('/cliente/meus-agendamentos') || pathname.startsWith('/cliente/agendar/confirmacao')
+const isProtectedCustomerRoute = (pathname: string) => 
+  pathname.startsWith('/cliente/meus-agendamentos') || 
+  pathname.startsWith('/cliente/agendar/confirmacao') ||
+  pathname.startsWith('/cliente/perfil')
 const isPublicCustomerRoute = (pathname: string) => isCustomerRoute(pathname) && !isProtectedCustomerRoute(pathname)
 
 // Routes exclusively for admin/owner users

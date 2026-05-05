@@ -4,6 +4,7 @@ import { createContext, useContext, useEffect, useState, useCallback } from 'rea
 import { createClient } from '@/lib/supabase/client'
 import { useRouter, usePathname } from 'next/navigation'
 import type { SystemRoleEnum } from '@/types/supabase'
+import { ensureCustomerForAuthUser } from '@/features/customers/actions/customer-auth.actions'
 
 export interface AuthUser {
   id: string
@@ -64,7 +65,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setIsLoading(false)
       
       const isCustomerRoute = pathname === '/cliente' || pathname.startsWith('/cliente/')
-      const isCustomerPublic = isCustomerRoute && !pathname.startsWith('/cliente/meus-agendamentos') && !pathname.startsWith('/cliente/agendar/confirmacao')
+      const isCustomerPublic = isCustomerRoute && !pathname.startsWith('/cliente/meus-agendamentos') && !pathname.startsWith('/cliente/agendar/confirmacao') && !pathname.startsWith('/cliente/perfil')
       const isPublic = pathname === '/login' || isCustomerPublic
       
       if (!isPublic) {
@@ -102,16 +103,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isCustomer: false,
       })
     } else {
-      // Check if user is a customer
+      // No user_profile — check if customer or try to create one on customer routes
+      const isOnCustomerRoute = pathname === '/cliente' || pathname.startsWith('/cliente/')
+
+      // Try to find existing customer first (via client query — may fail on RLS)
       const { data: customerData } = await supabase
         .from('customers')
         .select('id, full_name, email')
         .eq('auth_user_id', session.user.id)
-        .single() as { data: any }
+        .maybeSingle() as { data: any }
 
       if (customerData) {
         setUser({
-          id: customerData.id, // Using customer id here for convenience, though it's not a profile id
+          id: customerData.id,
           authUserId: session.user.id,
           email: customerData.email || session.user.email || '',
           fullName: customerData.full_name || session.user.email?.split('@')[0] || 'Cliente',
@@ -125,8 +129,66 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           isCustomer: true,
           customerId: customerData.id,
         })
+      } else if (isOnCustomerRoute) {
+        // On customer route without customer record — try ensure (server action, uses service_role)
+        try {
+          const ensureResult = await ensureCustomerForAuthUser(session.user.id, {
+            email: session.user.email,
+            fullName: session.user.user_metadata?.full_name,
+            phone: session.user.user_metadata?.phone,
+          })
+          if (ensureResult.customerId) {
+            setUser({
+              id: ensureResult.customerId,
+              authUserId: session.user.id,
+              email: ensureResult.email || session.user.email || '',
+              fullName: ensureResult.fullName || session.user.email?.split('@')[0] || 'Cliente',
+              displayName: null,
+              systemRole: 'customer',
+              collaboratorId: null,
+              canApprove: false,
+              canViewAllProfessionals: false,
+              canManageSystem: false,
+              canSubmitRequests: false,
+              isCustomer: true,
+              customerId: ensureResult.customerId,
+            })
+          } else {
+            // Ensure failed — set as unauthenticated-like state on customer route
+            setUser({
+              id: '',
+              authUserId: session.user.id,
+              email: session.user.email || '',
+              fullName: session.user.email?.split('@')[0] || 'Usuário',
+              displayName: null,
+              systemRole: 'customer',
+              collaboratorId: null,
+              canApprove: false,
+              canViewAllProfessionals: false,
+              canManageSystem: false,
+              canSubmitRequests: false,
+              isCustomer: false, // Mark as not customer — page will handle error display
+            })
+          }
+        } catch {
+          // Ensure errored — still set user so page can handle
+          setUser({
+            id: '',
+            authUserId: session.user.id,
+            email: session.user.email || '',
+            fullName: session.user.email?.split('@')[0] || 'Usuário',
+            displayName: null,
+            systemRole: 'customer',
+            collaboratorId: null,
+            canApprove: false,
+            canViewAllProfessionals: false,
+            canManageSystem: false,
+            canSubmitRequests: false,
+            isCustomer: false,
+          })
+        }
       } else {
-        // Profile doesn't exist yet and not a customer — still authenticated but no profile
+        // Not on customer route, no profile — treat as professional fallback
         setUser({
           id: '',
           authUserId: session.user.id,
@@ -157,7 +219,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(null)
         
         const isCustomerRoute = pathname === '/cliente' || pathname.startsWith('/cliente/')
-        const isCustomerPublic = isCustomerRoute && !pathname.startsWith('/cliente/meus-agendamentos') && !pathname.startsWith('/cliente/agendar/confirmacao')
+        const isCustomerPublic = isCustomerRoute && !pathname.startsWith('/cliente/meus-agendamentos') && !pathname.startsWith('/cliente/agendar/confirmacao') && !pathname.startsWith('/cliente/perfil')
         const isPublic = pathname === '/login' || isCustomerPublic
         
         if (!isPublic) {
@@ -179,8 +241,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const supabase = createClient()
     await supabase.auth.signOut()
     setUser(null)
-    router.replace('/login')
-  }, [router])
+    // Redirect to appropriate login based on context
+    const isOnCustomerRoute = pathname === '/cliente' || pathname.startsWith('/cliente/')
+    router.replace(isOnCustomerRoute ? '/cliente' : '/login')
+  }, [router, pathname])
 
   const isAdmin = user?.systemRole === 'admin_total'
   const isProfessional = user?.systemRole === 'professional'

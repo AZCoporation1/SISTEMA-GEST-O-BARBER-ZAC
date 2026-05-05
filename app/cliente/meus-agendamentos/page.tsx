@@ -1,51 +1,163 @@
-import { createServerClient } from "@/lib/supabase/server"
+"use client"
+
+import { useState, useEffect } from "react"
 import Link from "next/link"
-import { redirect } from "next/navigation"
-import { ArrowLeft, CalendarDays, Clock, User, LogOut, Plus } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { ArrowLeft, CalendarDays, Clock, User, Plus, Loader2, AlertTriangle, LogOut, RefreshCw, ShieldAlert } from "lucide-react"
 import { format, parseISO } from "date-fns"
 import { ptBR } from "date-fns/locale"
-import { customerLogout } from "@/features/customers/actions/customer-auth.actions"
+import { getCustomerAppointments, customerLogout } from "@/features/customers/actions/customer-auth.actions"
+import { useAuth } from "@/components/auth-provider"
+import { toast } from "sonner"
 
-export default async function MeusAgendamentosPage() {
-  const supabase = await createServerClient()
-  
-  const { data: authData } = await supabase.auth.getUser()
-  if (!authData.user) {
-    redirect('/cliente/login')
+export default function MeusAgendamentosPage() {
+  const { user, isLoading: authLoading } = useAuth()
+  const router = useRouter()
+  const [isLoading, setIsLoading] = useState(true)
+  const [appointments, setAppointments] = useState<any[]>([])
+  const [customerName, setCustomerName] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [isInternalUser, setIsInternalUser] = useState(false)
+
+  useEffect(() => {
+    if (authLoading) return
+
+    if (!user) {
+      router.replace('/cliente/login?callbackUrl=/cliente/meus-agendamentos')
+      return
+    }
+
+    async function loadAppointments() {
+      setIsLoading(true)
+      setError(null)
+      const res = await getCustomerAppointments()
+      if (!res.success) {
+        setError(res.error || "Erro ao carregar agendamentos.")
+        setIsInternalUser(res.isInternalUser ?? false)
+      } else {
+        setAppointments(res.data || [])
+        setCustomerName(res.customerName || user?.fullName || null)
+        setIsInternalUser(res.isInternalUser ?? false)
+      }
+      setIsLoading(false)
+    }
+
+    loadAppointments()
+  }, [authLoading, user, router])
+
+  const handleLogout = async () => {
+    await customerLogout()
+    toast.success("Você saiu da sua conta.")
+    router.replace('/cliente')
   }
 
-  // Fetch customer
-  const { data: customer } = await supabase
-    .from('customers')
-    .select('id, full_name')
-    .eq('auth_user_id', authData.user.id)
-    .single() as { data: any }
-
-  if (!customer) {
-    // Should theoretically never happen due to middleware/auth-provider rules, but just in case
-    return <div className="p-4 text-white">Conta de cliente não encontrada.</div>
+  const handleRetry = () => {
+    setIsLoading(true)
+    setError(null)
+    getCustomerAppointments().then(res => {
+      if (!res.success) {
+        setError(res.error || "Erro ao carregar agendamentos.")
+        setIsInternalUser(res.isInternalUser ?? false)
+      } else {
+        setAppointments(res.data || [])
+        setCustomerName(res.customerName || null)
+      }
+      setIsLoading(false)
+    })
   }
 
-  // Fetch appointments
-  const { data: appointments } = await supabase
-    .from('appointments')
-    .select(`
-      id,
-      start_at,
-      status,
-      service_name_snapshot,
-      service_price_snapshot,
-      professional_id,
-      collaborators (name)
-    `)
-    .eq('customer_id', customer.id)
-    .order('start_at', { ascending: false }) as { data: any[] | null }
+  if (authLoading || isLoading) {
+    return (
+      <div className="flex items-center justify-center h-full min-h-[50vh]">
+        <Loader2 className="w-8 h-8 animate-spin text-zinc-500" />
+      </div>
+    )
+  }
 
-  const upcoming = appointments?.filter(a => new Date(a.start_at) > new Date() && a.status !== 'cancelled') || []
-  const past = appointments?.filter(a => new Date(a.start_at) <= new Date() || a.status === 'cancelled') || []
+  // Error: Internal user (admin/professional) accessing customer area
+  if (error && isInternalUser) {
+    return (
+      <div className="flex flex-col h-full space-y-6 pt-4 pb-12 animate-in fade-in px-4">
+        <div className="flex items-center gap-3">
+          <Link href="/cliente" className="p-2 -ml-2 rounded-full hover:bg-zinc-800/50 text-zinc-400 transition-colors">
+            <ArrowLeft className="w-5 h-5" />
+          </Link>
+          <h1 className="text-xl font-bold text-white">Meus Agendamentos</h1>
+        </div>
+        <div className="flex flex-col items-center gap-4 py-12">
+          <div className="w-16 h-16 rounded-full bg-amber-900/20 border border-amber-800/30 flex items-center justify-center">
+            <ShieldAlert className="w-8 h-8 text-amber-500" />
+          </div>
+          <div className="text-center space-y-2">
+            <h2 className="text-lg font-semibold text-zinc-200">Conta do sistema interno</h2>
+            <p className="text-sm text-zinc-400 max-w-xs">
+              Esta conta pertence ao sistema interno (ERP). Para agendar como cliente, entre com uma conta de cliente.
+            </p>
+          </div>
+          <div className="flex flex-col gap-3 w-full max-w-xs pt-4">
+            <Link
+              href="/dashboard"
+              className="flex items-center justify-center gap-2 h-12 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 font-medium transition-colors border border-zinc-700"
+            >
+              Voltar ao ERP
+            </Link>
+            <button
+              onClick={handleLogout}
+              className="flex items-center justify-center gap-2 h-12 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-400 font-medium transition-colors border border-zinc-800"
+            >
+              <LogOut className="w-4 h-4" />
+              Sair e entrar como cliente
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // Error: Customer sync failed
+  if (error) {
+    return (
+      <div className="flex flex-col h-full space-y-6 pt-4 pb-12 animate-in fade-in px-4">
+        <div className="flex items-center gap-3">
+          <Link href="/cliente" className="p-2 -ml-2 rounded-full hover:bg-zinc-800/50 text-zinc-400 transition-colors">
+            <ArrowLeft className="w-5 h-5" />
+          </Link>
+          <h1 className="text-xl font-bold text-white">Meus Agendamentos</h1>
+        </div>
+        <div className="flex flex-col items-center gap-4 py-12">
+          <div className="w-16 h-16 rounded-full bg-red-900/20 border border-red-800/30 flex items-center justify-center">
+            <AlertTriangle className="w-8 h-8 text-red-400" />
+          </div>
+          <div className="text-center space-y-2">
+            <h2 className="text-lg font-semibold text-zinc-200">Não foi possível carregar</h2>
+            <p className="text-sm text-zinc-400 max-w-xs">{error}</p>
+          </div>
+          <div className="flex flex-col gap-3 w-full max-w-xs pt-4">
+            <button
+              onClick={handleRetry}
+              className="flex items-center justify-center gap-2 h-12 rounded-xl bg-zinc-100 text-zinc-900 font-semibold hover:bg-white transition-colors"
+            >
+              <RefreshCw className="w-4 h-4" />
+              Tentar novamente
+            </button>
+            <button
+              onClick={handleLogout}
+              className="flex items-center justify-center gap-2 h-12 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-400 font-medium transition-colors border border-zinc-800"
+            >
+              <LogOut className="w-4 h-4" />
+              Sair e entrar com outra conta
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  const upcoming = appointments.filter(a => new Date(a.start_at) > new Date() && a.status !== 'cancelled')
+  const past = appointments.filter(a => new Date(a.start_at) <= new Date() || a.status === 'cancelled')
 
   return (
-    <div className="flex flex-col h-full space-y-6 pt-4 pb-12 animate-in fade-in">
+    <div className="flex flex-col h-full space-y-6 pt-4 pb-12 animate-in fade-in px-4">
       
       {/* Header */}
       <div className="flex items-center justify-between">
@@ -55,18 +167,10 @@ export default async function MeusAgendamentosPage() {
           </Link>
           <h1 className="text-xl font-bold text-white">Meus Agendamentos</h1>
         </div>
-        <form action={async () => {
-          "use server"
-          await customerLogout()
-        }}>
-          <button type="submit" className="p-2 text-zinc-400 hover:text-white rounded-full hover:bg-zinc-800/50 transition-colors">
-            <LogOut className="w-5 h-5" />
-          </button>
-        </form>
       </div>
 
       <div className="px-1">
-        <p className="text-sm text-zinc-400">Olá, <span className="text-zinc-200 font-medium">{customer.full_name}</span></p>
+        <p className="text-sm text-zinc-400">Olá, <span className="text-zinc-200 font-medium">{customerName || 'Cliente'}</span></p>
       </div>
 
       <div className="pt-2">
@@ -83,8 +187,15 @@ export default async function MeusAgendamentosPage() {
       <div className="space-y-4 pt-4">
         <h2 className="text-sm font-medium text-zinc-500 uppercase tracking-wider">Próximos</h2>
         {upcoming.length === 0 ? (
-          <div className="p-6 text-center rounded-2xl border border-zinc-800/50 bg-zinc-900/30 text-zinc-500 text-sm">
-            Nenhum agendamento futuro.
+          <div className="flex flex-col items-center gap-3 p-8 rounded-2xl border border-zinc-800/50 bg-zinc-900/30">
+            <CalendarDays className="w-10 h-10 text-zinc-700" />
+            <p className="text-zinc-500 text-sm text-center">Nenhum agendamento futuro.</p>
+            <Link 
+              href="/cliente/agendar"
+              className="text-sm text-zinc-300 hover:text-white transition-colors underline underline-offset-4"
+            >
+              Agendar agora
+            </Link>
           </div>
         ) : (
           upcoming.map(appt => (
@@ -104,7 +215,6 @@ export default async function MeusAgendamentosPage() {
           </div>
         </div>
       )}
-
     </div>
   )
 }
