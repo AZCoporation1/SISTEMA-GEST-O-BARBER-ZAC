@@ -26,7 +26,7 @@ async function getUserContext(supabase: any) {
   return {
     userId,
     userProfileId,
-    systemRole: profile?.system_role || 'professional',
+    systemRole: profile?.system_role || 'unknown',
     collaboratorId: profile?.collaborator_id || null,
     hasAdminAccess: ['admin_total', 'owner_admin_professional'].includes(profile?.system_role || ''),
   }
@@ -1132,8 +1132,18 @@ export async function createCustomerAppointment(data: CustomerAppointmentInput) 
       phone: authUser.user_metadata?.phone,
     })
 
-    if (!ensureResult.customerId) {
-      return { success: false, error: "Não foi possível vincular seu registro de cliente. Tente fazer logout e login novamente." }
+    if (!ensureResult.success || !ensureResult.customerId) {
+      // Specific error messages based on failure code
+      if (ensureResult.code === 'CONFLICT_EMAIL') {
+        return { success: false, error: "Este e-mail já está vinculado a outra conta. Entre com a conta correta ou fale com a barbearia." }
+      }
+      if (ensureResult.code === 'CONFLICT_PHONE') {
+        return { success: false, error: "Este telefone já está vinculado a outra conta. Entre com a conta correta ou fale com a barbearia." }
+      }
+      if (ensureResult.code === 'AUTH_USER_NOT_FOUND') {
+        return { success: false, error: "Sessão inválida. Faça logout e login novamente." }
+      }
+      return { success: false, error: ensureResult.error || "Não foi possível vincular seu registro de cliente. Tente fazer logout e login novamente." }
     }
 
     // 3. Fetch full Customer Record (now guaranteed to exist)

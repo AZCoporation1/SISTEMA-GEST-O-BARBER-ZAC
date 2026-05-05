@@ -36,6 +36,9 @@ const ADMIN_ROUTES = [
 // Routes exclusively for professional users
 const PROFESSIONAL_ROUTES = ['/profissional']
 
+// ALL internal ERP routes (union of admin + professional)
+const ALL_ERP_ROUTES = [...ADMIN_ROUTES, ...PROFESSIONAL_ROUTES]
+
 export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request })
 
@@ -66,33 +69,39 @@ export async function middleware(request: NextRequest) {
   // Allow internal public routes (e.g. /login)
   if (PUBLIC_ROUTES.some(r => pathname === r || pathname.startsWith(r + '/'))) {
     if (user) {
-      // Determine role
+      // Determine role — only from user_profiles (NEVER fallback to professional)
       const { data: profile } = await supabase.from('user_profiles').select('system_role').eq('auth_user_id', user.id).single()
-      let role = profile?.system_role
-      if (!role) {
-        const { data: cust } = await supabase.from('customers').select('id').eq('auth_user_id', user.id).single() as { data: any }
-        if (cust) role = 'customer'
+      const role = profile?.system_role
+
+      if (role) {
+        // Real internal user — redirect to their area
+        if (role === 'professional') {
+          return NextResponse.redirect(new URL('/profissional', request.url))
+        }
+        return NextResponse.redirect(new URL('/dashboard', request.url))
       }
 
-      if (role === 'customer') {
+      // No user_profile — this is a customer (or new user), NOT a professional
+      // Check if they have a customer record
+      const { data: cust } = await supabase.from('customers').select('id').eq('auth_user_id', user.id).maybeSingle() as { data: any }
+      if (cust) {
         return NextResponse.redirect(new URL('/cliente/meus-agendamentos', request.url))
       }
-      if (role === 'professional') {
-        return NextResponse.redirect(new URL('/profissional', request.url))
-      }
-      return NextResponse.redirect(new URL('/dashboard', request.url))
+
+      // No profile, no customer — still a customer area user (needs sync)
+      return NextResponse.redirect(new URL('/cliente', request.url))
     }
     return supabaseResponse
   }
 
   // Handle customer public routes
   if (isPublicCustomerRoute(pathname)) {
-    // If user is authenticated as customer and tries to access /cliente/login, redirect to dashboard
+    // If user is authenticated as customer and tries to access /cliente/login, redirect
     if (user && pathname === '/cliente/login') {
       const { data: profile } = await supabase.from('user_profiles').select('system_role').eq('auth_user_id', user.id).single()
       if (!profile?.system_role) {
-        const { data: cust } = await supabase.from('customers').select('id').eq('auth_user_id', user.id).single() as { data: any }
-        if (cust) return NextResponse.redirect(new URL('/cliente/meus-agendamentos', request.url))
+        // Not internal — treat as customer
+        return NextResponse.redirect(new URL('/cliente/meus-agendamentos', request.url))
       }
     }
     // Allow public access
@@ -116,46 +125,45 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  // Fetch user role for route gating
+  // ── Authenticated user — resolve role from user_profiles ONLY ──
   const { data: profile } = await supabase
     .from('user_profiles')
     .select('system_role')
     .eq('auth_user_id', user.id)
     .single()
 
-  let role = profile?.system_role
-  
+  const role = profile?.system_role // null if no user_profile
+
+  // ── If NO user_profile exists: this user CANNOT access ERP ──
   if (!role) {
-    const { data: cust } = await supabase.from('customers').select('id').eq('auth_user_id', user.id).single() as { data: any }
-    if (cust) {
-      role = 'customer'
-    } else {
-      role = 'professional' // fallback
+    // Check if trying to access an ERP route
+    const isERPRoute = ALL_ERP_ROUTES.some(r => pathname === r || pathname.startsWith(r + '/'))
+    
+    if (isERPRoute) {
+      // BLOCK: No user_profile = no ERP access. Redirect to /cliente.
+      return NextResponse.redirect(new URL('/cliente', request.url))
     }
+
+    // Root redirect for non-ERP user
+    if (pathname === '/') {
+      return NextResponse.redirect(new URL('/cliente', request.url))
+    }
+
+    // Let them access /cliente/* routes
+    return supabaseResponse
   }
 
-  // Root redirect
+  // ── User HAS a real user_profile with role ──
+
+  // Root redirect based on real role
   if (pathname === '/') {
     if (role === 'professional') {
       return NextResponse.redirect(new URL('/profissional', request.url))
     }
-    if (role === 'customer') {
-      return NextResponse.redirect(new URL('/cliente/meus-agendamentos', request.url))
-    }
     return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 
-  // Customer trying to access internal routes -> redirect to customer portal
-  if (role === 'customer') {
-    if (!pathname.startsWith('/cliente')) {
-      return NextResponse.redirect(new URL('/cliente', request.url))
-    }
-    // Let them access anything inside /cliente
-    return supabaseResponse
-  }
-
-  // Professional or Admin trying to access /cliente → allow access for testing
-  // (their role is still respected inside the customer flow)
+  // Professional/Admin accessing /cliente → allow for testing (role is validated inside pages)
 
   // Professional trying to access admin routes → redirect to professional home
   if (role === 'professional') {

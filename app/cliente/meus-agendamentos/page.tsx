@@ -3,10 +3,10 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { ArrowLeft, CalendarDays, Clock, User, Plus, Loader2, AlertTriangle, LogOut, RefreshCw, ShieldAlert } from "lucide-react"
+import { ArrowLeft, CalendarDays, Clock, User, Plus, Loader2, AlertTriangle, LogOut, RefreshCw, ShieldAlert, UserPlus } from "lucide-react"
 import { format, parseISO } from "date-fns"
 import { ptBR } from "date-fns/locale"
-import { getCustomerAppointments, customerLogout } from "@/features/customers/actions/customer-auth.actions"
+import { getCustomerAppointments, customerLogout, createCustomerForInternalUser } from "@/features/customers/actions/customer-auth.actions"
 import { useAuth } from "@/components/auth-provider"
 import { toast } from "sonner"
 
@@ -18,6 +18,9 @@ export default function MeusAgendamentosPage() {
   const [customerName, setCustomerName] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isInternalUser, setIsInternalUser] = useState(false)
+  const [canAccessERP, setCanAccessERP] = useState(false)
+  const [erpRedirectPath, setErpRedirectPath] = useState<string | null>(null)
+  const [isCreatingCustomer, setIsCreatingCustomer] = useState(false)
 
   useEffect(() => {
     if (authLoading) return
@@ -27,23 +30,27 @@ export default function MeusAgendamentosPage() {
       return
     }
 
-    async function loadAppointments() {
-      setIsLoading(true)
-      setError(null)
-      const res = await getCustomerAppointments()
-      if (!res.success) {
-        setError(res.error || "Erro ao carregar agendamentos.")
-        setIsInternalUser(res.isInternalUser ?? false)
-      } else {
-        setAppointments(res.data || [])
-        setCustomerName(res.customerName || user?.fullName || null)
-        setIsInternalUser(res.isInternalUser ?? false)
-      }
-      setIsLoading(false)
-    }
-
     loadAppointments()
   }, [authLoading, user, router])
+
+  async function loadAppointments() {
+    setIsLoading(true)
+    setError(null)
+    const res = await getCustomerAppointments()
+    if (!res.success) {
+      setError(res.error || "Erro ao carregar agendamentos.")
+      setIsInternalUser(res.isInternalUser ?? false)
+      setCanAccessERP(res.canAccessERP ?? false)
+      setErpRedirectPath((res as any).erpRedirectPath ?? null)
+    } else {
+      setAppointments(res.data || [])
+      setCustomerName(res.customerName || user?.fullName || null)
+      setIsInternalUser(res.isInternalUser ?? false)
+      setCanAccessERP(res.canAccessERP ?? false)
+      setErpRedirectPath((res as any).erpRedirectPath ?? null)
+    }
+    setIsLoading(false)
+  }
 
   const handleLogout = async () => {
     await customerLogout()
@@ -51,19 +58,16 @@ export default function MeusAgendamentosPage() {
     router.replace('/cliente')
   }
 
-  const handleRetry = () => {
-    setIsLoading(true)
-    setError(null)
-    getCustomerAppointments().then(res => {
-      if (!res.success) {
-        setError(res.error || "Erro ao carregar agendamentos.")
-        setIsInternalUser(res.isInternalUser ?? false)
-      } else {
-        setAppointments(res.data || [])
-        setCustomerName(res.customerName || null)
-      }
-      setIsLoading(false)
-    })
+  const handleCreateCustomerProfile = async () => {
+    setIsCreatingCustomer(true)
+    const res = await createCustomerForInternalUser()
+    if (res.success) {
+      toast.success("Perfil de cliente criado! Carregando...")
+      await loadAppointments()
+    } else {
+      toast.error(res.error || "Erro ao criar perfil de cliente.")
+    }
+    setIsCreatingCustomer(false)
   }
 
   if (authLoading || isLoading) {
@@ -74,7 +78,7 @@ export default function MeusAgendamentosPage() {
     )
   }
 
-  // Error: Internal user (admin/professional) accessing customer area
+  // Error: Internal user (admin/professional) — validated via resolveCustomerAreaIdentity
   if (error && isInternalUser) {
     return (
       <div className="flex flex-col h-full space-y-6 pt-4 pb-12 animate-in fade-in px-4">
@@ -91,16 +95,32 @@ export default function MeusAgendamentosPage() {
           <div className="text-center space-y-2">
             <h2 className="text-lg font-semibold text-zinc-200">Conta do sistema interno</h2>
             <p className="text-sm text-zinc-400 max-w-xs">
-              Esta conta pertence ao sistema interno (ERP). Para agendar como cliente, entre com uma conta de cliente.
+              Esta conta pertence ao sistema interno (ERP). Para agendar como cliente, crie um perfil de cliente ou entre com outra conta.
             </p>
           </div>
           <div className="flex flex-col gap-3 w-full max-w-xs pt-4">
-            <Link
-              href="/dashboard"
-              className="flex items-center justify-center gap-2 h-12 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 font-medium transition-colors border border-zinc-700"
+            {/* ERP button — ONLY if canAccessERP is validated */}
+            {canAccessERP && erpRedirectPath && (
+              <Link
+                href={erpRedirectPath}
+                className="flex items-center justify-center gap-2 h-12 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 font-medium transition-colors border border-zinc-700"
+              >
+                Voltar ao ERP
+              </Link>
+            )}
+            {/* Create customer profile */}
+            <button
+              onClick={handleCreateCustomerProfile}
+              disabled={isCreatingCustomer}
+              className="flex items-center justify-center gap-2 h-12 rounded-xl bg-zinc-100 hover:bg-white text-zinc-900 font-semibold transition-colors disabled:opacity-50"
             >
-              Voltar ao ERP
-            </Link>
+              {isCreatingCustomer ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <UserPlus className="w-4 h-4" />
+              )}
+              Criar perfil de cliente para esta conta
+            </button>
             <button
               onClick={handleLogout}
               className="flex items-center justify-center gap-2 h-12 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-400 font-medium transition-colors border border-zinc-800"
@@ -114,7 +134,7 @@ export default function MeusAgendamentosPage() {
     )
   }
 
-  // Error: Customer sync failed
+  // Error: Customer sync failed (NOT internal)
   if (error) {
     return (
       <div className="flex flex-col h-full space-y-6 pt-4 pb-12 animate-in fade-in px-4">
@@ -134,7 +154,7 @@ export default function MeusAgendamentosPage() {
           </div>
           <div className="flex flex-col gap-3 w-full max-w-xs pt-4">
             <button
-              onClick={handleRetry}
+              onClick={loadAppointments}
               className="flex items-center justify-center gap-2 h-12 rounded-xl bg-zinc-100 text-zinc-900 font-semibold hover:bg-white transition-colors"
             >
               <RefreshCw className="w-4 h-4" />

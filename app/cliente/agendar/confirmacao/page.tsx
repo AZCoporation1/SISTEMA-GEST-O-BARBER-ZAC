@@ -7,6 +7,7 @@ import { ArrowLeft, Loader2, Calendar as CalendarIcon, Clock, Scissors, CheckCir
 import { createCustomerAppointment } from '@/features/agenda/actions/agenda.actions'
 import { getPublicBookingService, getPublicBookingProfessionals } from '@/features/agenda/actions/public-booking.actions'
 import { ensureCustomerForAuthUser } from '@/features/customers/actions/customer-auth.actions'
+import { resolveCustomerAreaIdentity } from '@/features/customers/services/resolve-identity'
 import { toast } from 'sonner'
 import { format, parseISO } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
@@ -22,12 +23,16 @@ function ConfirmacaoContent() {
 
   const [isLoading, setIsLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isRetrying, setIsRetrying] = useState(false)
   const [service, setService] = useState<{ name: string; price: number; durationMinutes: number } | null>(null)
   const [professional, setProfessional] = useState<{ displayName: string } | null>(null)
   const [customerInfo, setCustomerInfo] = useState<{ name: string; phone: string } | null>(null)
   const [customerReady, setCustomerReady] = useState(false)
   const [isInternalUser, setIsInternalUser] = useState(false)
+  const [canAccessERP, setCanAccessERP] = useState(false)
+  const [erpRedirectPath, setErpRedirectPath] = useState<string | null>(null)
   const [syncError, setSyncError] = useState<string | null>(null)
+  const [syncCode, setSyncCode] = useState<string | null>(null)
   const [missingParams, setMissingParams] = useState(false)
   const [notes, setNotes] = useState('')
 
@@ -48,33 +53,34 @@ function ConfirmacaoContent() {
         return
       }
 
-      // Check if internal user
-      const { data: profile } = await supabase
-        .from('user_profiles')
-        .select('system_role')
-        .eq('auth_user_id', session.user.id)
-        .maybeSingle() as { data: any }
-
-      if ((profile as any)?.system_role) {
+      // Resolve identity centrally (for internal user detection only)
+      const identity = await resolveCustomerAreaIdentity(session.user.id, session.user.email)
+      if (identity.hasUserProfile) {
         setIsInternalUser(true)
+        setCanAccessERP(identity.canAccessERP)
+        setErpRedirectPath(identity.erpRedirectPath)
       }
 
       // Ensure customer record exists (calls server action which uses service_role)
+      // This is THE critical call — it creates/links the customer if needed
       const ensureResult = await ensureCustomerForAuthUser(session.user.id, {
         email: session.user.email,
-        fullName: session.user.user_metadata?.full_name,
+        fullName: session.user.user_metadata?.full_name || session.user.user_metadata?.name,
         phone: session.user.user_metadata?.phone,
       })
 
-      if (ensureResult.customerId) {
+      if (ensureResult.success && ensureResult.customerId) {
         setCustomerReady(true)
         setCustomerInfo({
           name: ensureResult.fullName || session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'Cliente',
           phone: ensureResult.phone || session.user.user_metadata?.phone || '',
         })
+        setSyncError(null)
+        setSyncCode(null)
       } else {
         setCustomerReady(false)
         setSyncError(ensureResult.error || "Não foi possível vincular seu registro de cliente.")
+        setSyncCode(ensureResult.code || null)
       }
 
       // Fetch service and professional data
@@ -101,27 +107,38 @@ function ConfirmacaoContent() {
   }, [serviceId, professionalId, date, time, router])
 
   const handleRetrySync = async () => {
+    setIsRetrying(true)
     setSyncError(null)
+    setSyncCode(null)
+
     const supabase = createClient()
     const { data: { session } } = await supabase.auth.getSession()
-    if (!session) return
+    if (!session) {
+      setSyncError("Sessão expirada. Faça login novamente.")
+      setIsRetrying(false)
+      return
+    }
 
     const ensureResult = await ensureCustomerForAuthUser(session.user.id, {
       email: session.user.email,
-      fullName: session.user.user_metadata?.full_name,
+      fullName: session.user.user_metadata?.full_name || session.user.user_metadata?.name,
       phone: session.user.user_metadata?.phone,
     })
 
-    if (ensureResult.customerId) {
+    if (ensureResult.success && ensureResult.customerId) {
       setCustomerReady(true)
       setCustomerInfo({
         name: ensureResult.fullName || session.user.email?.split('@')[0] || 'Cliente',
         phone: ensureResult.phone || '',
       })
+      setSyncError(null)
+      setSyncCode(null)
       toast.success("Conta vinculada com sucesso!")
     } else {
       setSyncError(ensureResult.error || "Não foi possível vincular.")
+      setSyncCode(ensureResult.code || null)
     }
+    setIsRetrying(false)
   }
 
   const handleLogout = async () => {
@@ -187,6 +204,41 @@ function ConfirmacaoContent() {
 
   const dateFormatted = date ? format(parseISO(date), "dd 'de' MMMM, yyyy", { locale: ptBR }) : ''
 
+  // Helper: Get specific error message based on sync code
+  const getSyncErrorDisplay = () => {
+    if (!syncError) return null
+
+    if (syncCode === 'CONFLICT_EMAIL') {
+      return {
+        title: "E-mail vinculado a outra conta",
+        description: syncError,
+        showRetry: false,
+      }
+    }
+    if (syncCode === 'CONFLICT_PHONE') {
+      return {
+        title: "Telefone vinculado a outra conta",
+        description: syncError,
+        showRetry: false,
+      }
+    }
+    if (syncCode === 'AUTH_USER_NOT_FOUND') {
+      return {
+        title: "Conta não encontrada",
+        description: "Sua sessão pode ter expirado. Saia e entre novamente.",
+        showRetry: false,
+      }
+    }
+    // Technical errors — allow retry
+    return {
+      title: "Erro ao vincular conta",
+      description: syncError,
+      showRetry: true,
+    }
+  }
+
+  const syncErrorDisplay = getSyncErrorDisplay()
+
   return (
     <div className="flex flex-col h-full space-y-6 pt-4 pb-12 animate-in fade-in px-4">
       <div className="flex items-center gap-3">
@@ -207,9 +259,11 @@ function ConfirmacaoContent() {
             <p className="font-medium">Conta do sistema interno</p>
             <p className="text-amber-400/80">Esta conta pertence ao ERP. Para agendar como cliente, saia e entre com uma conta de cliente.</p>
             <div className="flex gap-2 pt-1">
-              <Link href="/dashboard" className="text-xs px-3 py-1.5 rounded-lg bg-amber-800/30 hover:bg-amber-800/50 transition-colors">
-                Voltar ao ERP
-              </Link>
+              {canAccessERP && erpRedirectPath && (
+                <Link href={erpRedirectPath} className="text-xs px-3 py-1.5 rounded-lg bg-amber-800/30 hover:bg-amber-800/50 transition-colors">
+                  Voltar ao ERP
+                </Link>
+              )}
               <button onClick={handleLogout} className="text-xs px-3 py-1.5 rounded-lg bg-zinc-800/50 hover:bg-zinc-800 transition-colors">
                 Sair da conta
               </button>
@@ -218,20 +272,27 @@ function ConfirmacaoContent() {
         </div>
       )}
 
-      {/* Customer sync error */}
-      {syncError && !isInternalUser && (
+      {/* Customer sync error — specific messages based on code */}
+      {syncErrorDisplay && !isInternalUser && (
         <div className="p-4 rounded-2xl border border-red-800/50 bg-red-900/20 text-red-300 text-sm flex items-start gap-3">
           <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
           <div className="space-y-2">
-            <p className="font-medium">Conta não vinculada</p>
-            <p className="text-red-400">{syncError}</p>
+            <p className="font-medium">{syncErrorDisplay.title}</p>
+            <p className="text-red-400">{syncErrorDisplay.description}</p>
+            {syncCode && (
+              <p className="text-red-500/60 text-[10px] font-mono">Código: {syncCode}</p>
+            )}
             <div className="flex gap-2 pt-1">
-              <button
-                onClick={handleRetrySync}
-                className="text-xs px-3 py-1.5 rounded-lg bg-red-800/30 hover:bg-red-800/50 transition-colors flex items-center gap-1"
-              >
-                <RefreshCw className="w-3 h-3" /> Tentar novamente
-              </button>
+              {syncErrorDisplay.showRetry && (
+                <button
+                  onClick={handleRetrySync}
+                  disabled={isRetrying}
+                  className="text-xs px-3 py-1.5 rounded-lg bg-red-800/30 hover:bg-red-800/50 transition-colors flex items-center gap-1 disabled:opacity-50"
+                >
+                  {isRetrying ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
+                  Tentar novamente
+                </button>
+              )}
               <button
                 onClick={handleLogout}
                 className="text-xs px-3 py-1.5 rounded-lg bg-zinc-800/50 hover:bg-zinc-800 transition-colors flex items-center gap-1"

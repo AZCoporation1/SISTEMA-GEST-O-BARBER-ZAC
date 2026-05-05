@@ -42,7 +42,14 @@ export default function LoginPage() {
           .eq('auth_user_id', data.session.user.id)
           .single()
 
-        const role = (profile as any)?.system_role || 'professional'
+        const role = (profile as any)?.system_role
+
+        if (!role) {
+          // No user_profile — this user cannot access the ERP
+          setError('Esta conta não possui acesso ao sistema interno. Use a área do cliente.')
+          setLoading(false)
+          return
+        }
 
         if (role === 'professional') {
           router.replace('/profissional')

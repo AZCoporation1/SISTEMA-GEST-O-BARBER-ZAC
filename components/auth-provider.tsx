@@ -12,13 +12,15 @@ export interface AuthUser {
   email: string
   fullName: string
   displayName: string | null
-  systemRole: SystemRoleEnum | 'customer'
+  systemRole: SystemRoleEnum | 'customer' | 'unknown'
   collaboratorId: string | null
   canApprove: boolean
   canViewAllProfessionals: boolean
   canManageSystem: boolean
   canSubmitRequests: boolean
   isCustomer: boolean
+  isInternalUser: boolean
+  canAccessERP: boolean
   customerId?: string
 }
 
@@ -31,6 +33,8 @@ interface AuthContextType {
   hasAdminAccess: boolean
   hasProfessionalAccess: boolean
   isCustomer: boolean
+  isInternalUser: boolean
+  canAccessERP: boolean
   signOut: () => Promise<void>
 }
 
@@ -43,6 +47,8 @@ const AuthContext = createContext<AuthContextType>({
   hasAdminAccess: false,
   hasProfessionalAccess: false,
   isCustomer: false,
+  isInternalUser: false,
+  canAccessERP: false,
   signOut: async () => {},
 })
 
@@ -78,7 +84,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return
     }
 
-    // Fetch user profile with role info
+    // ── Step 1: Check user_profiles (real internal users) ──
     const { data: profileData } = await supabase
       .from('user_profiles')
       .select('id, auth_user_id, full_name, email, system_role, display_name, collaborator_id, can_approve_professional_requests, can_view_all_professionals, can_manage_system, can_submit_professional_requests')
@@ -88,90 +94,99 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const profile = profileData as any
 
     if (profile) {
-      setUser({
-        id: profile.id,
-        authUserId: session.user.id,
-        email: profile.email,
-        fullName: profile.full_name,
-        displayName: profile.display_name,
-        systemRole: profile.system_role || 'professional',
-        collaboratorId: profile.collaborator_id,
-        canApprove: profile.can_approve_professional_requests || false,
-        canViewAllProfessionals: profile.can_view_all_professionals || false,
-        canManageSystem: profile.can_manage_system || false,
-        canSubmitRequests: profile.can_submit_professional_requests || false,
-        isCustomer: false,
-      })
-    } else {
-      // No user_profile — check if customer or try to create one on customer routes
       const isOnCustomerRoute = pathname === '/cliente' || pathname.startsWith('/cliente/')
-
-      // Try to find existing customer first (via client query — may fail on RLS)
-      const { data: customerData } = await supabase
-        .from('customers')
-        .select('id, full_name, email')
-        .eq('auth_user_id', session.user.id)
-        .maybeSingle() as { data: any }
-
-      if (customerData) {
+      
+      if (!isOnCustomerRoute) {
+        // Real internal user on ERP route — has user_profile, set as internal
         setUser({
-          id: customerData.id,
+          id: profile.id,
           authUserId: session.user.id,
-          email: customerData.email || session.user.email || '',
-          fullName: customerData.full_name || session.user.email?.split('@')[0] || 'Cliente',
-          displayName: null,
-          systemRole: 'customer',
-          collaboratorId: null,
-          canApprove: false,
-          canViewAllProfessionals: false,
-          canManageSystem: false,
-          canSubmitRequests: false,
-          isCustomer: true,
-          customerId: customerData.id,
+          email: profile.email,
+          fullName: profile.full_name,
+          displayName: profile.display_name,
+          systemRole: profile.system_role || 'unknown',
+          collaboratorId: profile.collaborator_id,
+          canApprove: profile.can_approve_professional_requests || false,
+          canViewAllProfessionals: profile.can_view_all_professionals || false,
+          canManageSystem: profile.can_manage_system || false,
+          canSubmitRequests: profile.can_submit_professional_requests || false,
+          isCustomer: false,
+          isInternalUser: true,
+          canAccessERP: true,
         })
-      } else if (isOnCustomerRoute) {
-        // On customer route without customer record — try ensure (server action, uses service_role)
-        try {
-          const ensureResult = await ensureCustomerForAuthUser(session.user.id, {
-            email: session.user.email,
-            fullName: session.user.user_metadata?.full_name,
-            phone: session.user.user_metadata?.phone,
+        setIsLoading(false)
+        return
+      }
+      // If on customer route WITH user_profile → fall through to customer check below
+      // This handles Supabase identity linking and dual_identity cases
+    }
+
+    // ── Step 2: Try to find/create customer record ──
+    // This is reached when:
+    // - No user_profile exists (normal customer)
+    // - user_profile exists but user is on /cliente/* route (dual identity / identity linking)
+
+    const isOnCustomerRoute = pathname === '/cliente' || pathname.startsWith('/cliente/')
+
+    // Try client-side customer query first (may fail on RLS)
+    const { data: customerData } = await supabase
+      .from('customers')
+      .select('id, full_name, email')
+      .eq('auth_user_id', session.user.id)
+      .maybeSingle() as { data: any }
+
+    if (customerData) {
+      // Found customer — set as customer user
+      setUser({
+        id: customerData.id,
+        authUserId: session.user.id,
+        email: customerData.email || session.user.email || '',
+        fullName: customerData.full_name || session.user.email?.split('@')[0] || 'Cliente',
+        displayName: null,
+        systemRole: 'customer',
+        collaboratorId: null,
+        canApprove: false,
+        canViewAllProfessionals: false,
+        canManageSystem: false,
+        canSubmitRequests: false,
+        isCustomer: true,
+        isInternalUser: false,
+        canAccessERP: false,
+        customerId: customerData.id,
+      })
+      setIsLoading(false)
+      return
+    }
+
+    // No customer found via client query
+    if (isOnCustomerRoute) {
+      // On customer route — try ensure via server action (uses service_role)
+      try {
+        const ensureResult = await ensureCustomerForAuthUser(session.user.id, {
+          email: session.user.email,
+          fullName: session.user.user_metadata?.full_name || session.user.user_metadata?.name,
+          phone: session.user.user_metadata?.phone,
+        })
+        if (ensureResult.success && ensureResult.customerId) {
+          setUser({
+            id: ensureResult.customerId,
+            authUserId: session.user.id,
+            email: ensureResult.email || session.user.email || '',
+            fullName: ensureResult.fullName || session.user.email?.split('@')[0] || 'Cliente',
+            displayName: null,
+            systemRole: 'customer',
+            collaboratorId: null,
+            canApprove: false,
+            canViewAllProfessionals: false,
+            canManageSystem: false,
+            canSubmitRequests: false,
+            isCustomer: true,
+            isInternalUser: false,
+            canAccessERP: false,
+            customerId: ensureResult.customerId,
           })
-          if (ensureResult.customerId) {
-            setUser({
-              id: ensureResult.customerId,
-              authUserId: session.user.id,
-              email: ensureResult.email || session.user.email || '',
-              fullName: ensureResult.fullName || session.user.email?.split('@')[0] || 'Cliente',
-              displayName: null,
-              systemRole: 'customer',
-              collaboratorId: null,
-              canApprove: false,
-              canViewAllProfessionals: false,
-              canManageSystem: false,
-              canSubmitRequests: false,
-              isCustomer: true,
-              customerId: ensureResult.customerId,
-            })
-          } else {
-            // Ensure failed — set as unauthenticated-like state on customer route
-            setUser({
-              id: '',
-              authUserId: session.user.id,
-              email: session.user.email || '',
-              fullName: session.user.email?.split('@')[0] || 'Usuário',
-              displayName: null,
-              systemRole: 'customer',
-              collaboratorId: null,
-              canApprove: false,
-              canViewAllProfessionals: false,
-              canManageSystem: false,
-              canSubmitRequests: false,
-              isCustomer: false, // Mark as not customer — page will handle error display
-            })
-          }
-        } catch {
-          // Ensure errored — still set user so page can handle
+        } else {
+          // Ensure failed — still NOT internal. Set as customer with sync error.
           setUser({
             id: '',
             authUserId: session.user.id,
@@ -184,26 +199,51 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             canViewAllProfessionals: false,
             canManageSystem: false,
             canSubmitRequests: false,
-            isCustomer: false,
+            isCustomer: false, // sync failed — page will handle
+            isInternalUser: false, // CRITICAL: NOT internal
+            canAccessERP: false,
           })
         }
-      } else {
-        // Not on customer route, no profile — treat as professional fallback
+      } catch {
+        // Ensure errored — still NOT internal
         setUser({
           id: '',
           authUserId: session.user.id,
           email: session.user.email || '',
           fullName: session.user.email?.split('@')[0] || 'Usuário',
           displayName: null,
-          systemRole: 'professional',
+          systemRole: 'customer',
           collaboratorId: null,
           canApprove: false,
           canViewAllProfessionals: false,
           canManageSystem: false,
           canSubmitRequests: false,
           isCustomer: false,
+          isInternalUser: false, // CRITICAL: NOT internal
+          canAccessERP: false,
         })
       }
+    } else {
+      // Not on customer route, no user_profile — this is an UNKNOWN user
+      // NOT a professional. NOT internal. Redirect to /cliente.
+      setUser({
+        id: '',
+        authUserId: session.user.id,
+        email: session.user.email || '',
+        fullName: session.user.email?.split('@')[0] || 'Usuário',
+        displayName: null,
+        systemRole: 'unknown', // CRITICAL: NOT 'professional'
+        collaboratorId: null,
+        canApprove: false,
+        canViewAllProfessionals: false,
+        canManageSystem: false,
+        canSubmitRequests: false,
+        isCustomer: false,
+        isInternalUser: false,
+        canAccessERP: false,
+      })
+      // Redirect unknown users to customer area
+      router.replace('/cliente')
     }
 
     setIsLoading(false)
@@ -250,6 +290,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const isProfessional = user?.systemRole === 'professional'
   const isOwner = user?.systemRole === 'owner_admin_professional'
   const isCustomer = user?.isCustomer || false
+  const isInternalUser = user?.isInternalUser || false
+  const canAccessERP = user?.canAccessERP || false
   const hasAdminAccess = isAdmin || isOwner
   const hasProfessionalAccess = isProfessional || isOwner
 
@@ -265,7 +307,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, isAdmin, isProfessional, isOwner, hasAdminAccess, hasProfessionalAccess, isCustomer, signOut }}>
+    <AuthContext.Provider value={{ user, isLoading, isAdmin, isProfessional, isOwner, hasAdminAccess, hasProfessionalAccess, isCustomer, isInternalUser, canAccessERP, signOut }}>
       {children}
     </AuthContext.Provider>
   )

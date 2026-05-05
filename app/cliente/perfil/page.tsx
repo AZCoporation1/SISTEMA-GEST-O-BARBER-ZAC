@@ -3,8 +3,8 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Loader2, User, Mail, Phone, Award, Calendar, Camera, LogOut, Pencil, Check, X, ShieldAlert } from 'lucide-react'
-import { getCustomerProfile, updateCustomerProfile, customerLogout } from '@/features/customers/actions/customer-auth.actions'
+import { ArrowLeft, Loader2, User, Mail, Phone, Award, Calendar, Camera, LogOut, Pencil, Check, X, ShieldAlert, UserPlus } from 'lucide-react'
+import { getCustomerProfile, updateCustomerProfile, customerLogout, createCustomerForInternalUser } from '@/features/customers/actions/customer-auth.actions'
 import { useAuth } from '@/components/auth-provider'
 import { toast } from 'sonner'
 import { format, parseISO } from 'date-fns'
@@ -28,8 +28,11 @@ export default function PerfilPage() {
   const [profile, setProfile] = useState<ProfileData | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isInternalUser, setIsInternalUser] = useState(false)
+  const [canAccessERP, setCanAccessERP] = useState(false)
+  const [erpRedirectPath, setErpRedirectPath] = useState<string | null>(null)
   const [isEditing, setIsEditing] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
+  const [isCreatingCustomer, setIsCreatingCustomer] = useState(false)
   const [editName, setEditName] = useState('')
   const [editPhone, setEditPhone] = useState('')
 
@@ -51,12 +54,16 @@ export default function PerfilPage() {
     if (!res.success || !res.data) {
       setError(res.error || "Erro ao carregar perfil.")
       setIsInternalUser(res.isInternalUser ?? false)
+      setCanAccessERP(res.canAccessERP ?? false)
+      setErpRedirectPath(res.erpRedirectPath ?? null)
     } else {
       const data = res.data as ProfileData
       setProfile(data)
       setEditName(data.fullName || '')
       setEditPhone(data.phone || '')
       setIsInternalUser(res.isInternalUser ?? false)
+      setCanAccessERP(res.canAccessERP ?? false)
+      setErpRedirectPath(res.erpRedirectPath ?? null)
       // If phone is missing (e.g. Google OAuth), auto-enter edit mode
       if (!data.phone) {
         setIsEditing(true)
@@ -70,6 +77,18 @@ export default function PerfilPage() {
     await customerLogout()
     toast.success("Você saiu da sua conta.")
     router.replace('/cliente')
+  }
+
+  const handleCreateCustomerProfile = async () => {
+    setIsCreatingCustomer(true)
+    const res = await createCustomerForInternalUser()
+    if (res.success) {
+      toast.success("Perfil de cliente criado! Carregando...")
+      await loadProfile() // Reload — should now show customer profile
+    } else {
+      toast.error(res.error || "Erro ao criar perfil de cliente.")
+    }
+    setIsCreatingCustomer(false)
   }
 
   const handleSave = async () => {
@@ -117,7 +136,7 @@ export default function PerfilPage() {
     )
   }
 
-  // Internal user error
+  // Internal user — real admin/professional without customer profile
   if (error && isInternalUser) {
     return (
       <div className="flex flex-col h-full space-y-6 pt-4 pb-12 animate-in fade-in px-4">
@@ -134,16 +153,32 @@ export default function PerfilPage() {
           <div className="text-center space-y-2">
             <h2 className="text-lg font-semibold text-zinc-200">Conta do sistema interno</h2>
             <p className="text-sm text-zinc-400 max-w-xs">
-              Esta conta pertence ao ERP. Para usar a área do cliente, entre com uma conta de cliente.
+              Esta conta pertence ao ERP. Para usar a área do cliente, entre com uma conta de cliente ou crie um perfil de cliente.
             </p>
           </div>
           <div className="flex flex-col gap-3 w-full max-w-xs pt-4">
-            <Link
-              href="/dashboard"
-              className="flex items-center justify-center gap-2 h-12 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 font-medium transition-colors border border-zinc-700"
+            {/* "Voltar ao ERP" — ONLY if canAccessERP is true */}
+            {canAccessERP && erpRedirectPath && (
+              <Link
+                href={erpRedirectPath}
+                className="flex items-center justify-center gap-2 h-12 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 font-medium transition-colors border border-zinc-700"
+              >
+                Voltar ao ERP
+              </Link>
+            )}
+            {/* Create customer profile for testing */}
+            <button
+              onClick={handleCreateCustomerProfile}
+              disabled={isCreatingCustomer}
+              className="flex items-center justify-center gap-2 h-12 rounded-xl bg-zinc-100 hover:bg-white text-zinc-900 font-semibold transition-colors disabled:opacity-50"
             >
-              Voltar ao ERP
-            </Link>
+              {isCreatingCustomer ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <UserPlus className="w-4 h-4" />
+              )}
+              Criar perfil de cliente para esta conta
+            </button>
             <button
               onClick={handleLogout}
               className="flex items-center justify-center gap-2 h-12 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-400 font-medium transition-colors border border-zinc-800"
@@ -157,7 +192,7 @@ export default function PerfilPage() {
     )
   }
 
-  // General error
+  // General error (NOT internal — sync failure, conflict, etc.)
   if (error || !profile) {
     return (
       <div className="flex flex-col h-full space-y-6 pt-4 pb-12 animate-in fade-in px-4">
@@ -201,6 +236,16 @@ export default function PerfilPage() {
           </button>
         )}
       </div>
+
+      {/* Dual identity banner */}
+      {isInternalUser && canAccessERP && erpRedirectPath && (
+        <div className="p-3 rounded-xl border border-amber-800/30 bg-amber-900/10 flex items-center justify-between gap-3">
+          <p className="text-xs text-amber-300/80">Você também tem acesso ao ERP.</p>
+          <Link href={erpRedirectPath} className="text-xs px-3 py-1.5 rounded-lg bg-amber-800/30 hover:bg-amber-800/50 text-amber-300 transition-colors whitespace-nowrap">
+            Ir ao ERP
+          </Link>
+        </div>
+      )}
 
       {/* Avatar + Name */}
       <div className="flex flex-col items-center gap-3 py-4">

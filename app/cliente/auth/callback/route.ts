@@ -15,12 +15,20 @@ export async function GET(request: NextRequest) {
     const { data, error } = await supabase.auth.exchangeCodeForSession(code)
 
     if (!error && data.user) {
-      // Ensure customer record exists for this OAuth user
-      await ensureCustomerForAuthUser(data.user.id, {
+      // ALWAYS create/sync customer on OAuth callback
+      // Regardless of whether user_profiles exists or not.
+      // The customer area should ALWAYS serve users as customers.
+      const ensureResult = await ensureCustomerForAuthUser(data.user.id, {
         email: data.user.email,
         fullName: data.user.user_metadata?.full_name || data.user.user_metadata?.name,
         phone: data.user.user_metadata?.phone,
       })
+
+      if (!ensureResult.success) {
+        console.error(`[AuthCallback] ensureCustomerForAuthUser failed for ${data.user.id}:`, ensureResult.error, 'code:', ensureResult.code)
+      } else {
+        console.log(`[AuthCallback] Customer ensured: ${ensureResult.customerId} for auth=${data.user.id}`)
+      }
     }
   }
 
