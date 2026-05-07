@@ -97,14 +97,14 @@ export default function ServiceCatalog({ services }: ServiceCatalogProps) {
   return (
     <>
       {/* Search */}
-      <div className="relative">
+      <div className="relative fade-up-fast">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
         <input
           type="text"
           placeholder="Buscar serviço..."
           value={search}
           onChange={e => setSearch(e.target.value)}
-          className="w-full bg-background border border-input rounded-xl pl-10 pr-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring transition-colors"
+          className="w-full bg-background border border-input rounded-xl pl-10 pr-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/50 focus:border-ring transition-all duration-200"
         />
       </div>
 
@@ -114,9 +114,9 @@ export default function ServiceCatalog({ services }: ServiceCatalogProps) {
           <button
             key={cat}
             onClick={() => setActiveCategory(cat)}
-            className={`snap-center shrink-0 px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap border transition-all
+            className={`snap-center shrink-0 px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap border btn-press
               ${activeCategory === cat
-                ? 'bg-primary text-primary-foreground border-transparent'
+                ? 'bg-primary text-primary-foreground border-transparent shadow-sm'
                 : 'bg-card text-muted-foreground border-border hover:bg-accent hover:text-foreground'}`}
           >
             {cat}
@@ -127,17 +127,19 @@ export default function ServiceCatalog({ services }: ServiceCatalogProps) {
       {/* Service list */}
       <div className="space-y-3">
         {filtered.length === 0 ? (
-          <div className="text-center py-12 text-muted-foreground text-sm">
-            Nenhum serviço encontrado.
+          <div className="flex flex-col items-center gap-3 py-16 text-muted-foreground text-sm fade-up-fast">
+            <Scissors className="w-10 h-10 opacity-30" />
+            <p>Nenhum serviço encontrado.</p>
           </div>
         ) : (
-          filtered.map(service => (
+          filtered.map((service, idx) => (
             <div
               key={service.id}
-              className="p-4 rounded-2xl border border-border bg-card/50 hover:bg-accent/50 hover:border-border transition-all flex items-center gap-4 group"
+              className="p-4 rounded-2xl border border-border bg-card/50 premium-card hover:border-primary/20 flex items-center gap-4 group fade-up"
+              style={{ animationDelay: `${Math.min(idx * 40, 200)}ms` }}
             >
               {/* Icon */}
-              <div className="flex-shrink-0 w-12 h-12 flex items-center justify-center rounded-xl bg-accent text-muted-foreground group-hover:text-foreground group-hover:bg-accent/80 transition-colors">
+              <div className="flex-shrink-0 w-12 h-12 flex items-center justify-center rounded-xl bg-accent text-muted-foreground group-hover:text-foreground group-hover:bg-primary/10 transition-all duration-200">
                 {resolveServiceIcon(service.name, service.categoryName)}
               </div>
 
@@ -162,10 +164,10 @@ export default function ServiceCatalog({ services }: ServiceCatalogProps) {
               {/* Book button */}
               <button
                 onClick={() => handleBookService(service.id)}
-                className="flex-shrink-0 px-4 py-2 rounded-lg bg-primary/10 text-foreground text-sm font-medium group-hover:bg-primary/20 transition-colors flex items-center gap-1"
+                className="flex-shrink-0 px-4 py-2 rounded-xl bg-primary/10 text-foreground text-sm font-medium btn-press hover:bg-primary/20 hover:shadow-sm transition-all duration-150 flex items-center gap-1"
               >
                 Agendar
-                <ChevronRight className="w-4 h-4" />
+                <ChevronRight className="w-4 h-4 icon-nudge" />
               </button>
             </div>
           ))
@@ -191,15 +193,15 @@ export default function ServiceCatalog({ services }: ServiceCatalogProps) {
             {/* Close button */}
             <button
               onClick={() => setSelectedService(null)}
-              className="absolute top-4 right-4 p-2 rounded-full bg-secondary hover:bg-secondary/80 text-muted-foreground hover:text-foreground transition-colors z-20"
+              className="absolute top-4 right-4 p-2 rounded-full bg-secondary hover:bg-secondary/80 text-muted-foreground hover:text-foreground hover:rotate-90 transition-all duration-200 z-20"
             >
               <X className="w-4 h-4" />
             </button>
 
             <div className="p-6 space-y-6">
               {/* Icon + Category */}
-              <div className="flex items-center gap-3">
-                <div className="w-14 h-14 flex items-center justify-center rounded-2xl bg-accent text-foreground">
+              <div className="flex items-center gap-3 fade-up-fast">
+                <div className="w-14 h-14 flex items-center justify-center rounded-2xl bg-primary/10 border border-primary/20 text-primary">
                   {resolveServiceIcon(selectedService.name, selectedService.categoryName)}
                 </div>
                 <div>
@@ -242,7 +244,7 @@ export default function ServiceCatalog({ services }: ServiceCatalogProps) {
               {/* Book CTA */}
               <button
                 onClick={() => handleBookService(selectedService.id)}
-                className="w-full flex items-center justify-center gap-2 h-14 rounded-2xl bg-primary text-primary-foreground font-semibold hover:bg-primary/90 transition-colors"
+                className="w-full flex items-center justify-center gap-2 h-14 rounded-2xl bg-primary text-primary-foreground font-semibold premium-cta hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
               >
                 <Scissors className="w-5 h-5" />
                 Agendar este serviço

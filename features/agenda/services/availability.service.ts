@@ -38,6 +38,14 @@ function setCache<T>(cache: Map<string, CacheEntry<T>>, key: string, data: T) {
   cache.set(key, { data, timestamp: Date.now() })
 }
 
+function buildSaoPauloDateTime(dateYmd: string, timeHHmm: string): Date {
+  return new Date(`${dateYmd}T${timeHHmm}:00-03:00`)
+}
+
+function addMinutes(date: Date, minutes: number): Date {
+  return new Date(date.getTime() + minutes * 60_000)
+}
+
 export async function getCustomerAvailableSlots({
   serviceId,
   professionalId,
@@ -137,7 +145,8 @@ export async function getCustomerAvailableSlots({
     }
 
     const slotInterval = settings?.slot_interval_minutes || 30
-    const allowOverbooking = settings?.allow_overbooking || false
+    // FOR CLIENT AREA: We strictly ignore allow_overbooking to prevent double booking.
+    const allowOverbooking = false 
 
     // ── Batch 2: Real-time data (appointments + blocks) — always fresh ──
     const startOfDay = `${date}T00:00:00-03:00`
@@ -210,21 +219,21 @@ export async function getCustomerAvailableSlots({
         }
       }
 
-      // Convert slot times to Date objects for comparison
-      const slotStartDate = new Date(targetDate)
-      slotStartDate.setHours(Math.floor(slotStartMins / 60), slotStartMins % 60, 0, 0)
+      // ── Convert slot times explicitly with -03:00 timezone ──
+      const hStr = Math.floor(slotStartMins / 60).toString().padStart(2, '0')
+      const mStr = (slotStartMins % 60).toString().padStart(2, '0')
       
-      const slotEndDate = new Date(targetDate)
-      slotEndDate.setHours(Math.floor(slotEndMins / 60), slotEndMins % 60, 0, 0)
-
-      const slotStartIso = slotStartDate.toISOString()
-      const slotEndIso = slotEndDate.toISOString()
+      const slotStart = buildSaoPauloDateTime(date, `${hStr}:${mStr}`)
+      const slotEnd = addMinutes(slotStart, duration)
+      
+      const slotStartMs = slotStart.getTime()
+      const slotEndMs = slotEnd.getTime()
 
       // Check blocks
       const hasBlock = blocks?.some(b => {
-        const bStart = new Date(b.start_at).toISOString()
-        const bEnd = new Date(b.end_at).toISOString()
-        return bStart < slotEndIso && bEnd > slotStartIso
+        const bStartMs = new Date(b.start_at).getTime()
+        const bEndMs = new Date(b.end_at).getTime()
+        return bStartMs < slotEndMs && bEndMs > slotStartMs
       })
 
       if (hasBlock) {
@@ -233,9 +242,9 @@ export async function getCustomerAvailableSlots({
 
       // Check appointments
       const hasConflict = appointments?.some(a => {
-        const aStart = new Date(a.start_at).toISOString()
-        const aEnd = new Date(a.end_at).toISOString()
-        return aStart < slotEndIso && aEnd > slotStartIso
+        const aStartMs = new Date(a.start_at).getTime()
+        const aEndMs = new Date(a.end_at).getTime()
+        return aStartMs < slotEndMs && aEndMs > slotStartMs
       })
 
       if (hasConflict && !allowOverbooking) {
@@ -243,11 +252,8 @@ export async function getCustomerAvailableSlots({
       }
 
       // If we got here, slot is available
-      const h = Math.floor(slotStartMins / 60).toString().padStart(2, '0')
-      const m = (slotStartMins % 60).toString().padStart(2, '0')
-      
       slots.push({
-        time: `${h}:${m}`,
+        time: `${hStr}:${mStr}`,
         available: true
       })
     }

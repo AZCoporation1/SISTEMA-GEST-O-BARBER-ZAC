@@ -224,6 +224,7 @@ export default function AgendaMobileView({
                 border: wd.isToday && !wd.isSelected ? "1px solid var(--accent-border)" : "1px solid transparent",
                 color: wd.isSelected ? "#0a0a0f" : wd.isToday ? "var(--accent)" : "var(--text-secondary)",
                 transition: "all 120ms ease",
+                boxShadow: wd.isSelected ? "0 2px 8px rgba(0,0,0,0.2)" : "none",
               }}
             >
               <span style={{ fontSize: 9, fontWeight: 600, letterSpacing: "0.05em" }}>{wd.label}</span>
@@ -254,10 +255,12 @@ export default function AgendaMobileView({
           >
             <div style={{
               width: 30, height: 30, borderRadius: "50%",
-              background: selectedProfIdx === idx ? "var(--accent-subtle)" : "rgba(255,255,255,0.04)",
+              background: selectedProfIdx === idx ? "var(--accent-subtle)" : "var(--bg-elevated, rgba(128,128,128,0.06))",
+              border: selectedProfIdx === idx ? "1px solid var(--accent-border)" : "1px solid var(--border)",
               display: "flex", alignItems: "center", justifyContent: "center",
               fontSize: 12, fontWeight: 700,
               color: selectedProfIdx === idx ? "var(--accent)" : "var(--text-muted)",
+              transition: "all 150ms ease",
             }}>
               {(prof.display_name || prof.name)[0]}
             </div>
@@ -293,14 +296,15 @@ export default function AgendaMobileView({
               return (
                 <div key={time} style={{
                   display: "flex", height: SLOT_H,
-                  borderBottom: "1px solid rgba(255,255,255,0.03)",
-                  background: !within ? "rgba(255,255,255,0.015)" : "transparent",
+                  borderBottom: time.endsWith(":00") ? "1px solid var(--border)" : "1px solid color-mix(in srgb, var(--border) 30%, transparent)",
+                  background: !within ? "var(--bg-elevated, rgba(128,128,128,0.04))" : "transparent",
                 }}>
                   {/* Time label */}
                   <div style={{
                     width: 48, minWidth: 48, display: "flex", alignItems: "center", justifyContent: "center",
-                    fontSize: 10, fontWeight: 600, color: "var(--text-muted)",
-                    borderRight: "1px solid rgba(255,255,255,0.04)",
+                    fontSize: time.endsWith(":00") ? 11 : 10, fontWeight: time.endsWith(":00") ? 700 : 500,
+                    color: time.endsWith(":00") ? "var(--text-secondary)" : "var(--text-muted)",
+                    borderRight: "1px solid var(--border)",
                     fontVariantNumeric: "tabular-nums",
                   }}>
                     {time}
@@ -333,9 +337,13 @@ export default function AgendaMobileView({
                           height: span * SLOT_H - 4, zIndex: 5,
                           display: "flex", flexDirection: "column", justifyContent: "center",
                           padding: "6px 10px", borderRadius: 8, cursor: "pointer",
-                          background: colors?.bg, border: `1px solid ${colors?.border}`,
+                          background: colors?.bg,
+                          borderLeft: `3px solid ${colors?.text}`,
+                          borderTop: `1px solid ${colors?.border}`,
+                          borderRight: `1px solid ${colors?.border}`,
+                          borderBottom: `1px solid ${colors?.border}`,
                           fontFamily: "inherit", textAlign: "left", overflow: "hidden",
-                          transition: "transform 100ms ease",
+                          transition: "transform 100ms ease, box-shadow 100ms ease",
                         }}
                       >
                         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
@@ -372,10 +380,10 @@ export default function AgendaMobileView({
                         }}
                         style={{
                           width: "100%", height: "100%", background: "transparent",
-                          border: "1px dashed rgba(255,255,255,0.04)", borderRadius: 6,
+                          border: "1px dashed color-mix(in srgb, var(--border) 60%, transparent)", borderRadius: 6,
                           cursor: "pointer", transition: "background 100ms ease",
                         }}
-                        onTouchStart={(e) => { (e.currentTarget as HTMLElement).style.background = "rgba(184,184,184,0.06)" }}
+                        onTouchStart={(e) => { (e.currentTarget as HTMLElement).style.background = "var(--accent-subtle, rgba(184,184,184,0.06))" }}
                         onTouchEnd={(e) => { (e.currentTarget as HTMLElement).style.background = "transparent" }}
                       />
                     )}
@@ -392,7 +400,7 @@ export default function AgendaMobileView({
         <>
           {fabOpen && (
             <div
-              style={{ position: "fixed", inset: 0, zIndex: 88 }}
+              style={{ position: "fixed", inset: 0, zIndex: 88, background: "rgba(0,0,0,0.3)", backdropFilter: "blur(2px)", WebkitBackdropFilter: "blur(2px)" }}
               onClick={() => setFabOpen(false)}
             />
           )}

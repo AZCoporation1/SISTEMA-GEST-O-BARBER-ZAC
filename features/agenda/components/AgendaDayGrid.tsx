@@ -1,7 +1,7 @@
 "use client"
 
 import { useMemo } from "react"
-import { Lock, User, Clock } from "lucide-react"
+import { Lock, User, Clock, Phone, Globe, FileText, Scissors } from "lucide-react"
 import type {
   AppointmentWithRelations,
   AppointmentBlockRow,
@@ -32,6 +32,15 @@ function minutesToTime(m: number): string {
   const h = Math.floor(m / 60)
   const min = m % 60
   return `${String(h).padStart(2, "0")}:${String(min).padStart(2, "0")}`
+}
+
+function fmtTime(iso: string): string {
+  try {
+    const d = new Date(iso)
+    return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`
+  } catch {
+    return "--:--"
+  }
 }
 
 export default function AgendaDayGrid({
@@ -149,7 +158,7 @@ export default function AgendaDayGrid({
       {/* Header — Professional Columns */}
       <div style={{
         display: "flex",
-        borderBottom: "1px solid var(--border)",
+        borderBottom: "2px solid var(--border)",
         position: "sticky",
         top: 0,
         zIndex: 10,
@@ -171,6 +180,7 @@ export default function AgendaDayGrid({
         </div>
         {professionals.map(prof => {
           const ph = getProfHours(prof.id)
+          const initial = (prof.display_name || prof.name).charAt(0).toUpperCase()
           return (
             <div
               key={prof.id}
@@ -183,19 +193,47 @@ export default function AgendaDayGrid({
               }}
             >
               <div style={{
-                fontSize: 12,
-                fontWeight: 700,
-                color: "var(--text-primary)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 8,
                 marginBottom: 2,
               }}>
-                {prof.display_name || prof.name}
+                <div style={{
+                  width: 26,
+                  height: 26,
+                  borderRadius: "50%",
+                  background: "var(--accent-subtle)",
+                  border: "1px solid var(--accent-border)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: 11,
+                  fontWeight: 800,
+                  color: "var(--accent)",
+                  flexShrink: 0,
+                }}>
+                  {initial}
+                </div>
+                <span style={{
+                  fontSize: 12,
+                  fontWeight: 700,
+                  color: "var(--text-primary)",
+                }}>
+                  {prof.display_name || prof.name}
+                </span>
               </div>
               {ph && (
                 <div style={{
                   fontSize: 9,
                   color: "var(--text-muted)",
                   fontWeight: 500,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 3,
                 }}>
+                  <Clock size={8} />
                   {ph.start_time.slice(0, 5)} — {ph.end_time.slice(0, 5)}
                 </div>
               )}
@@ -205,233 +243,407 @@ export default function AgendaDayGrid({
       </div>
 
       {/* Grid Body */}
-      <div style={{ overflowX: "auto", overflowY: "auto", maxHeight: "calc(100vh - 340px)" }}>
-        {timeSlots.map((time, slotIdx) => (
-          <div
-            key={time}
-            style={{
-              display: "flex",
-              height: SLOT_HEIGHT,
-              borderBottom: "1px solid var(--border)",
-            }}
-          >
-            {/* Time label */}
-            <div style={{
-              width: TIME_COL_WIDTH,
-              minWidth: TIME_COL_WIDTH,
-              borderRight: "1px solid var(--border)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: 11,
-              fontWeight: 600,
-              color: "var(--text-secondary)",
-              fontVariantNumeric: "tabular-nums",
-            }}>
-              {time}
-            </div>
+      <div style={{ overflowX: "auto", overflowY: "auto", maxHeight: "calc(100dvh - 280px)" }}>
+        {timeSlots.map((time, slotIdx) => {
+          const isHourMark = time.endsWith(":00")
+          return (
+            <div
+              key={time}
+              style={{
+                display: "flex",
+                height: SLOT_HEIGHT,
+                borderBottom: isHourMark ? "1px solid var(--border)" : "1px solid color-mix(in srgb, var(--border) 40%, transparent)",
+              }}
+            >
+              {/* Time label */}
+              <div style={{
+                width: TIME_COL_WIDTH,
+                minWidth: TIME_COL_WIDTH,
+                borderRight: "1px solid var(--border)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: isHourMark ? 12 : 10,
+                fontWeight: isHourMark ? 700 : 500,
+                color: isHourMark ? "var(--text-secondary)" : "var(--text-muted)",
+                fontVariantNumeric: "tabular-nums",
+              }}>
+                {time}
+              </div>
 
-            {/* Professional cells */}
-            {professionals.map(prof => {
-              const withinHours = isWithinWorkingHours(prof.id, time)
-              const blockAtSlot = getBlockAtSlot(prof.id, time)
-              const appointment = getAppointmentAtSlot(prof.id, time)
-              const isFirst = appointment ? isFirstSlotOfAppointment(appointment, time) : false
+              {/* Professional cells */}
+              {professionals.map(prof => {
+                const withinHours = isWithinWorkingHours(prof.id, time)
+                const blockAtSlot = getBlockAtSlot(prof.id, time)
+                const appointment = getAppointmentAtSlot(prof.id, time)
+                const isFirst = appointment ? isFirstSlotOfAppointment(appointment, time) : false
 
-              // Outside working hours
-              if (!withinHours) {
+                // Outside working hours
+                if (!withinHours) {
+                  return (
+                    <div
+                      key={prof.id}
+                      style={{
+                        flex: 1,
+                        minWidth: MIN_COL_WIDTH,
+                        borderRight: "1px solid var(--border)",
+                        background: "var(--bg-elevated, rgba(128,128,128,0.04))",
+                      }}
+                    />
+                  )
+                }
+
+                // Blocked slot
+                if (blockAtSlot) {
+                  return (
+                    <div
+                      key={prof.id}
+                      onClick={() => onBlockClick?.(blockAtSlot)}
+                      style={{
+                        flex: 1,
+                        minWidth: MIN_COL_WIDTH,
+                        borderRight: "1px solid var(--border)",
+                        background: "repeating-linear-gradient(135deg, transparent, transparent 4px, rgba(107,114,128,0.06) 4px, rgba(107,114,128,0.06) 8px)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: 6,
+                        cursor: onBlockClick ? "pointer" : "default",
+                        transition: "background 100ms ease, filter 100ms ease",
+                        padding: "0 8px",
+                      }}
+                      onMouseEnter={e => {
+                        if (onBlockClick) (e.currentTarget as HTMLElement).style.filter = "brightness(0.92)"
+                      }}
+                      onMouseLeave={e => {
+                        (e.currentTarget as HTMLElement).style.filter = "none"
+                      }}
+                    >
+                      <Lock size={10} style={{ color: "var(--text-muted)", opacity: 0.6, flexShrink: 0 }} />
+                      <span style={{
+                        fontSize: 9,
+                        color: "var(--text-muted)",
+                        fontWeight: 700,
+                        letterSpacing: "0.06em",
+                        textTransform: "uppercase",
+                      }}>Bloqueado</span>
+                      {blockAtSlot.reason && (
+                        <span style={{
+                          fontSize: 8,
+                          color: "var(--text-muted)",
+                          opacity: 0.7,
+                          whiteSpace: "nowrap",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          maxWidth: 80,
+                        }}>
+                          • {blockAtSlot.reason}
+                        </span>
+                      )}
+                    </div>
+                  )
+                }
+
+                // Appointment slot — first slot renders the card
+                if (appointment && isFirst) {
+                  let colors = APPOINTMENT_STATUS_COLORS[appointment.status] || APPOINTMENT_STATUS_COLORS.scheduled
+                  if (appointment.source === 'customer' && appointment.status === 'scheduled') {
+                    colors = { bg: "rgba(20, 184, 166, 0.1)", border: "rgba(20, 184, 166, 0.3)", text: "#2dd4bf" }
+                  }
+                  const span = getAppointmentSlotSpan(appointment)
+                  const isCompact = span === 1
+                  const isExpanded = span >= 3
+                  const startStr = fmtTime(appointment.start_at)
+                  const endStr = fmtTime(appointment.end_at)
+
+                  return (
+                    <div
+                      key={prof.id}
+                      style={{
+                        flex: 1,
+                        minWidth: MIN_COL_WIDTH,
+                        borderRight: "1px solid var(--border)",
+                        padding: 3,
+                        position: "relative",
+                      }}
+                    >
+                      <button
+                        onClick={() => onAppointmentClick(appointment)}
+                        style={{
+                          position: "absolute",
+                          top: 3,
+                          left: 3,
+                          right: 3,
+                          height: span * SLOT_HEIGHT - 6,
+                          background: colors.bg,
+                          borderLeft: `3px solid ${colors.text}`,
+                          borderTop: `1px solid ${colors.border}`,
+                          borderRight: `1px solid ${colors.border}`,
+                          borderBottom: `1px solid ${colors.border}`,
+                          borderRadius: 8,
+                          padding: isCompact ? "4px 8px" : "6px 10px",
+                          cursor: "pointer",
+                          display: "flex",
+                          flexDirection: isCompact ? "row" : "column",
+                          alignItems: isCompact ? "center" : "flex-start",
+                          justifyContent: isCompact ? "space-between" : "flex-start",
+                          gap: isCompact ? 6 : 2,
+                          overflow: "hidden",
+                          textAlign: "left",
+                          zIndex: 5,
+                          transition: "box-shadow 120ms ease, transform 120ms ease",
+                        }}
+                        onMouseEnter={e => {
+                          (e.currentTarget as HTMLElement).style.boxShadow = `0 4px 16px rgba(0,0,0,0.15)`
+                          ;(e.currentTarget as HTMLElement).style.transform = "scale(1.01)"
+                        }}
+                        onMouseLeave={e => {
+                          (e.currentTarget as HTMLElement).style.boxShadow = "none"
+                          ;(e.currentTarget as HTMLElement).style.transform = "scale(1)"
+                        }}
+                      >
+                        {isCompact ? (
+                          /* ── Compact: 1 slot ── */
+                          <>
+                            <div style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 4,
+                              minWidth: 0,
+                              flex: 1,
+                            }}>
+                              <span style={{
+                                fontSize: 10,
+                                fontWeight: 700,
+                                color: colors.text,
+                                whiteSpace: "nowrap",
+                                fontVariantNumeric: "tabular-nums",
+                              }}>
+                                {startStr}
+                              </span>
+                              <span style={{
+                                fontSize: 10,
+                                fontWeight: 600,
+                                color: "var(--text-primary)",
+                                whiteSpace: "nowrap",
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                              }}>
+                                {appointment.customer_name_snapshot || "Cliente"}
+                              </span>
+                              {!appointment.customer_id && (
+                                <span style={{
+                                  fontSize: 7,
+                                  fontWeight: 700,
+                                  padding: "1px 4px",
+                                  borderRadius: 3,
+                                  background: "var(--bg-elevated)",
+                                  border: "1px solid var(--border)",
+                                  color: "var(--text-secondary)",
+                                  textTransform: "uppercase",
+                                  flexShrink: 0,
+                                }}>
+                                  Avulso
+                                </span>
+                              )}
+                              {appointment.source === 'customer' && (
+                                <Globe size={9} style={{ color: "var(--accent)", flexShrink: 0 }} />
+                              )}
+                            </div>
+                            <div style={{
+                              width: 6,
+                              height: 6,
+                              borderRadius: "50%",
+                              background: colors.text,
+                              flexShrink: 0,
+                            }} title={APPOINTMENT_STATUS_LABELS[appointment.status]} />
+                          </>
+                        ) : (
+                          /* ── Normal / Expanded: 2+ slots ── */
+                          <>
+                            {/* Line 1: Time + status badge */}
+                            <div style={{
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "space-between",
+                              width: "100%",
+                            }}>
+                              <span style={{
+                                fontSize: 11,
+                                fontWeight: 700,
+                                color: colors.text,
+                                fontVariantNumeric: "tabular-nums",
+                              }}>
+                                {startStr} – {endStr}
+                              </span>
+                              <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                                {appointment.source === 'customer' && (
+                                  <span style={{
+                                    fontSize: 7,
+                                    fontWeight: 700,
+                                    padding: "1px 5px",
+                                    borderRadius: 3,
+                                    background: "rgba(20,184,166,0.15)",
+                                    color: "#2dd4bf",
+                                    textTransform: "uppercase",
+                                    letterSpacing: "0.05em",
+                                    whiteSpace: "nowrap",
+                                  }}>
+                                    App
+                                  </span>
+                                )}
+                                <span style={{
+                                  fontSize: 7,
+                                  fontWeight: 700,
+                                  padding: "1px 5px",
+                                  borderRadius: 3,
+                                  background: "rgba(0,0,0,0.12)",
+                                  color: colors.text,
+                                  textTransform: "uppercase",
+                                  letterSpacing: "0.05em",
+                                  whiteSpace: "nowrap",
+                                }}>
+                                  {APPOINTMENT_STATUS_LABELS[appointment.status]}
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Line 2: Client name */}
+                            <div style={{
+                              fontSize: 11,
+                              fontWeight: 700,
+                              color: "var(--text-primary)",
+                              whiteSpace: "nowrap",
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                              width: "100%",
+                              marginTop: 1,
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 4,
+                            }}>
+                              <User size={10} style={{ flexShrink: 0, opacity: 0.5 }} />
+                              {appointment.customer_name_snapshot || "Cliente"}
+                              {!appointment.customer_id && (
+                                <span style={{
+                                  fontSize: 7,
+                                  fontWeight: 700,
+                                  padding: "1px 4px",
+                                  borderRadius: 3,
+                                  background: "var(--bg-elevated)",
+                                  border: "1px solid var(--border)",
+                                  color: "var(--text-secondary)",
+                                  textTransform: "uppercase",
+                                  flexShrink: 0,
+                                }}>
+                                  Avulso
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Line 3: Service */}
+                            <div style={{
+                              fontSize: 9,
+                              color: "var(--text-muted)",
+                              whiteSpace: "nowrap",
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                              width: "100%",
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 3,
+                              marginTop: 1,
+                            }}>
+                              <Scissors size={8} style={{ flexShrink: 0 }} />
+                              {appointment.service_name_snapshot || "Serviço"}
+                              <span style={{ opacity: 0.6 }}>•</span>
+                              <span style={{ fontVariantNumeric: "tabular-nums" }}>
+                                {appointment.service_duration_minutes_snapshot || 30}min
+                              </span>
+                            </div>
+
+                            {/* Line 4 — Expanded: phone / notes */}
+                            {isExpanded && (
+                              <>
+                                {appointment.customer_phone_snapshot && (
+                                  <div style={{
+                                    fontSize: 8,
+                                    color: "var(--text-muted)",
+                                    opacity: 0.7,
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: 3,
+                                    marginTop: 2,
+                                  }}>
+                                    <Phone size={7} style={{ flexShrink: 0 }} />
+                                    {appointment.customer_phone_snapshot}
+                                  </div>
+                                )}
+                                {appointment.notes && (
+                                  <div style={{
+                                    fontSize: 8,
+                                    color: "var(--text-muted)",
+                                    opacity: 0.7,
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: 3,
+                                    marginTop: 1,
+                                    whiteSpace: "nowrap",
+                                    overflow: "hidden",
+                                    textOverflow: "ellipsis",
+                                    width: "100%",
+                                  }}>
+                                    <FileText size={7} style={{ flexShrink: 0 }} />
+                                    {appointment.notes}
+                                  </div>
+                                )}
+                              </>
+                            )}
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  )
+                }
+
+                // Continuation of multi-slot appointment (do not render another card)
+                if (appointment && !isFirst) {
+                  return (
+                    <div
+                      key={prof.id}
+                      style={{
+                        flex: 1,
+                        minWidth: MIN_COL_WIDTH,
+                        borderRight: "1px solid var(--border)",
+                      }}
+                    />
+                  )
+                }
+
+                // Empty slot — clickable
                 return (
                   <div
                     key={prof.id}
+                    onClick={() => onSlotClick(prof.id, time)}
                     style={{
                       flex: 1,
                       minWidth: MIN_COL_WIDTH,
                       borderRight: "1px solid var(--border)",
-                      background: "rgba(255,255,255,0.015)",
-                    }}
-                  />
-                )
-              }
-
-              // Blocked slot — now clickable
-              if (blockAtSlot) {
-                return (
-                  <div
-                    key={prof.id}
-                    onClick={() => onBlockClick?.(blockAtSlot)}
-                    style={{
-                      flex: 1,
-                      minWidth: MIN_COL_WIDTH,
-                      borderRight: "1px solid var(--border)",
-                      background: "rgba(55,65,81,0.12)",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      gap: 4,
-                      cursor: onBlockClick ? "pointer" : "default",
+                      cursor: "pointer",
                       transition: "background 100ms ease",
                     }}
                     onMouseEnter={e => {
-                      if (onBlockClick) (e.currentTarget as HTMLElement).style.background = "rgba(55,65,81,0.22)"
+                      (e.currentTarget as HTMLElement).style.background = "var(--accent-subtle, rgba(184,184,184,0.04))"
                     }}
                     onMouseLeave={e => {
-                      (e.currentTarget as HTMLElement).style.background = "rgba(55,65,81,0.12)"
-                    }}
-                  >
-                    <Lock size={11} style={{ color: "var(--text-muted)", opacity: 0.5 }} />
-                    <span style={{ fontSize: 9, color: "var(--text-muted)", fontWeight: 600 }}>BLOQUEADO</span>
-                  </div>
-                )
-              }
-
-              // Appointment slot
-              if (appointment && isFirst) {
-                let colors = APPOINTMENT_STATUS_COLORS[appointment.status] || APPOINTMENT_STATUS_COLORS.scheduled
-                if (appointment.source === 'customer' && appointment.status === 'scheduled') {
-                  colors = { bg: "rgba(20, 184, 166, 0.1)", border: "rgba(20, 184, 166, 0.3)", text: "#2dd4bf" }
-                }
-                const span = getAppointmentSlotSpan(appointment)
-
-                return (
-                  <div
-                    key={prof.id}
-                    style={{
-                      flex: 1,
-                      minWidth: MIN_COL_WIDTH,
-                      borderRight: "1px solid var(--border)",
-                      padding: 3,
-                      position: "relative",
-                    }}
-                  >
-                    <button
-                      onClick={() => onAppointmentClick(appointment)}
-                      style={{
-                        position: "absolute",
-                        top: 3,
-                        left: 3,
-                        right: 3,
-                        height: span * SLOT_HEIGHT - 6,
-                        background: colors.bg,
-                        border: `1px solid ${colors.border}`,
-                        borderRadius: 8,
-                        padding: "6px 8px",
-                        cursor: "pointer",
-                        display: "flex",
-                        flexDirection: "column",
-                        justifyContent: "flex-start",
-                        overflow: "hidden",
-                        textAlign: "left",
-                        zIndex: 5,
-                        transition: "transform 100ms ease, box-shadow 100ms ease",
-                      }}
-                      onMouseEnter={e => {
-                        (e.currentTarget as HTMLElement).style.transform = "scale(1.02)"
-                        ;(e.currentTarget as HTMLElement).style.boxShadow = "0 4px 12px rgba(0,0,0,0.3)"
-                      }}
-                      onMouseLeave={e => {
-                        (e.currentTarget as HTMLElement).style.transform = "scale(1)"
-                        ;(e.currentTarget as HTMLElement).style.boxShadow = "none"
-                      }}
-                    >
-                      <div style={{
-                        fontSize: 11,
-                        fontWeight: 700,
-                        color: colors.text,
-                        whiteSpace: "nowrap",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        lineHeight: 1.3,
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 4
-                      }}>
-                        {appointment.customer_name_snapshot || "Cliente"}
-                        {appointment.source === 'customer' && (
-                          <span style={{ color: "var(--accent)", display: "inline-flex" }}>
-                            <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
-                          </span>
-                        )}
-                      </div>
-                      <div style={{
-                        fontSize: 9,
-                        color: colors.text,
-                        opacity: 0.8,
-                        whiteSpace: "nowrap",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        marginTop: 1,
-                      }}>
-                        {appointment.service_name_snapshot || "Serviço"}
-                        {appointment.source === 'customer' && " • App Cliente"}
-                      </div>
-                      {span > 1 && (
-                        <div style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 3,
-                          marginTop: 3,
-                          fontSize: 8,
-                          fontWeight: 600,
-                          color: colors.text,
-                          opacity: 0.7,
-                        }}>
-                          <Clock size={8} />
-                          {appointment.service_duration_minutes_snapshot || 30}min
-                          <span style={{
-                            marginLeft: "auto",
-                            padding: "1px 4px",
-                            borderRadius: 3,
-                            background: "rgba(0,0,0,0.15)",
-                            fontSize: 7,
-                            textTransform: "uppercase",
-                            letterSpacing: "0.08em",
-                          }}>
-                            {APPOINTMENT_STATUS_LABELS[appointment.status]}
-                          </span>
-                        </div>
-                      )}
-                    </button>
-                  </div>
-                )
-              }
-
-              // Continuation of multi-slot appointment (do not render another card)
-              if (appointment && !isFirst) {
-                return (
-                  <div
-                    key={prof.id}
-                    style={{
-                      flex: 1,
-                      minWidth: MIN_COL_WIDTH,
-                      borderRight: "1px solid var(--border)",
+                      (e.currentTarget as HTMLElement).style.background = "transparent"
                     }}
                   />
                 )
-              }
-
-              // Empty slot — clickable
-              return (
-                <div
-                  key={prof.id}
-                  onClick={() => onSlotClick(prof.id, time)}
-                  style={{
-                    flex: 1,
-                    minWidth: MIN_COL_WIDTH,
-                    borderRight: "1px solid var(--border)",
-                    cursor: "pointer",
-                    transition: "background 100ms ease",
-                  }}
-                  onMouseEnter={e => {
-                    (e.currentTarget as HTMLElement).style.background = "rgba(184,184,184,0.04)"
-                  }}
-                  onMouseLeave={e => {
-                    (e.currentTarget as HTMLElement).style.background = "transparent"
-                  }}
-                />
-              )
-            })}
-          </div>
-        ))}
+              })}
+            </div>
+          )
+        })}
       </div>
     </div>
   )

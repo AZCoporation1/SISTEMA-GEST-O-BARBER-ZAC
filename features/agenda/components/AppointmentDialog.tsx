@@ -47,6 +47,7 @@ export default function AppointmentDialog({
   const [customerSearch, setCustomerSearch] = useState("")
   const [customerResults, setCustomerResults] = useState<any[]>([])
   const [showCustomerDropdown, setShowCustomerDropdown] = useState(false)
+  const [clientMode, setClientMode] = useState<"cadastrado" | "avulso">("cadastrado")
 
   // Initialize form
   useEffect(() => {
@@ -55,6 +56,7 @@ export default function AppointmentDialog({
       setCustomerName(editingAppointment.customer_name_snapshot || "")
       setCustomerPhone(editingAppointment.customer_phone_snapshot || "")
       setCustomerId(editingAppointment.customer_id)
+      setClientMode(editingAppointment.customer_id ? "cadastrado" : "avulso")
       setProfessionalId(editingAppointment.professional_id)
       setServiceId(editingAppointment.service_id || "")
       setDate(editingAppointment.start_at.split("T")[0])
@@ -66,6 +68,7 @@ export default function AppointmentDialog({
       setCustomerName("")
       setCustomerPhone("")
       setCustomerId(null)
+      setClientMode("cadastrado")
       setProfessionalId(defaultProfessionalId || "")
       setServiceId("")
       setDate(defaultDate)
@@ -107,7 +110,14 @@ export default function AppointmentDialog({
   }
 
   const handleSubmit = async () => {
-    if (!customerName.trim()) { setError("Nome do cliente é obrigatório"); return }
+    if (clientMode === "cadastrado" && !customerId) {
+      setError("Selecione um cliente cadastrado na lista.")
+      return
+    }
+    if (clientMode === "avulso" && !customerName.trim()) {
+      setError("Nome do cliente avulso é obrigatório.")
+      return
+    }
     if (!professionalId) { setError("Selecione um profissional"); return }
     if (!date || !time) { setError("Data e hora são obrigatórios"); return }
 
@@ -115,7 +125,7 @@ export default function AppointmentDialog({
     setError("")
 
     const payload = {
-      customer_id: customerId,
+      customer_id: clientMode === "cadastrado" ? customerId : null,
       customer_name: customerName,
       customer_phone: customerPhone || null,
       professional_id: professionalId,
@@ -184,7 +194,7 @@ export default function AppointmentDialog({
         borderRadius: 16,
         width: "100%",
         maxWidth: 520,
-        maxHeight: "90vh",
+        maxHeight: "90dvh",
         overflowY: "auto",
         boxShadow: "0 24px 48px rgba(0,0,0,0.5)",
       }}>
@@ -216,68 +226,157 @@ export default function AppointmentDialog({
 
           {/* Customer */}
           <div>
-            <label style={labelStyle}><User size={10} style={{ marginRight: 4 }} />Cliente</label>
-            <div style={{ position: "relative" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+              <label style={{ ...labelStyle, marginBottom: 0 }}><User size={10} style={{ marginRight: 4 }} />Cliente</label>
+              
+              <div style={{ display: "flex", gap: 4, background: "var(--bg-elevated)", padding: 2, borderRadius: 6, border: "1px solid var(--border)" }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setClientMode("cadastrado")
+                    if (!customerId) {
+                      setCustomerName("")
+                      setCustomerSearch("")
+                    }
+                  }}
+                  style={{
+                    padding: "4px 8px",
+                    fontSize: 10,
+                    fontWeight: 600,
+                    borderRadius: 4,
+                    border: "none",
+                    background: clientMode === "cadastrado" ? "var(--bg-surface)" : "transparent",
+                    color: clientMode === "cadastrado" ? "var(--text-primary)" : "var(--text-muted)",
+                    boxShadow: clientMode === "cadastrado" ? "0 1px 2px rgba(0,0,0,0.1)" : "none",
+                    cursor: "pointer"
+                  }}
+                >
+                  Cadastrado
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setClientMode("avulso")
+                    if (customerId) {
+                      setCustomerId(null)
+                      setCustomerName("")
+                      setCustomerSearch("")
+                    }
+                  }}
+                  style={{
+                    padding: "4px 8px",
+                    fontSize: 10,
+                    fontWeight: 600,
+                    borderRadius: 4,
+                    border: "none",
+                    background: clientMode === "avulso" ? "var(--bg-surface)" : "transparent",
+                    color: clientMode === "avulso" ? "var(--text-primary)" : "var(--text-muted)",
+                    boxShadow: clientMode === "avulso" ? "0 1px 2px rgba(0,0,0,0.1)" : "none",
+                    cursor: "pointer"
+                  }}
+                >
+                  Avulso
+                </button>
+              </div>
+            </div>
+
+            {clientMode === "cadastrado" ? (
+              <div style={{ position: "relative" }}>
+                <input
+                  value={customerId ? customerName : customerSearch}
+                  onChange={e => {
+                    if (customerId) {
+                      setCustomerId(null)
+                      setCustomerName("")
+                    }
+                    setCustomerSearch(e.target.value)
+                  }}
+                  placeholder="Buscar nome ou telefone do cliente..."
+                  style={{...inputStyle, borderColor: (customerId ? "var(--border-accent, var(--border))" : "var(--border)")}}
+                />
+                {!customerId && customerSearch.length > 0 && customerSearch.length < 2 && (
+                  <div style={{ fontSize: 10, color: "var(--text-muted)", marginTop: 4 }}>
+                    Digite pelo menos 2 caracteres...
+                  </div>
+                )}
+                {showCustomerDropdown && customerResults.length > 0 && (
+                  <div style={{
+                    position: "absolute",
+                    top: "100%",
+                    left: 0,
+                    right: 0,
+                    background: "var(--bg-surface)",
+                    border: "1px solid var(--border)",
+                    borderRadius: 8,
+                    marginTop: 4,
+                    zIndex: 20,
+                    maxHeight: 200,
+                    overflowY: "auto",
+                    boxShadow: "0 8px 24px rgba(0,0,0,0.4)",
+                  }}>
+                    {customerResults.map(c => (
+                      <button
+                        key={c.id}
+                        type="button"
+                        onClick={() => selectCustomer(c)}
+                        style={{
+                          width: "100%",
+                          padding: "8px 12px",
+                          background: "none",
+                          border: "none",
+                          borderBottom: "1px solid var(--border)",
+                          color: "var(--text-primary)",
+                          fontSize: 12,
+                          cursor: "pointer",
+                          textAlign: "left",
+                          display: "flex",
+                          justifyContent: "space-between",
+                        }}
+                      >
+                        <span style={{ fontWeight: 600 }}>{c.full_name}</span>
+                        <span style={{ color: "var(--text-muted)", fontSize: 10 }}>{c.phone || c.mobile_phone}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {customerId && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCustomerId(null)
+                      setCustomerName("")
+                      setCustomerSearch("")
+                      setCustomerPhone("")
+                    }}
+                    style={{
+                      position: "absolute",
+                      right: 12,
+                      top: 10,
+                      background: "none",
+                      border: "none",
+                      color: "var(--text-muted)",
+                      cursor: "pointer"
+                    }}
+                  >
+                    <X size={14} />
+                  </button>
+                )}
+              </div>
+            ) : (
               <input
-                value={customerId ? customerName : customerSearch || customerName}
-                onChange={e => {
-                  if (customerId) {
-                    setCustomerId(null)
-                    setCustomerSearch(e.target.value)
-                    setCustomerName(e.target.value)
-                  } else {
-                    setCustomerSearch(e.target.value)
-                    setCustomerName(e.target.value)
-                  }
-                }}
-                placeholder="Buscar ou digitar nome do cliente..."
+                value={customerName}
+                onChange={e => setCustomerName(e.target.value)}
+                placeholder="Nome do cliente avulso..."
                 style={inputStyle}
               />
-              {showCustomerDropdown && customerResults.length > 0 && (
-                <div style={{
-                  position: "absolute",
-                  top: "100%",
-                  left: 0,
-                  right: 0,
-                  background: "var(--bg-surface)",
-                  border: "1px solid var(--border)",
-                  borderRadius: 8,
-                  marginTop: 4,
-                  zIndex: 20,
-                  maxHeight: 200,
-                  overflowY: "auto",
-                  boxShadow: "0 8px 24px rgba(0,0,0,0.4)",
-                }}>
-                  {customerResults.map(c => (
-                    <button
-                      key={c.id}
-                      onClick={() => selectCustomer(c)}
-                      style={{
-                        width: "100%",
-                        padding: "8px 12px",
-                        background: "none",
-                        border: "none",
-                        borderBottom: "1px solid var(--border)",
-                        color: "var(--text-primary)",
-                        fontSize: 12,
-                        cursor: "pointer",
-                        textAlign: "left",
-                        display: "flex",
-                        justifyContent: "space-between",
-                      }}
-                    >
-                      <span style={{ fontWeight: 600 }}>{c.full_name}</span>
-                      <span style={{ color: "var(--text-muted)", fontSize: 10 }}>{c.phone || c.mobile_phone}</span>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
+            )}
+
             <input
               value={customerPhone}
               onChange={e => setCustomerPhone(e.target.value)}
               placeholder="Telefone (opcional)"
               style={{ ...inputStyle, marginTop: 6 }}
+              disabled={clientMode === "cadastrado" && !!customerId} // Prevent editing phone if mapped from DB
             />
           </div>
 

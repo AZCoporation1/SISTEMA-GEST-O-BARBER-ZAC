@@ -80,16 +80,16 @@ function DataHoraContent() {
 
   if (missingParams) {
     return (
-      <div className="flex flex-col h-full space-y-6 pt-4 pb-12 animate-in fade-in">
+      <div className="flex flex-col h-full space-y-6 pt-4 pb-12 fade-up">
         <div className="flex items-center gap-3">
-          <Link href="/cliente/agendar" className="p-2 -ml-2 rounded-full hover:bg-accent text-muted-foreground transition-colors">
+          <Link href="/cliente/agendar" className="p-2 -ml-2 rounded-full hover:bg-accent text-muted-foreground transition-colors btn-press">
             <ArrowLeft className="w-5 h-5" />
           </Link>
           <h1 className="text-xl font-bold text-foreground">Parâmetros ausentes</h1>
         </div>
         <div className="text-center py-12 space-y-4">
           <p className="text-muted-foreground">Serviço ou profissional não selecionado.</p>
-          <Link href="/cliente/agendar" className="inline-flex px-5 py-2.5 rounded-xl bg-secondary text-secondary-foreground text-sm font-medium hover:bg-secondary/80 transition-colors">
+          <Link href="/cliente/agendar" className="inline-flex px-5 py-2.5 rounded-xl bg-secondary text-secondary-foreground text-sm font-medium hover:bg-secondary/80 transition-colors btn-press">
             Voltar e escolher um serviço
           </Link>
         </div>
@@ -98,11 +98,11 @@ function DataHoraContent() {
   }
 
   return (
-    <div className="flex flex-col h-full space-y-6 pt-4 pb-12 animate-in fade-in">
+    <div className="flex flex-col h-full space-y-6 pt-4 pb-12 fade-up">
       <div className="flex items-center gap-3">
         <Link 
           href={`/cliente/agendar/profissional?serviceId=${serviceId}`} 
-          className="p-2 -ml-2 rounded-full hover:bg-accent text-muted-foreground transition-colors"
+          className="p-2 -ml-2 rounded-full hover:bg-accent text-muted-foreground transition-colors btn-press"
         >
           <ArrowLeft className="w-5 h-5" />
         </Link>
@@ -121,10 +121,10 @@ function DataHoraContent() {
               <button
                 key={idx}
                 onClick={() => setSelectedDate(date)}
-                className={`snap-center shrink-0 w-16 h-20 rounded-2xl flex flex-col items-center justify-center transition-all border
+                className={`snap-center shrink-0 w-16 h-20 rounded-2xl flex flex-col items-center justify-center btn-press border
                   ${isSelected 
-                    ? 'bg-primary text-primary-foreground border-transparent shadow-md scale-105' 
-                    : 'bg-card text-muted-foreground border-border hover:bg-accent hover:text-foreground'}`}
+                    ? 'bg-primary text-primary-foreground border-transparent shadow-lg scale-105 selected-ring' 
+                    : 'bg-card text-muted-foreground border-border hover:bg-accent hover:text-foreground hover:border-primary/20'}`}
               >
                 <span className={`text-xs font-medium mb-1 ${isSelected ? 'text-primary-foreground/80' : 'text-muted-foreground'}`}>
                   {dayName}
@@ -145,17 +145,18 @@ function DataHoraContent() {
           </h3>
 
           {isLoading ? (
-            /* Skeleton grid instead of spinner */
+            /* Shimmer skeleton grid */
             <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
               {Array.from({ length: 8 }).map((_, i) => (
-                <div key={i} className="h-12 rounded-xl bg-accent animate-pulse" />
+                <div key={i} className="h-12 rounded-xl skeleton-shimmer" />
               ))}
             </div>
           ) : error ? (
-            <div className="text-center py-8 text-destructive text-sm">{error}</div>
+            <div className="text-center py-8 text-destructive text-sm fade-up-fast">{error}</div>
           ) : slots.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground bg-card/50 rounded-2xl border border-border">
-              Nenhum horário disponível nesta data.
+            <div className="flex flex-col items-center gap-3 py-12 text-muted-foreground bg-card/50 rounded-2xl border border-border fade-up-fast">
+              <CalendarIcon className="w-8 h-8 opacity-30" />
+              <p className="text-sm">Nenhum horário disponível nesta data.</p>
             </div>
           ) : (
             <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
@@ -163,7 +164,8 @@ function DataHoraContent() {
                 <button
                   key={idx}
                   onClick={() => handleSlotSelect(slot.time)}
-                  className="h-12 rounded-xl border border-border bg-card hover:bg-primary hover:text-primary-foreground hover:border-transparent text-foreground font-medium transition-all"
+                  className="h-12 rounded-xl border border-border bg-card slot-tap hover:bg-primary hover:text-primary-foreground hover:border-transparent hover:shadow-md text-foreground font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring fade-up"
+                  style={{ animationDelay: `${Math.min(idx * 30, 200)}ms` }}
                 >
                   {slot.time}
                 </button>

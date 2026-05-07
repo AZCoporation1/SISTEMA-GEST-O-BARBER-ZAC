@@ -76,7 +76,7 @@ export default function AppointmentDetailSheet({
     cursor: loading ? "wait" : "pointer",
     fontFamily: "inherit",
     width: "100%",
-    transition: "all 120ms ease",
+    transition: "all 140ms cubic-bezier(0.22, 1, 0.36, 1)",
     opacity: loading ? 0.5 : 1,
   })
 
@@ -91,10 +91,10 @@ export default function AppointmentDetailSheet({
       zIndex: 100,
       background: "var(--bg-surface)",
       borderLeft: "1px solid var(--border)",
-      boxShadow: "-8px 0 32px rgba(0,0,0,0.4)",
+      boxShadow: "-8px 0 32px rgba(0,0,0,0.25)",
       display: "flex",
       flexDirection: "column",
-      animation: "slideInRight 200ms ease",
+      animation: "slideInRight 200ms cubic-bezier(0.22, 1, 0.36, 1)",
     }}>
       {/* Header */}
       <div style={{
@@ -148,7 +148,29 @@ export default function AppointmentDetailSheet({
       <div style={{ flex: 1, overflowY: "auto", padding: 20 }}>
         {/* Info cards */}
         <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 24 }}>
-          <InfoRow icon={User} label="Cliente" value={appointment.customer_name_snapshot || "—"} />
+          <InfoRow 
+            icon={User} 
+            label="Cliente" 
+            value={
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                {appointment.customer_name_snapshot || "—"}
+                {!appointment.customer_id && (
+                  <span style={{
+                    fontSize: 7,
+                    fontWeight: 700,
+                    padding: "1px 4px",
+                    borderRadius: 3,
+                    background: "var(--bg-elevated)",
+                    border: "1px solid var(--border)",
+                    color: "var(--text-secondary)",
+                    textTransform: "uppercase",
+                  }}>
+                    Avulso
+                  </span>
+                )}
+              </div>
+            } 
+          />
           {appointment.customer_phone_snapshot && (
             <InfoRow icon={Phone} label="Telefone" value={appointment.customer_phone_snapshot} />
           )}
@@ -268,16 +290,17 @@ export default function AppointmentDetailSheet({
 
 // ── Info Row Component ────────────────────────────────────
 
-function InfoRow({ icon: Icon, label, value }: { icon: any; label: string; value: string }) {
+function InfoRow({ icon: Icon, label, value }: { icon: any; label: string; value: React.ReactNode }) {
   return (
     <div style={{
       display: "flex",
       alignItems: "flex-start",
       gap: 10,
       padding: "8px 12px",
-      background: "rgba(255,255,255,0.02)",
+      background: "var(--bg-elevated, rgba(128,128,128,0.04))",
       borderRadius: 8,
       border: "1px solid var(--border)",
+      transition: "background 100ms ease",
     }}>
       <Icon size={13} style={{ color: "var(--text-muted)", marginTop: 2, flexShrink: 0 }} />
       <div>

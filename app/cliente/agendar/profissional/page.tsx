@@ -29,7 +29,7 @@ export default async function AgendarProfessionalPage({
         </div>
         <div className="text-center py-12 space-y-4">
           <p className="text-muted-foreground">{serviceResult.error || "Serviço não encontrado ou indisponível para agendamento."}</p>
-          <Link href="/cliente/agendar" className="inline-flex px-5 py-2.5 rounded-xl bg-secondary text-secondary-foreground text-sm font-medium hover:bg-secondary/80 transition-colors">
+          <Link href="/cliente/agendar" className="inline-flex px-5 py-2.5 rounded-xl bg-secondary text-secondary-foreground text-sm font-medium hover:bg-secondary/80 transition-colors btn-press">
             Voltar e escolher outro serviço
           </Link>
         </div>
@@ -51,9 +51,10 @@ export default async function AgendarProfessionalPage({
           </Link>
           <h1 className="text-xl font-bold text-foreground">Escolha o profissional</h1>
         </div>
-        <div className="text-center py-12 space-y-4">
-          <p className="text-muted-foreground">Nenhum profissional disponível para agendamento no momento.</p>
-          <Link href="/cliente/agendar" className="inline-flex px-5 py-2.5 rounded-xl bg-secondary text-secondary-foreground text-sm font-medium hover:bg-secondary/80 transition-colors">
+        <div className="flex flex-col items-center gap-3 py-12 text-muted-foreground">
+          <Scissors className="w-10 h-10 opacity-30" />
+          <p>Nenhum profissional disponível para agendamento no momento.</p>
+          <Link href="/cliente/agendar" className="inline-flex px-5 py-2.5 rounded-xl bg-secondary text-secondary-foreground text-sm font-medium hover:bg-secondary/80 transition-colors btn-press">
             Voltar e escolher outro serviço
           </Link>
         </div>
@@ -64,9 +65,9 @@ export default async function AgendarProfessionalPage({
   const professionals = profResult.data
 
   return (
-    <div className="flex flex-col h-full space-y-6 pt-4 pb-12 animate-in fade-in px-4">
+    <div className="flex flex-col h-full space-y-6 pt-4 pb-12 fade-up px-4">
       <div className="flex items-center gap-3">
-        <Link href="/cliente/agendar" className="p-2 -ml-2 rounded-full hover:bg-accent text-muted-foreground transition-colors">
+        <Link href="/cliente/agendar" className="p-2 -ml-2 rounded-full hover:bg-accent text-muted-foreground transition-colors btn-press">
           <ArrowLeft className="w-5 h-5" />
         </Link>
         <div>
@@ -75,7 +76,7 @@ export default async function AgendarProfessionalPage({
         </div>
       </div>
 
-      <div className="space-y-3">
+      <div className="space-y-3 stagger">
         {professionals.map(prof => {
           const initial = prof.displayName.charAt(0).toUpperCase()
           return (
@@ -84,9 +85,9 @@ export default async function AgendarProfessionalPage({
               href={`/cliente/agendar/data-hora?serviceId=${serviceId}&professionalId=${prof.id}`}
               className="block group"
             >
-              <div className="p-4 rounded-2xl border border-border bg-card/50 hover:bg-accent/50 hover:border-border transition-all flex items-center justify-between">
+              <div className="p-4 rounded-2xl border border-border bg-card/50 premium-card hover:border-primary/20 flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-accent/50 to-accent flex items-center justify-center border border-border group-hover:border-primary/50 transition-colors">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-accent/50 to-accent flex items-center justify-center border border-border group-hover:border-primary/30 group-hover:shadow-md transition-all duration-200">
                     <span className="text-lg font-bold text-muted-foreground group-hover:text-foreground transition-colors">{initial}</span>
                   </div>
                   <div>
@@ -97,7 +98,7 @@ export default async function AgendarProfessionalPage({
                     </div>
                   </div>
                 </div>
-                <ChevronRight className="w-5 h-5 text-muted-foreground/60 group-hover:text-muted-foreground transition-colors" />
+                <ChevronRight className="w-5 h-5 text-muted-foreground/60 group-hover:text-foreground icon-nudge" />
               </div>
             </Link>
           )

@@ -147,15 +147,15 @@ export default function PerfilPage() {
   // Internal user — real admin/professional without customer profile
   if (error && isInternalUser) {
     return (
-      <div className="flex flex-col h-full space-y-6 pt-4 pb-12 animate-in fade-in px-4">
+      <div className="flex flex-col h-full space-y-6 pt-4 pb-12 fade-up px-4">
         <div className="flex items-center gap-3">
-          <Link href="/cliente" className="p-2 -ml-2 rounded-full hover:bg-accent text-muted-foreground transition-colors">
+          <Link href="/cliente" className="p-2 -ml-2 rounded-full hover:bg-accent text-muted-foreground transition-colors btn-press">
             <ArrowLeft className="w-5 h-5" />
           </Link>
           <h1 className="text-xl font-bold text-foreground">Meu Perfil</h1>
         </div>
         <div className="flex flex-col items-center gap-4 py-12">
-          <div className="w-16 h-16 rounded-full bg-amber-500/10 border border-amber-500/20 flex items-center justify-center">
+          <div className="w-16 h-16 rounded-full bg-amber-500/10 border border-amber-500/20 flex items-center justify-center success-entrance">
             <ShieldAlert className="w-8 h-8 text-amber-500" />
           </div>
           <div className="text-center space-y-2">
@@ -164,12 +164,12 @@ export default function PerfilPage() {
               Esta conta pertence ao ERP. Para usar a área do cliente, entre com uma conta de cliente ou crie um perfil de cliente.
             </p>
           </div>
-          <div className="flex flex-col gap-3 w-full max-w-xs pt-4">
+          <div className="flex flex-col gap-3 w-full max-w-xs pt-4 stagger">
             {/* "Voltar ao ERP" — ONLY if canAccessERP is true */}
             {canAccessERP && erpRedirectPath && (
               <Link
                 href={erpRedirectPath}
-                className="flex items-center justify-center gap-2 h-12 rounded-xl bg-secondary hover:bg-secondary/80 text-secondary-foreground font-medium transition-colors border border-border"
+                className="flex items-center justify-center gap-2 h-12 rounded-xl bg-secondary hover:bg-secondary/80 text-secondary-foreground font-medium transition-colors border border-border btn-press"
               >
                 Voltar ao ERP
               </Link>
@@ -178,7 +178,7 @@ export default function PerfilPage() {
             <button
               onClick={handleCreateCustomerProfile}
               disabled={isCreatingCustomer}
-              className="flex items-center justify-center gap-2 h-12 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-semibold transition-colors disabled:opacity-50"
+              className="flex items-center justify-center gap-2 h-12 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-semibold premium-cta disabled:opacity-50"
             >
               {isCreatingCustomer ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
@@ -189,7 +189,7 @@ export default function PerfilPage() {
             </button>
             <button
               onClick={handleLogout}
-              className="flex items-center justify-center gap-2 h-12 rounded-xl bg-card hover:bg-accent text-muted-foreground hover:text-foreground font-medium transition-colors border border-border"
+              className="flex items-center justify-center gap-2 h-12 rounded-xl bg-card hover:bg-accent text-muted-foreground hover:text-foreground font-medium transition-colors border border-border btn-press"
             >
               <LogOut className="w-4 h-4" />
               Sair e entrar como cliente
@@ -203,17 +203,17 @@ export default function PerfilPage() {
   // General error (NOT internal — sync failure, conflict, etc.)
   if (error || !profile) {
     return (
-      <div className="flex flex-col h-full space-y-6 pt-4 pb-12 animate-in fade-in px-4">
+      <div className="flex flex-col h-full space-y-6 pt-4 pb-12 fade-up px-4">
         <div className="flex items-center gap-3">
-          <Link href="/cliente" className="p-2 -ml-2 rounded-full hover:bg-accent text-muted-foreground transition-colors">
+          <Link href="/cliente" className="p-2 -ml-2 rounded-full hover:bg-accent text-muted-foreground transition-colors btn-press">
             <ArrowLeft className="w-5 h-5" />
           </Link>
           <h1 className="text-xl font-bold text-foreground">Meu Perfil</h1>
         </div>
         <div className="flex flex-col items-center gap-4 py-12">
           <p className="text-sm text-muted-foreground">{error || "Perfil não encontrado."}</p>
-          <button onClick={loadProfile} className="text-sm text-foreground underline underline-offset-4">Tentar novamente</button>
-          <button onClick={handleLogout} className="text-sm text-destructive underline underline-offset-4">Sair da conta</button>
+          <button onClick={loadProfile} className="text-sm text-foreground underline underline-offset-4 btn-press">Tentar novamente</button>
+          <button onClick={handleLogout} className="text-sm text-destructive underline underline-offset-4 btn-press">Sair da conta</button>
         </div>
       </div>
     )
@@ -226,11 +226,11 @@ export default function PerfilPage() {
   }
 
   return (
-    <div className="flex flex-col h-full space-y-6 pt-4 pb-12 animate-in fade-in px-4">
+    <div className="flex flex-col h-full space-y-6 pt-4 pb-12 fade-up px-4">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Link href="/cliente" className="p-2 -ml-2 rounded-full hover:bg-accent text-muted-foreground transition-colors">
+          <Link href="/cliente" className="p-2 -ml-2 rounded-full hover:bg-accent text-muted-foreground transition-colors btn-press">
             <ArrowLeft className="w-5 h-5" />
           </Link>
           <h1 className="text-xl font-bold text-foreground">Meu Perfil</h1>
@@ -240,7 +240,7 @@ export default function PerfilPage() {
           {!isEditing && (
             <button
               onClick={() => setIsEditing(true)}
-              className="p-2 rounded-full hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
+              className="p-2 rounded-full hover:bg-accent text-muted-foreground hover:text-foreground transition-colors btn-press"
             >
               <Pencil className="w-4 h-4" />
             </button>
@@ -250,18 +250,18 @@ export default function PerfilPage() {
 
       {/* Dual identity banner */}
       {isInternalUser && canAccessERP && erpRedirectPath && (
-        <div className="p-3 rounded-xl border border-amber-800/30 bg-amber-900/10 flex items-center justify-between gap-3">
+        <div className="p-3 rounded-xl border border-amber-800/30 bg-amber-900/10 flex items-center justify-between gap-3 fade-up-fast">
           <p className="text-xs text-amber-300/80">Você também tem acesso ao ERP.</p>
-          <Link href={erpRedirectPath} className="text-xs px-3 py-1.5 rounded-lg bg-amber-800/30 hover:bg-amber-800/50 text-amber-300 transition-colors whitespace-nowrap">
+          <Link href={erpRedirectPath} className="text-xs px-3 py-1.5 rounded-lg bg-amber-800/30 hover:bg-amber-800/50 text-amber-300 transition-colors whitespace-nowrap btn-press">
             Ir ao ERP
           </Link>
         </div>
       )}
 
       {/* Avatar + Name */}
-      <div className="flex flex-col items-center gap-3 py-4">
-        <div className="relative">
-          <div className="w-20 h-20 rounded-full bg-gradient-to-br from-accent/50 to-accent border-2 border-border flex items-center justify-center text-2xl font-bold text-muted-foreground shadow-lg">
+      <div className="flex flex-col items-center gap-3 py-4 fade-up-fast" style={{ animationDelay: '50ms' }}>
+        <div className="relative group">
+          <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary/20 via-accent/50 to-accent border-2 border-border group-hover:border-primary/30 flex items-center justify-center text-2xl font-bold text-muted-foreground shadow-lg transition-all duration-300">
             {profile.avatarUrl ? (
               <img src={profile.avatarUrl} alt="Avatar" className="w-full h-full rounded-full object-cover" />
             ) : (
@@ -269,7 +269,7 @@ export default function PerfilPage() {
             )}
           </div>
           <button 
-            className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-card border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+            className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-card border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-accent hover:scale-110 transition-all duration-200"
             onClick={() => toast.info("Upload de foto estará disponível em breve.")}
           >
             <Camera className="w-3.5 h-3.5" />
@@ -286,13 +286,13 @@ export default function PerfilPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 gap-3">
-        <div className="p-4 rounded-2xl border border-border bg-card/50 text-center">
+      <div className="grid grid-cols-2 gap-3 fade-up-fast" style={{ animationDelay: '100ms' }}>
+        <div className="p-4 rounded-2xl border border-border bg-card/50 text-center premium-card">
           <Calendar className="w-5 h-5 text-muted-foreground mx-auto mb-1.5" />
           <p className="text-lg font-bold text-foreground">{profile.upcomingAppointments}</p>
           <p className="text-[11px] text-muted-foreground uppercase tracking-wider">Próximos</p>
         </div>
-        <div className="p-4 rounded-2xl border border-border bg-card/50 text-center">
+        <div className="p-4 rounded-2xl border border-border bg-card/50 text-center premium-card">
           <Award className="w-5 h-5 text-amber-500/60 mx-auto mb-1.5" />
           <p className="text-lg font-bold text-foreground">{profile.loyaltyPoints}</p>
           <p className="text-[11px] text-muted-foreground uppercase tracking-wider">Pontos</p>
@@ -300,7 +300,7 @@ export default function PerfilPage() {
       </div>
 
       {/* Profile details */}
-      <div className="p-5 rounded-2xl border border-border bg-card/50 space-y-5">
+      <div className="p-5 rounded-2xl border border-border bg-card/50 space-y-5 shadow-sm fade-up-fast" style={{ animationDelay: '150ms' }}>
         {isEditing ? (
           <>
             <div className="space-y-2">
@@ -308,7 +308,7 @@ export default function PerfilPage() {
               <input
                 value={editName}
                 onChange={(e) => setEditName(e.target.value)}
-                className="w-full bg-background border border-input rounded-xl px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+                className="w-full bg-background border border-input rounded-xl px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring/50 focus:border-ring transition-all duration-200"
               />
             </div>
             <div className="space-y-2">
@@ -316,7 +316,7 @@ export default function PerfilPage() {
               <input
                 value={editPhone}
                 onChange={(e) => handlePhoneChange(e.target.value)}
-                className="w-full bg-background border border-input rounded-xl px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+                className="w-full bg-background border border-input rounded-xl px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring/50 focus:border-ring transition-all duration-200"
                 placeholder="(11) 99999-9999"
               />
             </div>
@@ -329,7 +329,7 @@ export default function PerfilPage() {
               <button
                 onClick={handleSave}
                 disabled={isSaving}
-                className="flex-1 flex items-center justify-center gap-2 h-11 rounded-xl bg-primary text-primary-foreground font-semibold hover:bg-primary/90 disabled:opacity-50 transition-colors"
+                className="flex-1 flex items-center justify-center gap-2 h-11 rounded-xl bg-primary text-primary-foreground font-semibold premium-cta hover:bg-primary/90 disabled:opacity-50"
               >
                 {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
                 Salvar
@@ -340,7 +340,7 @@ export default function PerfilPage() {
                   setEditName(profile.fullName)
                   setEditPhone(profile.phone || '')
                 }}
-                className="flex items-center justify-center gap-2 px-4 h-11 rounded-xl bg-secondary text-secondary-foreground hover:bg-secondary/80 transition-colors"
+                className="flex items-center justify-center gap-2 px-4 h-11 rounded-xl bg-secondary text-secondary-foreground hover:bg-secondary/80 transition-colors btn-press"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -374,10 +374,10 @@ export default function PerfilPage() {
       </div>
 
       {/* Quick actions */}
-      <div className="space-y-3 pt-2">
+      <div className="space-y-3 pt-2 fade-up-fast" style={{ animationDelay: '200ms' }}>
         <Link
           href="/cliente/meus-agendamentos"
-          className="flex items-center justify-center gap-2 w-full h-12 rounded-xl bg-secondary hover:bg-secondary/80 text-secondary-foreground font-medium transition-colors border border-border"
+          className="flex items-center justify-center gap-2 w-full h-12 rounded-xl bg-secondary hover:bg-secondary/80 text-secondary-foreground font-medium transition-colors border border-border btn-press"
         >
           <Calendar className="w-4 h-4" />
           Meus Agendamentos
@@ -385,7 +385,7 @@ export default function PerfilPage() {
 
         <button
           onClick={handleLogout}
-          className="flex items-center justify-center gap-2 w-full h-12 rounded-xl bg-card hover:bg-accent text-destructive font-medium transition-colors border border-border"
+          className="flex items-center justify-center gap-2 w-full h-12 rounded-xl bg-card hover:bg-destructive/10 text-destructive font-medium transition-colors border border-border hover:border-destructive/30 btn-press"
         >
           <LogOut className="w-4 h-4" />
           Sair da conta

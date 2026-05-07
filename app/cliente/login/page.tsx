@@ -105,11 +105,11 @@ function ClienteLoginContent() {
   }
 
   return (
-    <div className="flex flex-col h-full space-y-6 pt-2 pb-12 animate-in fade-in">
+    <div className="flex flex-col h-full space-y-6 pt-2 pb-12 fade-up">
       
       {/* Back button */}
       <div className="flex items-center">
-        <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:text-foreground rounded-xl" asChild>
+        <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:text-foreground rounded-xl btn-press" asChild>
           <Link href="/cliente">
             <ArrowLeft className="h-4 w-4" />
           </Link>
@@ -117,7 +117,7 @@ function ClienteLoginContent() {
       </div>
 
       {/* Header */}
-      <div className="space-y-2 px-1">
+      <div className="space-y-2 px-1 fade-up-fast" style={{ animationDelay: '50ms' }}>
         <h1 className="text-2xl font-bold text-foreground tracking-tight">
           {isLogin ? 'Acesse sua conta' : 'Crie sua conta'}
         </h1>
@@ -129,12 +129,12 @@ function ClienteLoginContent() {
       </div>
 
       {/* OAuth Buttons */}
-      <div className="space-y-2.5">
+      <div className="space-y-2.5 fade-up-fast" style={{ animationDelay: '100ms' }}>
         <button
           type="button"
           onClick={() => handleOAuth('google')}
           disabled={isOAuthLoading !== null}
-          className="w-full flex items-center justify-center gap-3 h-12 rounded-xl border border-border bg-card/50 text-foreground font-medium hover:bg-accent/50 hover:border-border disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-150 active:scale-[0.98]"
+          className="w-full flex items-center justify-center gap-3 h-12 rounded-xl border border-border bg-card/50 text-foreground font-medium premium-card hover:border-primary/20 disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98]"
         >
           {isOAuthLoading === 'google' ? (
             <Loader2 className="w-4 h-4 animate-spin" />
@@ -169,7 +169,7 @@ function ClienteLoginContent() {
         <div className="flex-1 h-px bg-border" />
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-4 fade-up-fast" style={{ animationDelay: '150ms' }}>
         {!isLogin && (
           <div className="space-y-1.5">
             <label className="text-xs font-medium text-muted-foreground">Nome completo</label>
@@ -243,7 +243,7 @@ function ClienteLoginContent() {
           <Button 
             type="submit" 
             disabled={isLoading}
-            className="w-full bg-primary text-primary-foreground hover:bg-primary/90 h-12 font-semibold rounded-xl active:scale-[0.98] transition-all duration-150 shadow-sm"
+            className="w-full bg-primary text-primary-foreground hover:bg-primary/90 h-12 font-semibold rounded-xl premium-cta shadow-sm focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
           >
             {isLoading ? (
               <Loader2 className="w-5 h-5 animate-spin" />
@@ -260,7 +260,7 @@ function ClienteLoginContent() {
         <button 
           onClick={() => setIsLogin(!isLogin)}
           type="button"
-          className="text-sm text-muted-foreground hover:text-foreground transition-colors font-medium"
+          className="text-sm text-muted-foreground hover:text-foreground transition-colors font-medium btn-press"
         >
           {isLogin ? 'Não tem uma conta? Cadastre-se' : 'Já tem uma conta? Faça login'}
         </button>

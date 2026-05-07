@@ -22,6 +22,7 @@ export default function MeusAgendamentosPage() {
   const [erpRedirectPath, setErpRedirectPath] = useState<string | null>(null)
   const [isCreatingCustomer, setIsCreatingCustomer] = useState(false)
   const [historyLimit, setHistoryLimit] = useState(10)
+  const [isLoadingMore, setIsLoadingMore] = useState(false)
 
   useEffect(() => {
     if (authLoading) return
@@ -71,6 +72,15 @@ export default function MeusAgendamentosPage() {
     setIsCreatingCustomer(false)
   }
 
+  const handleLoadMore = () => {
+    setIsLoadingMore(true)
+    // Small delay for visual feedback
+    setTimeout(() => {
+      setHistoryLimit(prev => prev + 10)
+      setIsLoadingMore(false)
+    }, 300)
+  }
+
   if (authLoading || isLoading) {
     return (
       <div className="flex items-center justify-center h-full min-h-[50vh]">
@@ -82,15 +92,15 @@ export default function MeusAgendamentosPage() {
   // Error: Internal user (admin/professional) — validated via resolveCustomerAreaIdentity
   if (error && isInternalUser) {
     return (
-      <div className="flex flex-col h-full space-y-6 pt-4 pb-12 animate-in fade-in px-4">
+      <div className="flex flex-col h-full space-y-6 pt-4 pb-12 fade-up px-4">
         <div className="flex items-center gap-3">
-          <Link href="/cliente" className="p-2 -ml-2 rounded-full hover:bg-accent text-muted-foreground transition-colors">
+          <Link href="/cliente" className="p-2 -ml-2 rounded-full hover:bg-accent text-muted-foreground transition-colors btn-press">
             <ArrowLeft className="w-5 h-5" />
           </Link>
           <h1 className="text-xl font-bold text-foreground">Meus Agendamentos</h1>
         </div>
         <div className="flex flex-col items-center gap-4 py-12">
-          <div className="w-16 h-16 rounded-full bg-amber-900/20 border border-amber-800/30 flex items-center justify-center">
+          <div className="w-16 h-16 rounded-full bg-amber-900/20 border border-amber-800/30 flex items-center justify-center success-entrance">
             <ShieldAlert className="w-8 h-8 text-amber-500" />
           </div>
           <div className="text-center space-y-2">
@@ -99,12 +109,12 @@ export default function MeusAgendamentosPage() {
               Esta conta pertence ao sistema interno (ERP). Para agendar como cliente, crie um perfil de cliente ou entre com outra conta.
             </p>
           </div>
-          <div className="flex flex-col gap-3 w-full max-w-xs pt-4">
+          <div className="flex flex-col gap-3 w-full max-w-xs pt-4 stagger">
             {/* ERP button — ONLY if canAccessERP is validated */}
             {canAccessERP && erpRedirectPath && (
               <Link
                 href={erpRedirectPath}
-                className="flex items-center justify-center gap-2 h-12 rounded-xl bg-secondary hover:bg-secondary/80 text-secondary-foreground font-medium transition-colors border border-transparent"
+                className="flex items-center justify-center gap-2 h-12 rounded-xl bg-secondary hover:bg-secondary/80 text-secondary-foreground font-medium transition-colors border border-transparent btn-press"
               >
                 Voltar ao ERP
               </Link>
@@ -113,7 +123,7 @@ export default function MeusAgendamentosPage() {
             <button
               onClick={handleCreateCustomerProfile}
               disabled={isCreatingCustomer}
-              className="flex items-center justify-center gap-2 h-12 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-semibold transition-colors disabled:opacity-50"
+              className="flex items-center justify-center gap-2 h-12 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-semibold premium-cta disabled:opacity-50"
             >
               {isCreatingCustomer ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
@@ -124,7 +134,7 @@ export default function MeusAgendamentosPage() {
             </button>
             <button
               onClick={handleLogout}
-              className="flex items-center justify-center gap-2 h-12 rounded-xl bg-card hover:bg-accent text-muted-foreground font-medium transition-colors border border-border"
+              className="flex items-center justify-center gap-2 h-12 rounded-xl bg-card hover:bg-accent text-muted-foreground font-medium transition-colors border border-border btn-press"
             >
               <LogOut className="w-4 h-4" />
               Sair e entrar como cliente
@@ -138,32 +148,32 @@ export default function MeusAgendamentosPage() {
   // Error: Customer sync failed (NOT internal)
   if (error) {
     return (
-      <div className="flex flex-col h-full space-y-6 pt-4 pb-12 animate-in fade-in px-4">
+      <div className="flex flex-col h-full space-y-6 pt-4 pb-12 fade-up px-4">
         <div className="flex items-center gap-3">
-          <Link href="/cliente" className="p-2 -ml-2 rounded-full hover:bg-accent text-muted-foreground transition-colors">
+          <Link href="/cliente" className="p-2 -ml-2 rounded-full hover:bg-accent text-muted-foreground transition-colors btn-press">
             <ArrowLeft className="w-5 h-5" />
           </Link>
           <h1 className="text-xl font-bold text-foreground">Meus Agendamentos</h1>
         </div>
         <div className="flex flex-col items-center gap-4 py-12">
-          <div className="w-16 h-16 rounded-full bg-red-900/20 border border-red-800/30 flex items-center justify-center">
+          <div className="w-16 h-16 rounded-full bg-red-900/20 border border-red-800/30 flex items-center justify-center success-entrance">
             <AlertTriangle className="w-8 h-8 text-red-400" />
           </div>
           <div className="text-center space-y-2">
             <h2 className="text-lg font-semibold text-foreground">Não foi possível carregar</h2>
             <p className="text-sm text-muted-foreground max-w-xs">{error}</p>
           </div>
-          <div className="flex flex-col gap-3 w-full max-w-xs pt-4">
+          <div className="flex flex-col gap-3 w-full max-w-xs pt-4 stagger">
             <button
               onClick={loadAppointments}
-              className="flex items-center justify-center gap-2 h-12 rounded-xl bg-primary text-primary-foreground font-semibold hover:bg-primary/90 transition-colors"
+              className="flex items-center justify-center gap-2 h-12 rounded-xl bg-primary text-primary-foreground font-semibold premium-cta hover:bg-primary/90"
             >
               <RefreshCw className="w-4 h-4" />
               Tentar novamente
             </button>
             <button
               onClick={handleLogout}
-              className="flex items-center justify-center gap-2 h-12 rounded-xl bg-card hover:bg-accent text-muted-foreground font-medium transition-colors border border-border"
+              className="flex items-center justify-center gap-2 h-12 rounded-xl bg-card hover:bg-accent text-muted-foreground font-medium transition-colors border border-border btn-press"
             >
               <LogOut className="w-4 h-4" />
               Sair e entrar com outra conta
@@ -178,28 +188,28 @@ export default function MeusAgendamentosPage() {
   const past = appointments.filter(a => new Date(a.start_at) <= new Date() || a.status === 'cancelled')
 
   return (
-    <div className="flex flex-col h-full space-y-6 pt-4 pb-12 animate-in fade-in px-4">
+    <div className="flex flex-col h-full space-y-6 pt-4 pb-12 fade-up px-4">
       
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Link href="/cliente" className="p-2 -ml-2 rounded-full hover:bg-accent text-muted-foreground transition-colors">
+          <Link href="/cliente" className="p-2 -ml-2 rounded-full hover:bg-accent text-muted-foreground transition-colors btn-press">
             <ArrowLeft className="w-5 h-5" />
           </Link>
           <h1 className="text-xl font-bold text-foreground">Meus Agendamentos</h1>
         </div>
       </div>
 
-      <div className="px-1">
+      <div className="px-1 fade-up-fast" style={{ animationDelay: '50ms' }}>
         <p className="text-sm text-muted-foreground">Olá, <span className="text-foreground font-medium">{customerName || 'Cliente'}</span></p>
       </div>
 
-      <div className="pt-2">
+      <div className="pt-2 fade-up-fast" style={{ animationDelay: '100ms' }}>
         <Link 
           href="/cliente/agendar"
-          className="flex items-center justify-center gap-2 w-full h-12 rounded-xl bg-secondary hover:bg-secondary/80 text-secondary-foreground font-medium transition-colors border border-transparent"
+          className="flex items-center justify-center gap-2 w-full h-12 rounded-xl bg-secondary hover:bg-secondary/80 text-secondary-foreground font-medium transition-colors border border-transparent btn-press group"
         >
-          <Plus className="w-4 h-4" />
+          <Plus className="w-4 h-4 group-hover:rotate-90 transition-transform duration-200" />
           Novo Agendamento
         </Link>
       </div>
@@ -208,20 +218,24 @@ export default function MeusAgendamentosPage() {
       <div className="space-y-4 pt-4">
         <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Próximos</h2>
         {upcoming.length === 0 ? (
-          <div className="flex flex-col items-center gap-3 p-8 rounded-2xl border border-border bg-card/50">
-            <CalendarDays className="w-10 h-10 text-muted-foreground/40" />
+          <div className="flex flex-col items-center gap-3 p-8 rounded-2xl border border-border bg-card/50 fade-up-fast">
+            <CalendarDays className="w-10 h-10 text-muted-foreground/30" />
             <p className="text-muted-foreground text-sm text-center">Nenhum agendamento futuro.</p>
             <Link 
               href="/cliente/agendar"
-              className="text-sm text-muted-foreground hover:text-foreground transition-colors underline underline-offset-4"
+              className="text-sm text-primary hover:text-primary/80 transition-colors font-medium btn-press"
             >
-              Agendar agora
+              Agendar agora →
             </Link>
           </div>
         ) : (
-          upcoming.map(appt => (
-            <AppointmentCard key={appt.id} appt={appt} isUpcoming />
-          ))
+          <div className="space-y-3">
+            {upcoming.map((appt, idx) => (
+              <div key={appt.id} className="fade-up" style={{ animationDelay: `${Math.min(idx * 50, 200)}ms` }}>
+                <AppointmentCard appt={appt} isUpcoming />
+              </div>
+            ))}
+          </div>
         )}
       </div>
 
@@ -236,10 +250,15 @@ export default function MeusAgendamentosPage() {
           </div>
           {past.length > historyLimit && (
             <button
-              onClick={() => setHistoryLimit(prev => prev + 10)}
-              className="w-full py-3 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors border border-border rounded-xl hover:bg-accent"
+              onClick={handleLoadMore}
+              disabled={isLoadingMore}
+              className="w-full py-3 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors border border-border rounded-xl hover:bg-accent btn-press disabled:opacity-50 flex items-center justify-center gap-2"
             >
-              Carregar mais ({past.length - historyLimit} restantes)
+              {isLoadingMore ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <>Carregar mais ({past.length - historyLimit} restantes)</>
+              )}
             </button>
           )}
         </div>
@@ -253,7 +272,12 @@ function AppointmentCard({ appt, isUpcoming = false }: { appt: any, isUpcoming?:
   const isCancelled = appt.status === 'cancelled'
   
   return (
-    <div className={`p-4 rounded-2xl border ${isUpcoming ? 'border-border bg-secondary/20' : 'border-border bg-card/50'}`}>
+    <div className={`p-4 rounded-2xl border premium-card ${
+      isUpcoming 
+        ? 'border-primary/20 bg-primary/5 shadow-sm' 
+        : 'border-border bg-card/50'
+    }`}>
+      {/* Accent bar for upcoming */}
       <div className="flex justify-between items-start mb-3">
         <div>
           <h3 className={`font-semibold ${isCancelled ? 'line-through text-muted-foreground' : 'text-foreground'}`}>
@@ -267,6 +291,10 @@ function AppointmentCard({ appt, isUpcoming = false }: { appt: any, isUpcoming?:
         {isCancelled ? (
           <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-1 rounded bg-destructive/10 text-destructive">
             Cancelado
+          </span>
+        ) : isUpcoming ? (
+          <span className="text-sm font-bold text-primary">
+            R$ {appt.service_price_snapshot?.toFixed(2).replace('.', ',')}
           </span>
         ) : (
           <span className="text-sm font-medium text-foreground">

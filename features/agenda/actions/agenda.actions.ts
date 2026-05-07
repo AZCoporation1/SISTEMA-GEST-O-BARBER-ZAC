@@ -32,8 +32,12 @@ async function getUserContext(supabase: any) {
   }
 }
 
-function combineDatetime(date: string, time: string): string {
-  return new Date(`${date}T${time}:00-03:00`).toISOString()
+function buildSaoPauloDateTime(dateYmd: string, timeHHmm: string): Date {
+  return new Date(`${dateYmd}T${timeHHmm}:00-03:00`)
+}
+
+function addMinutes(date: Date, minutes: number): Date {
+  return new Date(date.getTime() + minutes * 60_000)
 }
 
 // ══════════════════════════════════════════════════════════
@@ -75,10 +79,10 @@ export async function createAppointment(data: AppointmentFormValues) {
     }
 
     // ── Calculate start/end times ──
-    const startAt = combineDatetime(validated.start_date, validated.start_time)
-    const endDate = new Date(startAt)
-    endDate.setMinutes(endDate.getMinutes() + validated.duration_minutes)
-    const endAt = endDate.toISOString()
+    const startAtDate = buildSaoPauloDateTime(validated.start_date, validated.start_time)
+    const endAtDate = addMinutes(startAtDate, validated.duration_minutes)
+    const startAt = startAtDate.toISOString()
+    const endAt = endAtDate.toISOString()
 
     // ── Conflict check ──
     const { data: conflicts } = await supabase
@@ -213,10 +217,10 @@ export async function updateAppointment(id: string, data: AppointmentFormValues)
       }
     }
 
-    const startAt = combineDatetime(validated.start_date, validated.start_time)
-    const endDate = new Date(startAt)
-    endDate.setMinutes(endDate.getMinutes() + validated.duration_minutes)
-    const endAt = endDate.toISOString()
+    const startAtDate = buildSaoPauloDateTime(validated.start_date, validated.start_time)
+    const endAtDate = addMinutes(startAtDate, validated.duration_minutes)
+    const startAt = startAtDate.toISOString()
+    const endAt = endAtDate.toISOString()
 
     // Conflict check (exclude self)
     const { data: conflicts } = await supabase
@@ -519,8 +523,10 @@ export async function createBlock(data: BlockFormValues) {
       }
     }
 
-    const startAt = combineDatetime(validated.start_date, validated.start_time)
-    const endAt = combineDatetime(validated.end_date, validated.end_time)
+    const startAtDate = buildSaoPauloDateTime(validated.start_date, validated.start_time)
+    const endAtDate = buildSaoPauloDateTime(validated.end_date, validated.end_time)
+    const startAt = startAtDate.toISOString()
+    const endAt = endAtDate.toISOString()
 
     const { data: block, error } = await supabase
       .from('appointment_blocks')
@@ -868,11 +874,11 @@ export async function createRecurringAppointments(
       const dateStr = targetDate.toISOString().split('T')[0]
 
       // Build start/end times for validation
-      const startAt = combineDatetime(dateStr, baseData.start_time)
+      const startAtDate = buildSaoPauloDateTime(dateStr, baseData.start_time)
+      const startAt = startAtDate.toISOString()
       const duration = baseData.duration_minutes || 30
-      const endDate = new Date(startAt)
-      endDate.setMinutes(endDate.getMinutes() + duration)
-      const endAt = endDate.toISOString()
+      const endAtDate = addMinutes(startAtDate, duration)
+      const endAt = endAtDate.toISOString()
 
       // Check working hours for target weekday
       const weekday = targetDate.getDay()
@@ -1192,10 +1198,10 @@ export async function createCustomerAppointment(data: CustomerAppointmentInput) 
     }
 
     // 5. Calculate Times
-    const startAt = combineDatetime(data.date, data.startTime)
-    const endDate = new Date(startAt)
-    endDate.setMinutes(endDate.getMinutes() + service.duration_minutes)
-    const endAt = endDate.toISOString()
+    const startAtDate = buildSaoPauloDateTime(data.date, data.startTime)
+    const endAtDate = addMinutes(startAtDate, service.duration_minutes)
+    const startAt = startAtDate.toISOString()
+    const endAt = endAtDate.toISOString()
 
     // Prevent past dates
     if (new Date(startAt) < new Date()) {
@@ -1212,10 +1218,8 @@ export async function createCustomerAppointment(data: CustomerAppointmentInput) 
       .gt('end_at', startAt)
 
     if (conflicts && conflicts.length > 0) {
-      const { data: settings } = await adminDb.from('agenda_settings').select('allow_overbooking').limit(1).single()
-      if (!settings?.allow_overbooking) {
-        return { success: false, error: "Infelizmente este horário não está mais disponível. Por favor, escolha outro." }
-      }
+      // For customer app, NEVER allow overbooking, regardless of settings.
+      return { success: false, error: "Este horário acabou de ser ocupado. Escolha outro horário." }
     }
 
     // 7. Block Check

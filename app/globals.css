@@ -1517,4 +1517,173 @@
   .user-badge.admin { background: var(--accent-subtle); color: var(--accent); border: 1px solid var(--accent-border); }
   .user-badge.professional { background: var(--info-bg); color: var(--info); border: 1px solid rgba(59,130,246,0.2); }
   .user-badge.owner { background: var(--success-bg); color: var(--success); border: 1px solid rgba(16,185,129,0.2); }
+
+  /* ============================================================
+     PREMIUM CLIENT MICROINTERACTIONS
+     ============================================================ */
+
+  /* ── Button Press — tactile feedback on all CTAs ── */
+  .btn-press {
+    transition: transform 140ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 200ms ease;
+  }
+  .btn-press:active {
+    transform: scale(0.97);
+  }
+
+  /* ── Premium CTA — primary action buttons with glow ── */
+  .premium-cta {
+    position: relative;
+    overflow: hidden;
+    transition: transform 140ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 200ms ease, background-color 200ms ease;
+  }
+  .premium-cta:hover {
+    box-shadow: 0 0 20px rgba(var(--primary-rgb, 128, 128, 128), 0.15), 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+  .premium-cta:active {
+    transform: scale(0.97);
+  }
+  .premium-cta:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    box-shadow: none;
+    transform: none;
+  }
+  .premium-cta::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, transparent 50%);
+    opacity: 0;
+    transition: opacity 200ms ease;
+    pointer-events: none;
+  }
+  .premium-cta:hover::after {
+    opacity: 1;
+  }
+
+  /* ── Premium Card — elevating hover for interactive cards ── */
+  .premium-card {
+    transition: transform 200ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 200ms ease, border-color 200ms ease;
+  }
+  .premium-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(0, 0, 0, 0.04);
+  }
+  .dark .premium-card:hover {
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3), 0 2px 8px rgba(0, 0, 0, 0.15);
+  }
+  .premium-card:active {
+    transform: translateY(0) scale(0.98);
+    transition-duration: 100ms;
+  }
+
+  /* ── Slot Tap — time slot button feedback ── */
+  .slot-tap {
+    transition: transform 100ms cubic-bezier(0.22, 1, 0.36, 1), background-color 150ms ease, border-color 150ms ease, box-shadow 150ms ease;
+  }
+  .slot-tap:hover {
+    box-shadow: 0 0 0 2px rgba(var(--primary-rgb, 128, 128, 128), 0.15);
+  }
+  .slot-tap:active {
+    transform: scale(0.95);
+  }
+
+  /* ── Soft Glow — subtle radial glow on hover ── */
+  .soft-glow {
+    position: relative;
+  }
+  .soft-glow::before {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    background: radial-gradient(ellipse at center, rgba(var(--primary-rgb, 128, 128, 128), 0.08) 0%, transparent 70%);
+    opacity: 0;
+    transition: opacity 250ms ease;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .soft-glow:hover::before {
+    opacity: 1;
+  }
+
+  /* ── Selected Ring — clear selection state ── */
+  .selected-ring {
+    box-shadow: 0 0 0 2px hsl(var(--primary)), 0 4px 12px rgba(var(--primary-rgb, 128, 128, 128), 0.2);
+  }
+
+  /* ── Fade Up — premium entrance animation ── */
+  @keyframes fadeUp {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  .fade-up {
+    animation: fadeUp 400ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  .fade-up-fast {
+    animation: fadeUp 250ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  /* ── Stagger Children — sequential entrance ── */
+  .stagger > :nth-child(1) { animation-delay: 0ms; }
+  .stagger > :nth-child(2) { animation-delay: 50ms; }
+  .stagger > :nth-child(3) { animation-delay: 100ms; }
+  .stagger > :nth-child(4) { animation-delay: 150ms; }
+  .stagger > :nth-child(5) { animation-delay: 200ms; }
+
+  /* ── Shimmer Skeleton — premium loading ── */
+  @keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
+  .skeleton-shimmer {
+    background: linear-gradient(90deg, hsl(var(--accent)) 25%, hsl(var(--muted)) 50%, hsl(var(--accent)) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s ease-in-out infinite;
+  }
+
+  /* ── Success Pulse — confirmation feedback ── */
+  @keyframes successPulse {
+    0% { transform: scale(0.8); opacity: 0; }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); opacity: 1; }
+  }
+  .success-entrance {
+    animation: successPulse 350ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  /* ── Icon Nudge — micro icon movement on hover ── */
+  .icon-nudge {
+    transition: transform 200ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .group:hover .icon-nudge {
+    transform: translateX(3px);
+  }
+
+  /* ── Prefers Reduced Motion — respect accessibility ── */
+  @media (prefers-reduced-motion: reduce) {
+    .fade-up,
+    .fade-up-fast,
+    .success-entrance {
+      animation: none !important;
+      opacity: 1 !important;
+      transform: none !important;
+    }
+    .premium-card,
+    .premium-cta,
+    .btn-press,
+    .slot-tap,
+    .icon-nudge {
+      transition-duration: 0.01ms !important;
+    }
+    .skeleton-shimmer {
+      animation: none !important;
+    }
+  }
 }

@@ -24,6 +24,7 @@ function ConfirmacaoContent() {
   const [isLoading, setIsLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isRetrying, setIsRetrying] = useState(false)
+  const [isSuccess, setIsSuccess] = useState(false)
   const [service, setService] = useState<{ name: string; price: number; durationMinutes: number } | null>(null)
   const [professional, setProfessional] = useState<{ displayName: string } | null>(null)
   const [customerInfo, setCustomerInfo] = useState<{ name: string; phone: string } | null>(null)
@@ -166,19 +167,22 @@ function ConfirmacaoContent() {
       if (!res.success) {
         toast.error(res.error)
       } else {
+        setIsSuccess(true)
         toast.success("Agendamento confirmado!")
-        router.push('/cliente/meus-agendamentos')
+        setTimeout(() => {
+          router.push('/cliente/meus-agendamentos')
+        }, 1800)
       }
     } finally {
-      setIsSubmitting(false)
+      if (!isSuccess) setIsSubmitting(false)
     }
   }
 
   if (missingParams) {
     return (
-      <div className="flex flex-col h-full space-y-6 pt-4 pb-12 animate-in fade-in px-4">
+      <div className="flex flex-col h-full space-y-6 pt-4 pb-12 fade-up px-4">
         <div className="flex items-center gap-3">
-          <Link href="/cliente/agendar" className="p-2 -ml-2 rounded-full hover:bg-accent text-muted-foreground transition-colors">
+          <Link href="/cliente/agendar" className="p-2 -ml-2 rounded-full hover:bg-accent text-muted-foreground transition-colors btn-press">
             <ArrowLeft className="w-5 h-5" />
           </Link>
           <h1 className="text-xl font-bold text-foreground">Dados incompletos</h1>
@@ -186,7 +190,7 @@ function ConfirmacaoContent() {
         <div className="flex flex-col items-center gap-4 py-12">
           <AlertCircle className="w-12 h-12 text-muted-foreground/60" />
           <p className="text-muted-foreground text-center">Serviço, profissional, data ou horário não selecionados.</p>
-          <Link href="/cliente/agendar" className="inline-flex px-5 py-2.5 rounded-xl bg-secondary text-secondary-foreground text-sm font-medium hover:bg-secondary/80 transition-colors">
+          <Link href="/cliente/agendar" className="inline-flex px-5 py-2.5 rounded-xl bg-secondary text-secondary-foreground text-sm font-medium hover:bg-secondary/80 transition-colors btn-press">
             Voltar e escolher um serviço
           </Link>
         </div>
@@ -198,6 +202,29 @@ function ConfirmacaoContent() {
     return (
       <div className="flex items-center justify-center h-full min-h-[50vh]">
         <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+      </div>
+    )
+  }
+
+  // ── Success State ──
+  if (isSuccess) {
+    const dateFormatted = date ? format(parseISO(date), "dd 'de' MMMM", { locale: ptBR }) : ''
+    return (
+      <div className="flex flex-col items-center justify-center h-full min-h-[50vh] px-4 gap-6 fade-up">
+        <div className="success-entrance">
+          <div className="w-20 h-20 rounded-full bg-green-500/10 border-2 border-green-500/30 flex items-center justify-center">
+            <CheckCircle2 className="w-10 h-10 text-green-500" />
+          </div>
+        </div>
+        <div className="text-center space-y-2">
+          <h2 className="text-xl font-bold text-foreground">Agendamento Confirmado!</h2>
+          <p className="text-sm text-muted-foreground max-w-xs">
+            {service?.name} com {professional?.displayName} — {dateFormatted} às {time}
+          </p>
+        </div>
+        <div className="p-4 rounded-2xl border border-green-500/20 bg-green-500/5 w-full max-w-sm fade-up-fast" style={{ animationDelay: '200ms' }}>
+          <p className="text-xs text-muted-foreground text-center">Redirecionando para seus agendamentos...</p>
+        </div>
       </div>
     )
   }
@@ -240,11 +267,11 @@ function ConfirmacaoContent() {
   const syncErrorDisplay = getSyncErrorDisplay()
 
   return (
-    <div className="flex flex-col h-full space-y-6 pt-4 pb-12 animate-in fade-in px-4">
+    <div className="flex flex-col h-full space-y-6 pt-4 pb-12 fade-up px-4">
       <div className="flex items-center gap-3">
         <Link 
           href={`/cliente/agendar/data-hora?serviceId=${serviceId}&professionalId=${professionalId}`} 
-          className="p-2 -ml-2 rounded-full hover:bg-accent text-muted-foreground transition-colors"
+          className="p-2 -ml-2 rounded-full hover:bg-accent text-muted-foreground transition-colors btn-press"
         >
           <ArrowLeft className="w-5 h-5" />
         </Link>
@@ -253,18 +280,18 @@ function ConfirmacaoContent() {
 
       {/* Internal user warning */}
       {isInternalUser && !customerReady && (
-        <div className="p-4 rounded-2xl border border-amber-800/40 bg-amber-900/10 text-amber-300 text-sm flex items-start gap-3">
+        <div className="p-4 rounded-2xl border border-amber-800/40 bg-amber-900/10 text-amber-300 text-sm flex items-start gap-3 fade-up-fast">
           <ShieldAlert className="w-5 h-5 shrink-0 mt-0.5" />
           <div className="space-y-2">
             <p className="font-medium">Conta do sistema interno</p>
             <p className="text-amber-400/80">Esta conta pertence ao ERP. Para agendar como cliente, saia e entre com uma conta de cliente.</p>
             <div className="flex gap-2 pt-1">
               {canAccessERP && erpRedirectPath && (
-                <Link href={erpRedirectPath} className="text-xs px-3 py-1.5 rounded-lg bg-amber-800/30 hover:bg-amber-800/50 transition-colors">
+                <Link href={erpRedirectPath} className="text-xs px-3 py-1.5 rounded-lg bg-amber-800/30 hover:bg-amber-800/50 transition-colors btn-press">
                   Voltar ao ERP
                 </Link>
               )}
-              <button onClick={handleLogout} className="text-xs px-3 py-1.5 rounded-lg bg-secondary/50 hover:bg-secondary transition-colors">
+              <button onClick={handleLogout} className="text-xs px-3 py-1.5 rounded-lg bg-secondary/50 hover:bg-secondary transition-colors btn-press">
                 Sair da conta
               </button>
             </div>
@@ -274,7 +301,7 @@ function ConfirmacaoContent() {
 
       {/* Customer sync error — specific messages based on code */}
       {syncErrorDisplay && !isInternalUser && (
-        <div className="p-4 rounded-2xl border border-red-800/50 bg-red-900/20 text-red-300 text-sm flex items-start gap-3">
+        <div className="p-4 rounded-2xl border border-red-800/50 bg-red-900/20 text-red-300 text-sm flex items-start gap-3 fade-up-fast">
           <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
           <div className="space-y-2">
             <p className="font-medium">{syncErrorDisplay.title}</p>
@@ -287,7 +314,7 @@ function ConfirmacaoContent() {
                 <button
                   onClick={handleRetrySync}
                   disabled={isRetrying}
-                  className="text-xs px-3 py-1.5 rounded-lg bg-red-800/30 hover:bg-red-800/50 transition-colors flex items-center gap-1 disabled:opacity-50"
+                  className="text-xs px-3 py-1.5 rounded-lg bg-red-800/30 hover:bg-red-800/50 transition-colors flex items-center gap-1 disabled:opacity-50 btn-press"
                 >
                   {isRetrying ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
                   Tentar novamente
@@ -295,7 +322,7 @@ function ConfirmacaoContent() {
               )}
               <button
                 onClick={handleLogout}
-                className="text-xs px-3 py-1.5 rounded-lg bg-secondary/50 hover:bg-secondary transition-colors flex items-center gap-1"
+                className="text-xs px-3 py-1.5 rounded-lg bg-secondary/50 hover:bg-secondary transition-colors flex items-center gap-1 btn-press"
               >
                 <LogOut className="w-3 h-3" /> Sair e entrar novamente
               </button>
@@ -304,10 +331,10 @@ function ConfirmacaoContent() {
         </div>
       )}
 
-      <div className="p-6 rounded-2xl border border-border bg-card/50 space-y-6">
+      <div className="p-6 rounded-2xl border border-border bg-card/50 space-y-6 shadow-sm">
         
         {/* Service */}
-        <div>
+        <div className="fade-up-fast">
           <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Serviço</h3>
           <p className="text-lg font-semibold text-foreground">{service?.name || 'Carregando...'}</p>
           <p className="text-sm text-muted-foreground mt-1">
@@ -316,7 +343,7 @@ function ConfirmacaoContent() {
         </div>
 
         {/* Professional */}
-        <div>
+        <div className="fade-up-fast" style={{ animationDelay: '50ms' }}>
           <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Profissional</h3>
           <div className="flex items-center gap-2">
             <Scissors className="w-4 h-4 text-muted-foreground" />
@@ -325,14 +352,14 @@ function ConfirmacaoContent() {
         </div>
 
         {/* Date & Time */}
-        <div>
+        <div className="fade-up-fast" style={{ animationDelay: '100ms' }}>
           <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Data e Hora</h3>
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2 text-foreground">
               <CalendarIcon className="w-4 h-4 text-muted-foreground" />
               <span className="capitalize">{dateFormatted}</span>
             </div>
-            <div className="flex items-center gap-2 text-foreground">
+            <div className="flex items-center gap-2 text-foreground font-medium">
               <Clock className="w-4 h-4 text-muted-foreground" />
               <span>{time}</span>
             </div>
@@ -341,7 +368,7 @@ function ConfirmacaoContent() {
 
         {/* Customer */}
         {customerInfo && (
-          <div>
+          <div className="fade-up-fast" style={{ animationDelay: '150ms' }}>
             <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Cliente</h3>
             <div className="space-y-1.5">
               <div className="flex items-center gap-2 text-foreground">
@@ -359,7 +386,7 @@ function ConfirmacaoContent() {
         )}
 
         {/* Notes */}
-        <div>
+        <div className="fade-up-fast" style={{ animationDelay: '200ms' }}>
           <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">
             <MessageSquare className="w-3.5 h-3.5" />
             Observação (opcional)
@@ -370,17 +397,17 @@ function ConfirmacaoContent() {
             placeholder="Alguma observação para o profissional..."
             maxLength={200}
             rows={2}
-            className="w-full bg-background border border-input rounded-xl px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring resize-none"
+            className="w-full bg-background border border-input rounded-xl px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/50 focus:border-ring resize-none transition-all duration-200"
           />
         </div>
 
       </div>
 
-      <div className="pt-6">
+      <div className="pt-4 fade-up-fast" style={{ animationDelay: '250ms' }}>
         <button
           onClick={handleConfirm}
           disabled={isSubmitting || !customerReady}
-          className="w-full flex items-center justify-center gap-2 h-14 rounded-2xl bg-primary text-primary-foreground font-semibold hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="w-full flex items-center justify-center gap-2 h-14 rounded-2xl bg-primary text-primary-foreground font-semibold premium-cta hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
         >
           {isSubmitting ? (
             <Loader2 className="w-5 h-5 animate-spin" />
