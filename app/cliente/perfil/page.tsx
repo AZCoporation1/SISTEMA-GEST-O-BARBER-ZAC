@@ -139,7 +139,7 @@ export default function PerfilPage() {
   if (authLoading || isLoading) {
     return (
       <div className="flex items-center justify-center h-full min-h-[50vh]">
-        <Loader2 className="w-8 h-8 animate-spin text-zinc-500" />
+        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
       </div>
     )
   }
