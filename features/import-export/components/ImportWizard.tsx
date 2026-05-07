@@ -91,7 +91,7 @@ export function ImportWizard() {
             />
             <Button 
                variant={file ? "secondary" : "default"} 
-               className={!file ? "btn-gold text-black" : ""}
+               className={!file ? "bg-[var(--accent)] text-background font-semibold" : ""}
                asChild
             >
               <label htmlFor="spreadsheet-upload" className="cursor-pointer">
@@ -100,7 +100,7 @@ export function ImportWizard() {
             </Button>
             
             {file && (
-              <Button onClick={handleParse} disabled={isParsing} className="btn-gold text-black">
+              <Button onClick={handleParse} disabled={isParsing} className="bg-[var(--accent)] text-background font-semibold">
                 {isParsing ? "Lendo..." : "Processar Arquivo"}
               </Button>
             )}
@@ -188,7 +188,7 @@ export function ImportWizard() {
             </div>
             <div className="flex items-center gap-3">
               <Button variant="outline" onClick={() => setParsedData(null)} disabled={isImporting}>Cancelar</Button>
-              <Button onClick={handleImport} disabled={isImporting || parsedData.validRows.length === 0} className="btn-gold text-black">
+              <Button onClick={handleImport} disabled={isImporting || parsedData.validRows.length === 0} className="bg-[var(--accent)] text-background font-semibold">
                 {isImporting ? "Gravando no Banco..." : "Confirmar e Importar"}
               </Button>
             </div>

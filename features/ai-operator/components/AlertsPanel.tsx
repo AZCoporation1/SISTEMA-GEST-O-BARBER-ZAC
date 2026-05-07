@@ -12,7 +12,7 @@ const ANOMALY_MAP = {
   negative_stock: { label: "Saldo Negativo", color: "bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-400", icon: PackageX },
   zero_stock: { label: "Estoque Zerado", color: "bg-orange-100 text-orange-800 dark:bg-orange-950 dark:text-orange-400", icon: AlertCircle },
   critical_stock: { label: "Estoque Crítico (Abaixo do Mín)", color: "bg-yellow-100 text-yellow-800 dark:bg-yellow-950 dark:text-yellow-400", icon: TrendingDown },
-  missing_cost: { label: "Sem Custo Definido", color: "bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-400", icon: DollarSign },
+  missing_cost: { label: "Sem Custo Definido", color: "bg-muted text-muted-foreground", icon: DollarSign },
   attention_stock: { label: "Atenção", color: "bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-400", icon: AlertCircle },
 }
 

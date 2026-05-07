@@ -392,7 +392,7 @@ export function PerfumeSalesDashboard() {
           <TabsTrigger value="devedores" className="gap-1.5 relative">
             <CreditCard size={13} /> Devedores / Parcelas
             {overdueCount > 0 && (
-              <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-500 text-white text-[9px] flex items-center justify-center font-bold">
+              <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-destructive text-destructive-foreground text-[9px] flex items-center justify-center font-bold">
                 {overdueCount}
               </span>
             )}
@@ -403,7 +403,7 @@ export function PerfumeSalesDashboard() {
         <TabsContent value="vendas" className="space-y-4">
           <div className="flex gap-2 items-center flex-wrap">
             <div className="relative flex-1 min-w-[200px]">
-              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
               <Input
                 placeholder="Buscar perfume ou cliente..."
                 className="pl-9"

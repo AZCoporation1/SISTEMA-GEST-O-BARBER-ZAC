@@ -76,7 +76,7 @@ export function AuditDashboard() {
       <div className="page-header items-start sm:items-center">
         <div>
           <h1 className="page-title flex items-center gap-2">
-            <ShieldCheck className="h-6 w-6 text-[#c9a84c]" />
+            <ShieldCheck className="h-6 w-6 text-[var(--accent)]" />
             Auditoria & Logs
           </h1>
           <p className="page-subtitle">Rastreamento de ponta a ponta de todas as ações e mutações no sistema.</p>
@@ -90,7 +90,7 @@ export function AuditDashboard() {
       <div className="section-card">
         {isLoading ? (
           <div className="p-8 text-center text-muted-foreground flex flex-col items-center justify-center gap-2">
-            <div className="w-6 h-6 border-2 border-[#c9a84c] border-t-transparent rounded-full animate-spin" />
+            <div className="w-6 h-6 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin" />
             <p>Carregando histórico restrito...</p>
           </div>
         ) : !logs || logs.length === 0 ? (

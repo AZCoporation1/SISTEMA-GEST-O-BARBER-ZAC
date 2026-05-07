@@ -82,7 +82,7 @@ export function ExportDialog({ data, filename, title, buttonText = "Exportar" }:
 
           <Button 
             variant="outline" 
-            className="h-24 flex flex-col gap-2 hover:bg-zinc-100 hover:text-zinc-900"
+            className="h-24 flex flex-col gap-2 hover:bg-muted hover:text-foreground"
             onClick={() => handleExport('csv')}
             disabled={isExporting || data.length === 0}
           >
