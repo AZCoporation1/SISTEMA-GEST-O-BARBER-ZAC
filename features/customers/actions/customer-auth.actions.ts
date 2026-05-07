@@ -250,19 +250,24 @@ export async function getCustomerProfile() {
 
     // ── Customer exists (created or found) — show profile ──
     const adminClient = getAdminClient()
-    const { data: customer } = await adminClient
-      .from("customers")
-      .select("id, full_name, email, phone, mobile_phone, avatar_url, loyalty_points, notes, created_at")
-      .eq("id", customerId)
-      .single() as { data: any }
 
-    // Count upcoming appointments
-    const { count } = await adminClient
-      .from("appointments")
-      .select("id", { count: "exact", head: true })
-      .eq("customer_id", customerId)
-      .gte("start_at", new Date().toISOString())
-      .not("status", "in", '("cancelled","no_show")')
+    // Parallel: customer data + upcoming count are independent reads
+    const [customerResult, countResult] = await Promise.all([
+      adminClient
+        .from("customers")
+        .select("id, full_name, email, phone, mobile_phone, avatar_url, loyalty_points, notes, created_at")
+        .eq("id", customerId)
+        .single(),
+      adminClient
+        .from("appointments")
+        .select("id", { count: "exact", head: true })
+        .eq("customer_id", customerId)
+        .gte("start_at", new Date().toISOString())
+        .not("status", "in", '("cancelled","no_show")'),
+    ])
+
+    const customer = customerResult.data as any
+    const count = countResult.count
 
     return {
       success: true,
@@ -466,7 +471,8 @@ export async function getCustomerAppointments() {
         collaborators (name)
       `)
       .eq('customer_id', customerId)
-      .order('start_at', { ascending: false }) as { data: any[] | null }
+      .order('start_at', { ascending: false })
+      .limit(50) as { data: any[] | null }
 
     return {
       success: true,

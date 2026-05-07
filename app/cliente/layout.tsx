@@ -17,17 +17,17 @@ export default function ClienteLayout({
   children: React.ReactNode
 }) {
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-zinc-100 font-sans antialiased selection:bg-zinc-800 selection:text-zinc-100 flex flex-col">
+    <div className="min-h-screen bg-background text-foreground font-sans antialiased selection:bg-primary/30 selection:text-primary flex flex-col">
       <AuthProvider>
-        <header className="sticky top-0 z-50 w-full border-b border-zinc-800/40 bg-[#0a0a0a]/85 backdrop-blur-xl">
+        <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/85 backdrop-blur-xl">
           <div className="flex h-14 items-center justify-between px-4 md:px-6 max-w-lg mx-auto">
-            <Link href="/cliente" className="flex items-center gap-2.5 font-semibold text-zinc-100 hover:opacity-90 transition-opacity">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-zinc-700/80 to-zinc-900 border border-zinc-700/50 flex items-center justify-center shadow-md">
-                <Scissors className="w-4 h-4 text-zinc-300" />
+            <Link href="/cliente" className="flex items-center gap-2.5 font-semibold text-foreground hover:opacity-90 transition-opacity">
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-secondary/80 to-secondary border border-border/50 flex items-center justify-center shadow-md">
+                <Scissors className="w-4 h-4 text-muted-foreground" />
               </div>
               <div className="flex flex-col">
                 <span className="text-sm font-bold leading-tight tracking-tight">Barber Zac</span>
-                <span className="text-[10px] text-zinc-500 font-normal leading-tight -mt-0.5">Instituto</span>
+                <span className="text-[10px] text-muted-foreground font-normal leading-tight -mt-0.5">Instituto</span>
               </div>
             </Link>
             <CustomerProfileMenu />

@@ -13,6 +13,31 @@ interface GetAvailableSlotsParams {
   date: string // YYYY-MM-DD
 }
 
+// ── In-memory cache for rarely-changing data ──
+// These caches are per-serverless-instance and reset on redeploy
+const CACHE_TTL_MS = 120_000 // 2 minutes
+
+interface CacheEntry<T> {
+  data: T
+  timestamp: number
+}
+
+const serviceCache = new Map<string, CacheEntry<any>>()
+const settingsCache: { entry: CacheEntry<any> | null } = { entry: null }
+const workingHoursCache = new Map<string, CacheEntry<any>>()
+
+function getCached<T>(cache: Map<string, CacheEntry<T>>, key: string): T | null {
+  const entry = cache.get(key)
+  if (entry && Date.now() - entry.timestamp < CACHE_TTL_MS) {
+    return entry.data
+  }
+  return null
+}
+
+function setCache<T>(cache: Map<string, CacheEntry<T>>, key: string, data: T) {
+  cache.set(key, { data, timestamp: Date.now() })
+}
+
 export async function getCustomerAvailableSlots({
   serviceId,
   professionalId,
@@ -25,14 +50,76 @@ export async function getCustomerAvailableSlots({
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     )
 
-    // 1. Fetch Service Duration
-    const { data: service, error: svcErr } = await (supabase
-      .from("services") as any)
-      .select("duration_minutes, is_active, is_bookable")
-      .eq("id", serviceId)
-      .single() as { data: any, error: any }
+    // ── Ensure date is not in the past ──
+    const currentDate = new Date()
+    const todayStr = currentDate.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' }) // yyyy-mm-dd
+    if (date < todayStr) {
+      return { success: true, data: [] }
+    }
 
-    if (svcErr || !service) {
+    const targetDate = new Date(`${date}T00:00:00-03:00`)
+    const weekday = targetDate.getDay() // 0 = Sunday, 1 = Monday, etc.
+    const whCacheKey = `${professionalId}:${weekday}`
+
+    // ── Batch 1: Cached data (service, settings, working hours) ──
+    // Check caches first, only fetch what's missing
+    let service = getCached(serviceCache, serviceId)
+    let settings = settingsCache.entry && Date.now() - settingsCache.entry.timestamp < CACHE_TTL_MS
+      ? settingsCache.entry.data : null
+    let workingHour = getCached(workingHoursCache, whCacheKey)
+
+    // Fetch only uncached items in parallel
+    const fetchPromises: Promise<void>[] = []
+
+    if (!service) {
+      fetchPromises.push(
+        (supabase.from("services") as any)
+          .select("duration_minutes, is_active, is_bookable")
+          .eq("id", serviceId)
+          .single()
+          .then(({ data, error }: any) => {
+            if (!error && data) {
+              service = data
+              setCache(serviceCache, serviceId, data)
+            }
+          })
+      )
+    }
+
+    if (!settings) {
+      fetchPromises.push(
+        (supabase.from("agenda_settings") as any)
+          .select("*")
+          .limit(1)
+          .single()
+          .then(({ data }: any) => {
+            settings = data
+            settingsCache.entry = { data, timestamp: Date.now() }
+          })
+      )
+    }
+
+    if (!workingHour) {
+      fetchPromises.push(
+        (supabase.from("professional_working_hours") as any)
+          .select("*")
+          .eq("professional_id", professionalId)
+          .eq("weekday", weekday)
+          .eq("is_active", true)
+          .single()
+          .then(({ data }: any) => {
+            workingHour = data
+            if (data) setCache(workingHoursCache, whCacheKey, data)
+          })
+      )
+    }
+
+    if (fetchPromises.length > 0) {
+      await Promise.all(fetchPromises)
+    }
+
+    // ── Validate service ──
+    if (!service) {
       return { success: false, error: "Serviço não encontrado." }
     }
     if (!service.is_active || !service.is_bookable) {
@@ -44,57 +131,39 @@ export async function getCustomerAvailableSlots({
 
     const duration = service.duration_minutes
 
-    // 2. Fetch Professional Working Hours for this weekday
-    // Ensure the date is not in the past
-    const currentDate = new Date()
-    const todayStr = currentDate.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' }) // yyyy-mm-dd
-    if (date < todayStr) {
-      return { success: true, data: [] }
-    }
-
-    const targetDate = new Date(`${date}T00:00:00-03:00`)
-    const weekday = targetDate.getDay() // 0 = Sunday, 1 = Monday, etc.
-
-    const { data: workingHour } = await (supabase
-      .from("professional_working_hours") as any)
-      .select("*")
-      .eq("professional_id", professionalId)
-      .eq("weekday", weekday)
-      .eq("is_active", true)
-      .single() as { data: any }
-
     if (!workingHour) {
       // Professional does not work on this day
       return { success: true, data: [] }
     }
 
-    // 3. Fetch Agenda Settings
-    const { data: settings } = await (supabase.from("agenda_settings") as any).select("*").limit(1).single() as { data: any }
     const slotInterval = settings?.slot_interval_minutes || 30
     const allowOverbooking = settings?.allow_overbooking || false
 
-    // 4. Fetch Appointments for the day
+    // ── Batch 2: Real-time data (appointments + blocks) — always fresh ──
     const startOfDay = `${date}T00:00:00-03:00`
     const endOfDay = `${date}T23:59:59-03:00`
 
-    const { data: appointments } = await supabase
-      .from("appointments")
-      .select("start_at, end_at, status")
-      .eq("professional_id", professionalId)
-      .gte("start_at", startOfDay)
-      .lte("start_at", endOfDay)
-      .not("status", "in", '("cancelled","no_show")') as { data: any[] | null }
+    const [appointmentsRes, blocksRes] = await Promise.all([
+      supabase
+        .from("appointments")
+        .select("start_at, end_at, status")
+        .eq("professional_id", professionalId)
+        .gte("start_at", startOfDay)
+        .lte("start_at", endOfDay)
+        .not("status", "in", '("cancelled","no_show")'),
+      supabase
+        .from("appointment_blocks")
+        .select("start_at, end_at")
+        .eq("professional_id", professionalId)
+        .eq("is_active", true)
+        .gte("start_at", startOfDay)
+        .lte("start_at", endOfDay),
+    ])
 
-    // 5. Fetch Blocks for the day
-    const { data: blocks } = await supabase
-      .from("appointment_blocks")
-      .select("start_at, end_at")
-      .eq("professional_id", professionalId)
-      .eq("is_active", true)
-      .gte("start_at", startOfDay)
-      .lte("start_at", endOfDay) as { data: any[] | null }
+    const appointments = appointmentsRes.data as any[] | null
+    const blocks = blocksRes.data as any[] | null
 
-    // 6. Generate Slots
+    // ── Generate Slots ──
     // Parse times
     const [startHour, startMin] = workingHour.start_time.split(":").map(Number)
     const [endHour, endMin] = workingHour.end_time.split(":").map(Number)

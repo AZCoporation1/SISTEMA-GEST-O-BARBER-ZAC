@@ -9,6 +9,7 @@ import { useAuth } from '@/components/auth-provider'
 import { toast } from 'sonner'
 import { format, parseISO } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import { ThemeToggle } from '@/components/theme-toggle'
 
 interface ProfileData {
   id: string
@@ -104,7 +105,14 @@ export default function PerfilPage() {
     if (res.success) {
       toast.success("Perfil atualizado!")
       setIsEditing(false)
-      loadProfile()
+      // Optimistic local state update — avoids full refetch (4+ queries)
+      if (profile) {
+        setProfile({
+          ...profile,
+          fullName: editName.trim(),
+          phone: editPhone.replace(/\D/g, ''),
+        })
+      }
     } else {
       toast.error(res.error || "Erro ao atualizar.")
     }
@@ -141,18 +149,18 @@ export default function PerfilPage() {
     return (
       <div className="flex flex-col h-full space-y-6 pt-4 pb-12 animate-in fade-in px-4">
         <div className="flex items-center gap-3">
-          <Link href="/cliente" className="p-2 -ml-2 rounded-full hover:bg-zinc-800/50 text-zinc-400 transition-colors">
+          <Link href="/cliente" className="p-2 -ml-2 rounded-full hover:bg-accent text-muted-foreground transition-colors">
             <ArrowLeft className="w-5 h-5" />
           </Link>
-          <h1 className="text-xl font-bold text-white">Meu Perfil</h1>
+          <h1 className="text-xl font-bold text-foreground">Meu Perfil</h1>
         </div>
         <div className="flex flex-col items-center gap-4 py-12">
-          <div className="w-16 h-16 rounded-full bg-amber-900/20 border border-amber-800/30 flex items-center justify-center">
+          <div className="w-16 h-16 rounded-full bg-amber-500/10 border border-amber-500/20 flex items-center justify-center">
             <ShieldAlert className="w-8 h-8 text-amber-500" />
           </div>
           <div className="text-center space-y-2">
-            <h2 className="text-lg font-semibold text-zinc-200">Conta do sistema interno</h2>
-            <p className="text-sm text-zinc-400 max-w-xs">
+            <h2 className="text-lg font-semibold text-foreground">Conta do sistema interno</h2>
+            <p className="text-sm text-muted-foreground max-w-xs">
               Esta conta pertence ao ERP. Para usar a área do cliente, entre com uma conta de cliente ou crie um perfil de cliente.
             </p>
           </div>
@@ -161,7 +169,7 @@ export default function PerfilPage() {
             {canAccessERP && erpRedirectPath && (
               <Link
                 href={erpRedirectPath}
-                className="flex items-center justify-center gap-2 h-12 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 font-medium transition-colors border border-zinc-700"
+                className="flex items-center justify-center gap-2 h-12 rounded-xl bg-secondary hover:bg-secondary/80 text-secondary-foreground font-medium transition-colors border border-border"
               >
                 Voltar ao ERP
               </Link>
@@ -170,7 +178,7 @@ export default function PerfilPage() {
             <button
               onClick={handleCreateCustomerProfile}
               disabled={isCreatingCustomer}
-              className="flex items-center justify-center gap-2 h-12 rounded-xl bg-zinc-100 hover:bg-white text-zinc-900 font-semibold transition-colors disabled:opacity-50"
+              className="flex items-center justify-center gap-2 h-12 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-semibold transition-colors disabled:opacity-50"
             >
               {isCreatingCustomer ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
@@ -181,7 +189,7 @@ export default function PerfilPage() {
             </button>
             <button
               onClick={handleLogout}
-              className="flex items-center justify-center gap-2 h-12 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-400 font-medium transition-colors border border-zinc-800"
+              className="flex items-center justify-center gap-2 h-12 rounded-xl bg-card hover:bg-accent text-muted-foreground hover:text-foreground font-medium transition-colors border border-border"
             >
               <LogOut className="w-4 h-4" />
               Sair e entrar como cliente
@@ -197,15 +205,15 @@ export default function PerfilPage() {
     return (
       <div className="flex flex-col h-full space-y-6 pt-4 pb-12 animate-in fade-in px-4">
         <div className="flex items-center gap-3">
-          <Link href="/cliente" className="p-2 -ml-2 rounded-full hover:bg-zinc-800/50 text-zinc-400 transition-colors">
+          <Link href="/cliente" className="p-2 -ml-2 rounded-full hover:bg-accent text-muted-foreground transition-colors">
             <ArrowLeft className="w-5 h-5" />
           </Link>
-          <h1 className="text-xl font-bold text-white">Meu Perfil</h1>
+          <h1 className="text-xl font-bold text-foreground">Meu Perfil</h1>
         </div>
         <div className="flex flex-col items-center gap-4 py-12">
-          <p className="text-sm text-zinc-400">{error || "Perfil não encontrado."}</p>
-          <button onClick={loadProfile} className="text-sm text-zinc-300 underline underline-offset-4">Tentar novamente</button>
-          <button onClick={handleLogout} className="text-sm text-red-400 underline underline-offset-4">Sair da conta</button>
+          <p className="text-sm text-muted-foreground">{error || "Perfil não encontrado."}</p>
+          <button onClick={loadProfile} className="text-sm text-foreground underline underline-offset-4">Tentar novamente</button>
+          <button onClick={handleLogout} className="text-sm text-destructive underline underline-offset-4">Sair da conta</button>
         </div>
       </div>
     )
@@ -222,19 +230,22 @@ export default function PerfilPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Link href="/cliente" className="p-2 -ml-2 rounded-full hover:bg-zinc-800/50 text-zinc-400 transition-colors">
+          <Link href="/cliente" className="p-2 -ml-2 rounded-full hover:bg-accent text-muted-foreground transition-colors">
             <ArrowLeft className="w-5 h-5" />
           </Link>
-          <h1 className="text-xl font-bold text-white">Meu Perfil</h1>
+          <h1 className="text-xl font-bold text-foreground">Meu Perfil</h1>
         </div>
-        {!isEditing && (
-          <button
-            onClick={() => setIsEditing(true)}
-            className="p-2 rounded-full hover:bg-zinc-800/50 text-zinc-400 hover:text-zinc-200 transition-colors"
-          >
-            <Pencil className="w-4 h-4" />
-          </button>
-        )}
+        <div className="flex items-center gap-1">
+          <ThemeToggle />
+          {!isEditing && (
+            <button
+              onClick={() => setIsEditing(true)}
+              className="p-2 rounded-full hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <Pencil className="w-4 h-4" />
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Dual identity banner */}
@@ -250,7 +261,7 @@ export default function PerfilPage() {
       {/* Avatar + Name */}
       <div className="flex flex-col items-center gap-3 py-4">
         <div className="relative">
-          <div className="w-20 h-20 rounded-full bg-gradient-to-br from-zinc-700 to-zinc-800 border-2 border-zinc-700 flex items-center justify-center text-2xl font-bold text-zinc-300 shadow-lg">
+          <div className="w-20 h-20 rounded-full bg-gradient-to-br from-accent/50 to-accent border-2 border-border flex items-center justify-center text-2xl font-bold text-muted-foreground shadow-lg">
             {profile.avatarUrl ? (
               <img src={profile.avatarUrl} alt="Avatar" className="w-full h-full rounded-full object-cover" />
             ) : (
@@ -258,16 +269,16 @@ export default function PerfilPage() {
             )}
           </div>
           <button 
-            className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700 transition-colors"
+            className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-card border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
             onClick={() => toast.info("Upload de foto estará disponível em breve.")}
           >
             <Camera className="w-3.5 h-3.5" />
           </button>
         </div>
         <div className="text-center">
-          <h2 className="text-lg font-semibold text-zinc-200">{profile.fullName}</h2>
+          <h2 className="text-lg font-semibold text-foreground">{profile.fullName}</h2>
           {profile.memberSince && (
-            <p className="text-xs text-zinc-500 mt-0.5">
+            <p className="text-xs text-muted-foreground mt-0.5">
               Cliente desde {format(parseISO(profile.memberSince), "MMM yyyy", { locale: ptBR })}
             </p>
           )}
@@ -276,49 +287,49 @@ export default function PerfilPage() {
 
       {/* Stats */}
       <div className="grid grid-cols-2 gap-3">
-        <div className="p-4 rounded-2xl border border-zinc-800 bg-zinc-900/40 text-center">
-          <Calendar className="w-5 h-5 text-zinc-500 mx-auto mb-1.5" />
-          <p className="text-lg font-bold text-zinc-200">{profile.upcomingAppointments}</p>
-          <p className="text-[11px] text-zinc-500 uppercase tracking-wider">Próximos</p>
+        <div className="p-4 rounded-2xl border border-border bg-card/50 text-center">
+          <Calendar className="w-5 h-5 text-muted-foreground mx-auto mb-1.5" />
+          <p className="text-lg font-bold text-foreground">{profile.upcomingAppointments}</p>
+          <p className="text-[11px] text-muted-foreground uppercase tracking-wider">Próximos</p>
         </div>
-        <div className="p-4 rounded-2xl border border-zinc-800 bg-zinc-900/40 text-center">
+        <div className="p-4 rounded-2xl border border-border bg-card/50 text-center">
           <Award className="w-5 h-5 text-amber-500/60 mx-auto mb-1.5" />
-          <p className="text-lg font-bold text-zinc-200">{profile.loyaltyPoints}</p>
-          <p className="text-[11px] text-zinc-500 uppercase tracking-wider">Pontos</p>
+          <p className="text-lg font-bold text-foreground">{profile.loyaltyPoints}</p>
+          <p className="text-[11px] text-muted-foreground uppercase tracking-wider">Pontos</p>
         </div>
       </div>
 
       {/* Profile details */}
-      <div className="p-5 rounded-2xl border border-zinc-800 bg-zinc-900/40 space-y-5">
+      <div className="p-5 rounded-2xl border border-border bg-card/50 space-y-5">
         {isEditing ? (
           <>
             <div className="space-y-2">
-              <label className="text-xs font-medium text-zinc-500 uppercase tracking-wider">Nome</label>
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Nome</label>
               <input
                 value={editName}
                 onChange={(e) => setEditName(e.target.value)}
-                className="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-3 py-2.5 text-sm text-zinc-200 focus:outline-none focus:ring-1 focus:ring-zinc-600"
+                className="w-full bg-background border border-input rounded-xl px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
               />
             </div>
             <div className="space-y-2">
-              <label className="text-xs font-medium text-zinc-500 uppercase tracking-wider">Telefone</label>
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Telefone</label>
               <input
                 value={editPhone}
                 onChange={(e) => handlePhoneChange(e.target.value)}
-                className="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-3 py-2.5 text-sm text-zinc-200 focus:outline-none focus:ring-1 focus:ring-zinc-600"
+                className="w-full bg-background border border-input rounded-xl px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
                 placeholder="(11) 99999-9999"
               />
             </div>
             <div className="space-y-2">
-              <label className="text-xs font-medium text-zinc-500 uppercase tracking-wider">E-mail</label>
-              <p className="text-sm text-zinc-400 px-1">{profile.email || '—'}</p>
-              <p className="text-[10px] text-zinc-600">E-mail não pode ser editado diretamente.</p>
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">E-mail</label>
+              <p className="text-sm text-muted-foreground px-1">{profile.email || '—'}</p>
+              <p className="text-[10px] text-muted-foreground">E-mail não pode ser editado diretamente.</p>
             </div>
             <div className="flex gap-3 pt-2">
               <button
                 onClick={handleSave}
                 disabled={isSaving}
-                className="flex-1 flex items-center justify-center gap-2 h-11 rounded-xl bg-zinc-100 text-zinc-900 font-semibold hover:bg-white disabled:opacity-50 transition-colors"
+                className="flex-1 flex items-center justify-center gap-2 h-11 rounded-xl bg-primary text-primary-foreground font-semibold hover:bg-primary/90 disabled:opacity-50 transition-colors"
               >
                 {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
                 Salvar
@@ -329,7 +340,7 @@ export default function PerfilPage() {
                   setEditName(profile.fullName)
                   setEditPhone(profile.phone || '')
                 }}
-                className="flex items-center justify-center gap-2 px-4 h-11 rounded-xl bg-zinc-800 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700 transition-colors"
+                className="flex items-center justify-center gap-2 px-4 h-11 rounded-xl bg-secondary text-secondary-foreground hover:bg-secondary/80 transition-colors"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -338,24 +349,24 @@ export default function PerfilPage() {
         ) : (
           <>
             <div className="flex items-start gap-3">
-              <User className="w-4 h-4 text-zinc-500 mt-0.5 shrink-0" />
+              <User className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />
               <div>
-                <p className="text-xs text-zinc-500 uppercase tracking-wider">Nome</p>
-                <p className="text-sm text-zinc-200 mt-0.5">{profile.fullName}</p>
+                <p className="text-xs text-muted-foreground uppercase tracking-wider">Nome</p>
+                <p className="text-sm text-foreground mt-0.5">{profile.fullName}</p>
               </div>
             </div>
             <div className="flex items-start gap-3">
-              <Mail className="w-4 h-4 text-zinc-500 mt-0.5 shrink-0" />
+              <Mail className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />
               <div>
-                <p className="text-xs text-zinc-500 uppercase tracking-wider">E-mail</p>
-                <p className="text-sm text-zinc-200 mt-0.5">{profile.email || '—'}</p>
+                <p className="text-xs text-muted-foreground uppercase tracking-wider">E-mail</p>
+                <p className="text-sm text-foreground mt-0.5">{profile.email || '—'}</p>
               </div>
             </div>
             <div className="flex items-start gap-3">
-              <Phone className="w-4 h-4 text-zinc-500 mt-0.5 shrink-0" />
+              <Phone className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />
               <div>
-                <p className="text-xs text-zinc-500 uppercase tracking-wider">Telefone</p>
-                <p className="text-sm text-zinc-200 mt-0.5">{formatPhone(profile.phone) || '—'}</p>
+                <p className="text-xs text-muted-foreground uppercase tracking-wider">Telefone</p>
+                <p className="text-sm text-foreground mt-0.5">{formatPhone(profile.phone) || '—'}</p>
               </div>
             </div>
           </>
@@ -366,7 +377,7 @@ export default function PerfilPage() {
       <div className="space-y-3 pt-2">
         <Link
           href="/cliente/meus-agendamentos"
-          className="flex items-center justify-center gap-2 w-full h-12 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 font-medium transition-colors border border-zinc-700"
+          className="flex items-center justify-center gap-2 w-full h-12 rounded-xl bg-secondary hover:bg-secondary/80 text-secondary-foreground font-medium transition-colors border border-border"
         >
           <Calendar className="w-4 h-4" />
           Meus Agendamentos
@@ -374,7 +385,7 @@ export default function PerfilPage() {
 
         <button
           onClick={handleLogout}
-          className="flex items-center justify-center gap-2 w-full h-12 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-red-400 font-medium transition-colors border border-zinc-800"
+          className="flex items-center justify-center gap-2 w-full h-12 rounded-xl bg-card hover:bg-accent text-destructive font-medium transition-colors border border-border"
         >
           <LogOut className="w-4 h-4" />
           Sair da conta

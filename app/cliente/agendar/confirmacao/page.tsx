@@ -53,22 +53,28 @@ function ConfirmacaoContent() {
         return
       }
 
-      // Resolve identity centrally (for internal user detection only)
-      const identity = await resolveCustomerAreaIdentity(session.user.id, session.user.email)
+      // ── Run ALL independent fetches in parallel ──
+      // Identity, customer ensure, service data, and professional data
+      // are all independent — run them simultaneously to cut latency
+      const [identity, ensureResult, svcRes, profRes] = await Promise.all([
+        resolveCustomerAreaIdentity(session.user.id, session.user.email),
+        ensureCustomerForAuthUser(session.user.id, {
+          email: session.user.email,
+          fullName: session.user.user_metadata?.full_name || session.user.user_metadata?.name,
+          phone: session.user.user_metadata?.phone,
+        }),
+        getPublicBookingService(serviceId!),
+        getPublicBookingProfessionals(),
+      ])
+
+      // Process identity result
       if (identity.hasUserProfile) {
         setIsInternalUser(true)
         setCanAccessERP(identity.canAccessERP)
         setErpRedirectPath(identity.erpRedirectPath)
       }
 
-      // Ensure customer record exists (calls server action which uses service_role)
-      // This is THE critical call — it creates/links the customer if needed
-      const ensureResult = await ensureCustomerForAuthUser(session.user.id, {
-        email: session.user.email,
-        fullName: session.user.user_metadata?.full_name || session.user.user_metadata?.name,
-        phone: session.user.user_metadata?.phone,
-      })
-
+      // Process customer ensure result
       if (ensureResult.success && ensureResult.customerId) {
         setCustomerReady(true)
         setCustomerInfo({
@@ -82,12 +88,6 @@ function ConfirmacaoContent() {
         setSyncError(ensureResult.error || "Não foi possível vincular seu registro de cliente.")
         setSyncCode(ensureResult.code || null)
       }
-
-      // Fetch service and professional data
-      const [svcRes, profRes] = await Promise.all([
-        getPublicBookingService(serviceId!),
-        getPublicBookingProfessionals(),
-      ])
 
       if (svcRes.success && svcRes.data) {
         setService(svcRes.data)
@@ -178,15 +178,15 @@ function ConfirmacaoContent() {
     return (
       <div className="flex flex-col h-full space-y-6 pt-4 pb-12 animate-in fade-in px-4">
         <div className="flex items-center gap-3">
-          <Link href="/cliente/agendar" className="p-2 -ml-2 rounded-full hover:bg-zinc-800/50 text-zinc-400 transition-colors">
+          <Link href="/cliente/agendar" className="p-2 -ml-2 rounded-full hover:bg-accent text-muted-foreground transition-colors">
             <ArrowLeft className="w-5 h-5" />
           </Link>
-          <h1 className="text-xl font-bold text-white">Dados incompletos</h1>
+          <h1 className="text-xl font-bold text-foreground">Dados incompletos</h1>
         </div>
         <div className="flex flex-col items-center gap-4 py-12">
-          <AlertCircle className="w-12 h-12 text-zinc-600" />
-          <p className="text-zinc-500 text-center">Serviço, profissional, data ou horário não selecionados.</p>
-          <Link href="/cliente/agendar" className="inline-flex px-5 py-2.5 rounded-xl bg-zinc-800 text-zinc-200 text-sm font-medium hover:bg-zinc-700 transition-colors">
+          <AlertCircle className="w-12 h-12 text-muted-foreground/60" />
+          <p className="text-muted-foreground text-center">Serviço, profissional, data ou horário não selecionados.</p>
+          <Link href="/cliente/agendar" className="inline-flex px-5 py-2.5 rounded-xl bg-secondary text-secondary-foreground text-sm font-medium hover:bg-secondary/80 transition-colors">
             Voltar e escolher um serviço
           </Link>
         </div>
@@ -197,7 +197,7 @@ function ConfirmacaoContent() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-full min-h-[50vh]">
-        <Loader2 className="w-8 h-8 animate-spin text-zinc-500" />
+        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
       </div>
     )
   }
@@ -244,11 +244,11 @@ function ConfirmacaoContent() {
       <div className="flex items-center gap-3">
         <Link 
           href={`/cliente/agendar/data-hora?serviceId=${serviceId}&professionalId=${professionalId}`} 
-          className="p-2 -ml-2 rounded-full hover:bg-zinc-800/50 text-zinc-400 transition-colors"
+          className="p-2 -ml-2 rounded-full hover:bg-accent text-muted-foreground transition-colors"
         >
           <ArrowLeft className="w-5 h-5" />
         </Link>
-        <h1 className="text-xl font-bold text-white">Confirmação</h1>
+        <h1 className="text-xl font-bold text-foreground">Confirmação</h1>
       </div>
 
       {/* Internal user warning */}
@@ -264,7 +264,7 @@ function ConfirmacaoContent() {
                   Voltar ao ERP
                 </Link>
               )}
-              <button onClick={handleLogout} className="text-xs px-3 py-1.5 rounded-lg bg-zinc-800/50 hover:bg-zinc-800 transition-colors">
+              <button onClick={handleLogout} className="text-xs px-3 py-1.5 rounded-lg bg-secondary/50 hover:bg-secondary transition-colors">
                 Sair da conta
               </button>
             </div>
@@ -295,7 +295,7 @@ function ConfirmacaoContent() {
               )}
               <button
                 onClick={handleLogout}
-                className="text-xs px-3 py-1.5 rounded-lg bg-zinc-800/50 hover:bg-zinc-800 transition-colors flex items-center gap-1"
+                className="text-xs px-3 py-1.5 rounded-lg bg-secondary/50 hover:bg-secondary transition-colors flex items-center gap-1"
               >
                 <LogOut className="w-3 h-3" /> Sair e entrar novamente
               </button>
@@ -304,36 +304,36 @@ function ConfirmacaoContent() {
         </div>
       )}
 
-      <div className="p-6 rounded-2xl border border-zinc-800 bg-zinc-900/40 space-y-6">
+      <div className="p-6 rounded-2xl border border-border bg-card/50 space-y-6">
         
         {/* Service */}
         <div>
-          <h3 className="text-xs font-medium text-zinc-500 uppercase tracking-wider mb-2">Serviço</h3>
-          <p className="text-lg font-semibold text-white">{service?.name || 'Carregando...'}</p>
-          <p className="text-sm text-zinc-400 mt-1">
+          <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Serviço</h3>
+          <p className="text-lg font-semibold text-foreground">{service?.name || 'Carregando...'}</p>
+          <p className="text-sm text-muted-foreground mt-1">
             R$ {service?.price?.toFixed(2).replace('.', ',') || '0,00'} • {service?.durationMinutes || 0} min
           </p>
         </div>
 
         {/* Professional */}
         <div>
-          <h3 className="text-xs font-medium text-zinc-500 uppercase tracking-wider mb-2">Profissional</h3>
+          <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Profissional</h3>
           <div className="flex items-center gap-2">
-            <Scissors className="w-4 h-4 text-zinc-400" />
-            <p className="text-base font-medium text-zinc-200">{professional?.displayName || 'Carregando...'}</p>
+            <Scissors className="w-4 h-4 text-muted-foreground" />
+            <p className="text-base font-medium text-foreground">{professional?.displayName || 'Carregando...'}</p>
           </div>
         </div>
 
         {/* Date & Time */}
         <div>
-          <h3 className="text-xs font-medium text-zinc-500 uppercase tracking-wider mb-2">Data e Hora</h3>
+          <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Data e Hora</h3>
           <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2 text-zinc-200">
-              <CalendarIcon className="w-4 h-4 text-zinc-400" />
+            <div className="flex items-center gap-2 text-foreground">
+              <CalendarIcon className="w-4 h-4 text-muted-foreground" />
               <span className="capitalize">{dateFormatted}</span>
             </div>
-            <div className="flex items-center gap-2 text-zinc-200">
-              <Clock className="w-4 h-4 text-zinc-400" />
+            <div className="flex items-center gap-2 text-foreground">
+              <Clock className="w-4 h-4 text-muted-foreground" />
               <span>{time}</span>
             </div>
           </div>
@@ -342,14 +342,14 @@ function ConfirmacaoContent() {
         {/* Customer */}
         {customerInfo && (
           <div>
-            <h3 className="text-xs font-medium text-zinc-500 uppercase tracking-wider mb-2">Cliente</h3>
+            <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Cliente</h3>
             <div className="space-y-1.5">
-              <div className="flex items-center gap-2 text-zinc-200">
-                <User className="w-4 h-4 text-zinc-400" />
+              <div className="flex items-center gap-2 text-foreground">
+                <User className="w-4 h-4 text-muted-foreground" />
                 <span>{customerInfo.name}</span>
               </div>
               {customerInfo.phone && (
-                <div className="flex items-center gap-2 text-zinc-400 text-sm">
+                <div className="flex items-center gap-2 text-muted-foreground text-sm">
                   <Phone className="w-3.5 h-3.5" />
                   <span>{customerInfo.phone.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3')}</span>
                 </div>
@@ -360,7 +360,7 @@ function ConfirmacaoContent() {
 
         {/* Notes */}
         <div>
-          <h3 className="text-xs font-medium text-zinc-500 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+          <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">
             <MessageSquare className="w-3.5 h-3.5" />
             Observação (opcional)
           </h3>
@@ -370,7 +370,7 @@ function ConfirmacaoContent() {
             placeholder="Alguma observação para o profissional..."
             maxLength={200}
             rows={2}
-            className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-sm text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-zinc-700 resize-none"
+            className="w-full bg-background border border-input rounded-xl px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring resize-none"
           />
         </div>
 
@@ -380,7 +380,7 @@ function ConfirmacaoContent() {
         <button
           onClick={handleConfirm}
           disabled={isSubmitting || !customerReady}
-          className="w-full flex items-center justify-center gap-2 h-14 rounded-2xl bg-zinc-100 text-zinc-900 font-semibold hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="w-full flex items-center justify-center gap-2 h-14 rounded-2xl bg-primary text-primary-foreground font-semibold hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           {isSubmitting ? (
             <Loader2 className="w-5 h-5 animate-spin" />
@@ -400,7 +400,7 @@ export default function AgendarConfirmacaoPage() {
   return (
     <Suspense fallback={
       <div className="flex items-center justify-center h-full min-h-[50vh]">
-        <Loader2 className="w-8 h-8 animate-spin text-zinc-500" />
+        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
       </div>
     }>
       <ConfirmacaoContent />

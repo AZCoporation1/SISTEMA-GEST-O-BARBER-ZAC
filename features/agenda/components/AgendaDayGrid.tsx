@@ -20,6 +20,7 @@ interface Props {
   selectedDate: string
   onSlotClick: (professionalId: string, time: string) => void
   onAppointmentClick: (appointment: AppointmentWithRelations) => void
+  onBlockClick?: (block: AppointmentBlockRow) => void
 }
 
 function timeToMinutes(t: string): number {
@@ -42,6 +43,7 @@ export default function AgendaDayGrid({
   selectedDate,
   onSlotClick,
   onAppointmentClick,
+  onBlockClick,
 }: Props) {
   const slotInterval = settings?.slot_interval_minutes || 30
   const openingStr = settings?.opening_time || "07:00"
@@ -114,12 +116,12 @@ export default function AgendaDayGrid({
     return Math.max(1, Math.ceil(durationMin / slotInterval))
   }
 
-  // Helper: is block active at slot
-  const isBlockedSlot = (profId: string, time: string) => {
+  // Helper: find block at slot (returns the block or undefined)
+  const getBlockAtSlot = (profId: string, time: string) => {
     const slotStart = new Date(`${selectedDate}T${time}:00-03:00`).getTime()
     const slotEnd = slotStart + slotInterval * 60 * 1000
 
-    return blocks.some(b => {
+    return blocks.find(b => {
       if (b.professional_id !== profId) return false
       const bStart = new Date(b.start_at).getTime()
       const bEnd = new Date(b.end_at).getTime()
@@ -232,7 +234,7 @@ export default function AgendaDayGrid({
             {/* Professional cells */}
             {professionals.map(prof => {
               const withinHours = isWithinWorkingHours(prof.id, time)
-              const blocked = isBlockedSlot(prof.id, time)
+              const blockAtSlot = getBlockAtSlot(prof.id, time)
               const appointment = getAppointmentAtSlot(prof.id, time)
               const isFirst = appointment ? isFirstSlotOfAppointment(appointment, time) : false
 
@@ -251,11 +253,12 @@ export default function AgendaDayGrid({
                 )
               }
 
-              // Blocked slot
-              if (blocked) {
+              // Blocked slot — now clickable
+              if (blockAtSlot) {
                 return (
                   <div
                     key={prof.id}
+                    onClick={() => onBlockClick?.(blockAtSlot)}
                     style={{
                       flex: 1,
                       minWidth: MIN_COL_WIDTH,
@@ -265,6 +268,14 @@ export default function AgendaDayGrid({
                       alignItems: "center",
                       justifyContent: "center",
                       gap: 4,
+                      cursor: onBlockClick ? "pointer" : "default",
+                      transition: "background 100ms ease",
+                    }}
+                    onMouseEnter={e => {
+                      if (onBlockClick) (e.currentTarget as HTMLElement).style.background = "rgba(55,65,81,0.22)"
+                    }}
+                    onMouseLeave={e => {
+                      (e.currentTarget as HTMLElement).style.background = "rgba(55,65,81,0.12)"
                     }}
                   >
                     <Lock size={11} style={{ color: "var(--text-muted)", opacity: 0.5 }} />

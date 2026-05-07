@@ -22,14 +22,14 @@ export default async function AgendarProfessionalPage({
     return (
       <div className="flex flex-col h-full pt-4 space-y-6 px-4">
         <div className="flex items-center gap-3">
-          <Link href="/cliente/agendar" className="p-2 -ml-2 rounded-full hover:bg-zinc-800/50 text-zinc-400">
+          <Link href="/cliente/agendar" className="p-2 -ml-2 rounded-full hover:bg-accent text-muted-foreground transition-colors">
             <ArrowLeft className="w-5 h-5" />
           </Link>
-          <h1 className="text-xl font-bold text-white">Serviço indisponível</h1>
+          <h1 className="text-xl font-bold text-foreground">Serviço indisponível</h1>
         </div>
         <div className="text-center py-12 space-y-4">
-          <p className="text-zinc-500">{serviceResult.error || "Serviço não encontrado ou indisponível para agendamento."}</p>
-          <Link href="/cliente/agendar" className="inline-flex px-5 py-2.5 rounded-xl bg-zinc-800 text-zinc-200 text-sm font-medium hover:bg-zinc-700 transition-colors">
+          <p className="text-muted-foreground">{serviceResult.error || "Serviço não encontrado ou indisponível para agendamento."}</p>
+          <Link href="/cliente/agendar" className="inline-flex px-5 py-2.5 rounded-xl bg-secondary text-secondary-foreground text-sm font-medium hover:bg-secondary/80 transition-colors">
             Voltar e escolher outro serviço
           </Link>
         </div>
@@ -46,14 +46,14 @@ export default async function AgendarProfessionalPage({
     return (
       <div className="flex flex-col h-full pt-4 space-y-6 px-4">
         <div className="flex items-center gap-3">
-          <Link href="/cliente/agendar" className="p-2 -ml-2 rounded-full hover:bg-zinc-800/50 text-zinc-400">
+          <Link href="/cliente/agendar" className="p-2 -ml-2 rounded-full hover:bg-accent text-muted-foreground transition-colors">
             <ArrowLeft className="w-5 h-5" />
           </Link>
-          <h1 className="text-xl font-bold text-white">Escolha o profissional</h1>
+          <h1 className="text-xl font-bold text-foreground">Escolha o profissional</h1>
         </div>
         <div className="text-center py-12 space-y-4">
-          <p className="text-zinc-500">Nenhum profissional disponível para agendamento no momento.</p>
-          <Link href="/cliente/agendar" className="inline-flex px-5 py-2.5 rounded-xl bg-zinc-800 text-zinc-200 text-sm font-medium hover:bg-zinc-700 transition-colors">
+          <p className="text-muted-foreground">Nenhum profissional disponível para agendamento no momento.</p>
+          <Link href="/cliente/agendar" className="inline-flex px-5 py-2.5 rounded-xl bg-secondary text-secondary-foreground text-sm font-medium hover:bg-secondary/80 transition-colors">
             Voltar e escolher outro serviço
           </Link>
         </div>
@@ -66,12 +66,12 @@ export default async function AgendarProfessionalPage({
   return (
     <div className="flex flex-col h-full space-y-6 pt-4 pb-12 animate-in fade-in px-4">
       <div className="flex items-center gap-3">
-        <Link href="/cliente/agendar" className="p-2 -ml-2 rounded-full hover:bg-zinc-800/50 text-zinc-400 transition-colors">
+        <Link href="/cliente/agendar" className="p-2 -ml-2 rounded-full hover:bg-accent text-muted-foreground transition-colors">
           <ArrowLeft className="w-5 h-5" />
         </Link>
         <div>
-          <h1 className="text-xl font-bold text-white">Escolha o profissional</h1>
-          <p className="text-xs text-zinc-500 mt-0.5">{service.name}</p>
+          <h1 className="text-xl font-bold text-foreground">Escolha o profissional</h1>
+          <p className="text-xs text-muted-foreground mt-0.5">{service.name}</p>
         </div>
       </div>
 
@@ -84,20 +84,20 @@ export default async function AgendarProfessionalPage({
               href={`/cliente/agendar/data-hora?serviceId=${serviceId}&professionalId=${prof.id}`}
               className="block group"
             >
-              <div className="p-4 rounded-2xl border border-zinc-800 bg-zinc-900/40 hover:bg-zinc-800/60 hover:border-zinc-700 transition-all flex items-center justify-between">
+              <div className="p-4 rounded-2xl border border-border bg-card/50 hover:bg-accent/50 hover:border-border transition-all flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-zinc-700 to-zinc-800 flex items-center justify-center border border-zinc-700 group-hover:border-zinc-500 transition-colors">
-                    <span className="text-lg font-bold text-zinc-300 group-hover:text-zinc-100 transition-colors">{initial}</span>
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-accent/50 to-accent flex items-center justify-center border border-border group-hover:border-primary/50 transition-colors">
+                    <span className="text-lg font-bold text-muted-foreground group-hover:text-foreground transition-colors">{initial}</span>
                   </div>
                   <div>
-                    <h3 className="font-semibold text-zinc-100">{prof.displayName}</h3>
-                    <div className="flex items-center gap-1.5 text-xs text-zinc-500 mt-0.5">
+                    <h3 className="font-semibold text-foreground">{prof.displayName}</h3>
+                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-0.5">
                       <Scissors className="w-3 h-3" />
                       <span>{prof.role}</span>
                     </div>
                   </div>
                 </div>
-                <ChevronRight className="w-5 h-5 text-zinc-600 group-hover:text-zinc-300 transition-colors" />
+                <ChevronRight className="w-5 h-5 text-muted-foreground/60 group-hover:text-muted-foreground transition-colors" />
               </div>
             </Link>
           )

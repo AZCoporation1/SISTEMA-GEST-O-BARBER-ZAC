@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { X } from "lucide-react"
 import { createBlock } from "../actions/agenda.actions"
 import { BLOCK_TYPE_LABELS } from "../types"
@@ -13,20 +13,35 @@ interface Props {
   professionals: ProfessionalForAgenda[]
   defaultDate: string
   defaultProfessionalId?: string
+  defaultStartTime?: string
+  defaultEndTime?: string
 }
 
 export default function BlockDialog({
   open, onClose, onSaved, professionals, defaultDate, defaultProfessionalId,
+  defaultStartTime, defaultEndTime,
 }: Props) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const [professionalId, setProfessionalId] = useState(defaultProfessionalId || "")
   const [startDate, setStartDate] = useState(defaultDate)
-  const [startTime, setStartTime] = useState("12:00")
+  const [startTime, setStartTime] = useState(defaultStartTime || "12:00")
   const [endDate, setEndDate] = useState(defaultDate)
-  const [endTime, setEndTime] = useState("13:00")
+  const [endTime, setEndTime] = useState(defaultEndTime || "13:00")
   const [blockType, setBlockType] = useState<string>("manual")
   const [reason, setReason] = useState("")
+
+  // Sync defaults when dialog opens with new slot context
+  useEffect(() => {
+    if (open) {
+      if (defaultProfessionalId) setProfessionalId(defaultProfessionalId)
+      if (defaultStartTime) setStartTime(defaultStartTime)
+      if (defaultEndTime) setEndTime(defaultEndTime)
+      setStartDate(defaultDate)
+      setEndDate(defaultDate)
+      setError("")
+    }
+  }, [open, defaultProfessionalId, defaultStartTime, defaultEndTime, defaultDate])
 
   const handleSubmit = async () => {
     if (!professionalId || !reason.trim()) { setError("Profissional e motivo são obrigatórios"); return }

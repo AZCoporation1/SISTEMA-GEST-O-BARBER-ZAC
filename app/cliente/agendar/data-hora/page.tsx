@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, Suspense } from 'react'
+import { useState, useEffect, useRef, useCallback, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, Loader2, Calendar as CalendarIcon } from 'lucide-react'
@@ -22,32 +22,54 @@ function DataHoraContent() {
   // Validate required params
   const missingParams = !serviceId || !professionalId
 
+  // Debounce ref — prevents rapid-fire fetches on fast date switching
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // Fetch generation counter — discards stale responses
+  const fetchGenRef = useRef(0)
 
   // Generate 14 days for the horizontal calendar
   const today = startOfToday()
   const dates = Array.from({ length: 14 }).map((_, i) => addDays(today, i))
 
-  useEffect(() => {
-    if (missingParams) return
-    async function loadSlots() {
-      setIsLoading(true)
-      setError(null)
-      try {
-        const dateStr = format(selectedDate, 'yyyy-MM-dd')
-        const res = await getCustomerAvailableSlots({ serviceId: serviceId!, professionalId: professionalId!, date: dateStr })
-        if (res.success) {
-          setSlots(res.data || [])
-        } else {
-          setError(res.error || "Erro ao carregar horários")
-        }
-      } catch (err) {
-        setError("Erro interno ao carregar horários")
-      } finally {
+  const loadSlots = useCallback(async (date: Date, gen: number) => {
+    setIsLoading(true)
+    setError(null)
+    try {
+      const dateStr = format(date, 'yyyy-MM-dd')
+      const res = await getCustomerAvailableSlots({ serviceId: serviceId!, professionalId: professionalId!, date: dateStr })
+      // Discard if a newer fetch was initiated
+      if (gen !== fetchGenRef.current) return
+      if (res.success) {
+        setSlots(res.data || [])
+      } else {
+        setError(res.error || "Erro ao carregar horários")
+      }
+    } catch (err) {
+      if (gen !== fetchGenRef.current) return
+      setError("Erro interno ao carregar horários")
+    } finally {
+      if (gen === fetchGenRef.current) {
         setIsLoading(false)
       }
     }
-    loadSlots()
-  }, [selectedDate, serviceId, professionalId, missingParams])
+  }, [serviceId, professionalId])
+
+  useEffect(() => {
+    if (missingParams) return
+
+    // Clear previous debounce
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+
+    // Debounce 150ms — enough to absorb rapid taps on calendar
+    debounceRef.current = setTimeout(() => {
+      const gen = ++fetchGenRef.current
+      loadSlots(selectedDate, gen)
+    }, 150)
+
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current)
+    }
+  }, [selectedDate, loadSlots, missingParams])
 
   const handleSlotSelect = (time: string) => {
     if (missingParams) return
@@ -60,14 +82,14 @@ function DataHoraContent() {
     return (
       <div className="flex flex-col h-full space-y-6 pt-4 pb-12 animate-in fade-in">
         <div className="flex items-center gap-3">
-          <Link href="/cliente/agendar" className="p-2 -ml-2 rounded-full hover:bg-zinc-800/50 text-zinc-400 transition-colors">
+          <Link href="/cliente/agendar" className="p-2 -ml-2 rounded-full hover:bg-accent text-muted-foreground transition-colors">
             <ArrowLeft className="w-5 h-5" />
           </Link>
-          <h1 className="text-xl font-bold text-white">Parâmetros ausentes</h1>
+          <h1 className="text-xl font-bold text-foreground">Parâmetros ausentes</h1>
         </div>
         <div className="text-center py-12 space-y-4">
-          <p className="text-zinc-500">Serviço ou profissional não selecionado.</p>
-          <Link href="/cliente/agendar" className="inline-flex px-5 py-2.5 rounded-xl bg-zinc-800 text-zinc-200 text-sm font-medium hover:bg-zinc-700 transition-colors">
+          <p className="text-muted-foreground">Serviço ou profissional não selecionado.</p>
+          <Link href="/cliente/agendar" className="inline-flex px-5 py-2.5 rounded-xl bg-secondary text-secondary-foreground text-sm font-medium hover:bg-secondary/80 transition-colors">
             Voltar e escolher um serviço
           </Link>
         </div>
@@ -80,11 +102,11 @@ function DataHoraContent() {
       <div className="flex items-center gap-3">
         <Link 
           href={`/cliente/agendar/profissional?serviceId=${serviceId}`} 
-          className="p-2 -ml-2 rounded-full hover:bg-zinc-800/50 text-zinc-400 transition-colors"
+          className="p-2 -ml-2 rounded-full hover:bg-accent text-muted-foreground transition-colors"
         >
           <ArrowLeft className="w-5 h-5" />
         </Link>
-        <h1 className="text-xl font-bold text-white">Escolha a data e hora</h1>
+        <h1 className="text-xl font-bold text-foreground">Escolha a data e hora</h1>
       </div>
 
       <div className="space-y-4">
@@ -101,13 +123,13 @@ function DataHoraContent() {
                 onClick={() => setSelectedDate(date)}
                 className={`snap-center shrink-0 w-16 h-20 rounded-2xl flex flex-col items-center justify-center transition-all border
                   ${isSelected 
-                    ? 'bg-zinc-100 text-zinc-900 border-transparent shadow-md scale-105' 
-                    : 'bg-zinc-900/40 text-zinc-400 border-zinc-800 hover:bg-zinc-800/60'}`}
+                    ? 'bg-primary text-primary-foreground border-transparent shadow-md scale-105' 
+                    : 'bg-card text-muted-foreground border-border hover:bg-accent hover:text-foreground'}`}
               >
-                <span className={`text-xs font-medium mb-1 ${isSelected ? 'text-zinc-500' : 'text-zinc-500'}`}>
+                <span className={`text-xs font-medium mb-1 ${isSelected ? 'text-primary-foreground/80' : 'text-muted-foreground'}`}>
                   {dayName}
                 </span>
-                <span className={`text-xl font-bold ${isSelected ? 'text-zinc-900' : 'text-zinc-200'}`}>
+                <span className={`text-xl font-bold ${isSelected ? 'text-primary-foreground' : 'text-foreground'}`}>
                   {dayNum}
                 </span>
               </button>
@@ -116,20 +138,23 @@ function DataHoraContent() {
         </div>
 
         {/* Time Slots */}
-        <div className="pt-4 border-t border-zinc-800/50">
-          <h3 className="text-sm font-medium text-zinc-400 mb-4 flex items-center gap-2">
+        <div className="pt-4 border-t border-border">
+          <h3 className="text-sm font-medium text-muted-foreground mb-4 flex items-center gap-2">
             <CalendarIcon className="w-4 h-4" />
             Horários para {format(selectedDate, "dd 'de' MMMM", { locale: ptBR })}
           </h3>
 
           {isLoading ? (
-            <div className="flex justify-center py-12">
-              <Loader2 className="w-8 h-8 animate-spin text-zinc-500" />
+            /* Skeleton grid instead of spinner */
+            <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <div key={i} className="h-12 rounded-xl bg-accent animate-pulse" />
+              ))}
             </div>
           ) : error ? (
-            <div className="text-center py-8 text-red-400 text-sm">{error}</div>
+            <div className="text-center py-8 text-destructive text-sm">{error}</div>
           ) : slots.length === 0 ? (
-            <div className="text-center py-12 text-zinc-500 bg-zinc-900/30 rounded-2xl border border-zinc-800/50">
+            <div className="text-center py-12 text-muted-foreground bg-card/50 rounded-2xl border border-border">
               Nenhum horário disponível nesta data.
             </div>
           ) : (
@@ -138,7 +163,7 @@ function DataHoraContent() {
                 <button
                   key={idx}
                   onClick={() => handleSlotSelect(slot.time)}
-                  className="h-12 rounded-xl border border-zinc-800 bg-zinc-900 hover:bg-zinc-100 hover:text-zinc-900 hover:border-transparent text-zinc-300 font-medium transition-all"
+                  className="h-12 rounded-xl border border-border bg-card hover:bg-primary hover:text-primary-foreground hover:border-transparent text-foreground font-medium transition-all"
                 >
                   {slot.time}
                 </button>
@@ -155,7 +180,7 @@ export default function AgendarDataHoraPage() {
   return (
     <Suspense fallback={
       <div className="flex items-center justify-center h-full min-h-[50vh]">
-        <Loader2 className="w-8 h-8 animate-spin text-zinc-500" />
+        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
       </div>
     }>
       <DataHoraContent />

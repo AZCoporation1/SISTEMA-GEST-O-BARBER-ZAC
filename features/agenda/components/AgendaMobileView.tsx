@@ -476,6 +476,7 @@ export default function AgendaMobileView({
         block={blockSheet.block}
         onUnblocked={onBlockUnblocked}
         hasPermission={hasAdminAccess || (!!restrictToProfessionalId && blockSheet.block?.professional_id === restrictToProfessionalId)}
+        professionalName={selectedProf?.display_name || selectedProf?.name || undefined}
       />
 
       <style jsx global>{`

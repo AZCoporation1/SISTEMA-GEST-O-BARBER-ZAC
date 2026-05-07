@@ -15,9 +15,11 @@ import WaitlistSheet from "@/features/agenda/components/WaitlistSheet"
 import AgendaMobileView from "@/features/agenda/components/AgendaMobileView"
 import RecurrenceDialog from "@/features/agenda/components/RecurrenceDialog"
 import AgendaRuntimeDiagnostics from "@/features/agenda/components/AgendaRuntimeDiagnostics"
+import MobileBlockActionSheet from "@/features/agenda/components/MobileBlockActionSheet"
+import MobileSlotActionSheet from "@/features/agenda/components/MobileSlotActionSheet"
 import { useAgendaData, useAgendaSettings, useProfessionals, useWorkingHours, useBookableServices } from "@/features/agenda/hooks/useAgenda"
 import { useAuth } from "@/components/auth-provider"
-import type { AppointmentWithRelations, AppointmentWaitlistRow } from "@/features/agenda/types"
+import type { AppointmentWithRelations, AppointmentBlockRow, AppointmentWaitlistRow } from "@/features/agenda/types"
 import { WEEKDAY_LABELS } from "@/features/agenda/types"
 
 function getToday() {
@@ -78,17 +80,25 @@ export default function AgendaPageClient() {
   const [editingAppointment, setEditingAppointment] = useState<AppointmentWithRelations | null>(null)
   const [defaultSlot, setDefaultSlot] = useState<{ professionalId: string; time: string } | null>(null)
   const [showMobileCalendar, setShowMobileCalendar] = useState(false)
+  const [selectedBlock, setSelectedBlock] = useState<AppointmentBlockRow | null>(null)
+  const [showBlockSheet, setShowBlockSheet] = useState(false)
+  const [showSlotSheet, setShowSlotSheet] = useState(false)
 
   // Handlers
   const handleSlotClick = useCallback((professionalId: string, time: string) => {
     setDefaultSlot({ professionalId, time })
     setEditingAppointment(null)
-    setShowAppointmentDialog(true)
+    setShowSlotSheet(true)
   }, [])
 
   const handleAppointmentClick = useCallback((appt: AppointmentWithRelations) => {
     setSelectedAppointment(appt)
     setShowDetailSheet(true)
+  }, [])
+
+  const handleBlockClick = useCallback((block: AppointmentBlockRow) => {
+    setSelectedBlock(block)
+    setShowBlockSheet(true)
   }, [])
 
   const handleEdit = useCallback((appt: AppointmentWithRelations) => {
@@ -195,7 +205,7 @@ export default function AgendaPageClient() {
 
           {/* Block button */}
           <button
-            onClick={() => setShowBlockDialog(true)}
+            onClick={() => { setDefaultSlot(null); setShowBlockDialog(true) }}
             style={{
               display: "flex",
               alignItems: "center",
@@ -415,6 +425,7 @@ export default function AgendaPageClient() {
             selectedDate={selectedDate}
             onSlotClick={handleSlotClick}
             onAppointmentClick={handleAppointmentClick}
+            onBlockClick={handleBlockClick}
           />
         </div>
       )}
@@ -454,6 +465,13 @@ export default function AgendaPageClient() {
         onSaved={refresh}
         professionals={professionals}
         defaultDate={selectedDate}
+        defaultProfessionalId={defaultSlot?.professionalId}
+        defaultStartTime={defaultSlot?.time}
+        defaultEndTime={defaultSlot?.time ? (() => {
+          const [h, m] = defaultSlot.time.split(':').map(Number)
+          const endMin = (h * 60 + m) + (settings?.slot_interval_minutes || 30)
+          return `${String(Math.floor(endMin / 60)).padStart(2, '0')}:${String(endMin % 60).padStart(2, '0')}`
+        })() : undefined}
       />
 
       {/* New Phase 2 Dialogs */}
@@ -483,6 +501,29 @@ export default function AgendaPageClient() {
         defaultDate={selectedDate}
       />
 
+      {/* Slot action sheet (desktop + mobile — choose agendar or bloquear) */}
+      <MobileSlotActionSheet
+        open={showSlotSheet}
+        onClose={() => setShowSlotSheet(false)}
+        time={defaultSlot?.time || ""}
+        date={selectedDate}
+        professionalName={
+          defaultSlot
+            ? (professionals.find(p => p.id === defaultSlot.professionalId)?.display_name
+              || professionals.find(p => p.id === defaultSlot.professionalId)?.name
+              || "")
+            : ""
+        }
+        onAgendarClick={() => {
+          setShowSlotSheet(false)
+          setShowAppointmentDialog(true)
+        }}
+        onBloquearClick={() => {
+          setShowSlotSheet(false)
+          setShowBlockDialog(true)
+        }}
+      />
+
       {/* CSS animation for sheets */}
       <style jsx global>{`
         @keyframes slideInRight {
@@ -490,6 +531,25 @@ export default function AgendaPageClient() {
           to { transform: translateX(0); opacity: 1; }
         }
       `}</style>
+
+      {/* Block detail sheet (desktop + mobile fallback) */}
+      <MobileBlockActionSheet
+        open={showBlockSheet}
+        onClose={() => { setShowBlockSheet(false); setSelectedBlock(null) }}
+        block={selectedBlock}
+        onUnblocked={() => { setShowBlockSheet(false); setSelectedBlock(null); refresh() }}
+        hasPermission={
+          hasAdminAccess ||
+          (isProfessional && !!user?.collaboratorId && selectedBlock?.professional_id === user.collaboratorId)
+        }
+        professionalName={
+          selectedBlock
+            ? (professionals.find(p => p.id === selectedBlock.professional_id)?.display_name
+              || professionals.find(p => p.id === selectedBlock.professional_id)?.name
+              || undefined)
+            : undefined
+        }
+      />
     </div>
   )
 }

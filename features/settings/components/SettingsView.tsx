@@ -9,11 +9,12 @@ import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 import { Form, FormControl, FormField, FormItem, FormMessage } from "@/components/ui/form"
-import { Building2, Bell, Bot } from "lucide-react"
+import { Building2, Bell, Bot, Monitor } from "lucide-react"
 
 import { useAppSettings, useSettingsMutations } from "../hooks/useSettings"
 import { settingsSchema, SettingsFormValues } from "../validators"
 import { PWAInstallGuide } from "./PWAInstallGuide"
+import { ThemeToggle } from "@/components/theme-toggle"
 
 export function SettingsView() {
   const { data: settings, isLoading: isFetching } = useAppSettings()
@@ -151,6 +152,25 @@ export function SettingsView() {
                   </FormControl>
                 </div>
               )} />
+            </CardContent>
+          </Card>
+
+          {/* Aparência */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2"><Monitor className="h-4 w-4" /> Aparência</CardTitle>
+              <CardDescription>Personalize o tema visual do sistema neste dispositivo.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium">Tema Visual</p>
+                  <p className="text-sm text-muted-foreground">Alterna entre modo claro, escuro ou padrão do sistema operacional.</p>
+                </div>
+                <div className="scale-125 origin-right">
+                  <ThemeToggle />
+                </div>
+              </div>
             </CardContent>
           </Card>
 

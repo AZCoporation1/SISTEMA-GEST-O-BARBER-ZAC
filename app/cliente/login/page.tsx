@@ -109,7 +109,7 @@ function ClienteLoginContent() {
       
       {/* Back button */}
       <div className="flex items-center">
-        <Button variant="ghost" size="icon" className="h-9 w-9 text-zinc-400 hover:text-zinc-200 rounded-xl" asChild>
+        <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:text-foreground rounded-xl" asChild>
           <Link href="/cliente">
             <ArrowLeft className="h-4 w-4" />
           </Link>
@@ -118,10 +118,10 @@ function ClienteLoginContent() {
 
       {/* Header */}
       <div className="space-y-2 px-1">
-        <h1 className="text-2xl font-bold text-white tracking-tight">
+        <h1 className="text-2xl font-bold text-foreground tracking-tight">
           {isLogin ? 'Acesse sua conta' : 'Crie sua conta'}
         </h1>
-        <p className="text-sm text-zinc-500 leading-relaxed">
+        <p className="text-sm text-muted-foreground leading-relaxed">
           {isLogin 
             ? 'Entre para agendar e acompanhar seus horários.' 
             : 'Preencha os dados abaixo para se cadastrar.'}
@@ -134,7 +134,7 @@ function ClienteLoginContent() {
           type="button"
           onClick={() => handleOAuth('google')}
           disabled={isOAuthLoading !== null}
-          className="w-full flex items-center justify-center gap-3 h-12 rounded-xl border border-zinc-800/80 bg-zinc-900/60 text-zinc-200 font-medium hover:bg-zinc-800/80 hover:border-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-150 active:scale-[0.98]"
+          className="w-full flex items-center justify-center gap-3 h-12 rounded-xl border border-border bg-card/50 text-foreground font-medium hover:bg-accent/50 hover:border-border disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-150 active:scale-[0.98]"
         >
           {isOAuthLoading === 'google' ? (
             <Loader2 className="w-4 h-4 animate-spin" />
@@ -152,68 +152,68 @@ function ClienteLoginContent() {
         <button
           type="button"
           onClick={() => toast.info('Login com Apple estará disponível em breve.')}
-          className="w-full flex items-center justify-center gap-3 h-12 rounded-xl border border-zinc-800/40 bg-zinc-900/30 text-zinc-500 font-medium cursor-default transition-colors"
+          className="w-full flex items-center justify-center gap-3 h-12 rounded-xl border border-border/40 bg-card/30 text-muted-foreground font-medium cursor-default transition-colors"
         >
           <svg className="w-5 h-5 opacity-40" viewBox="0 0 24 24" fill="currentColor">
             <path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/>
           </svg>
           Continuar com Apple
-          <span className="text-[9px] uppercase tracking-widest font-semibold bg-zinc-800/80 px-1.5 py-0.5 rounded border border-zinc-700/30">Em breve</span>
+          <span className="text-[9px] uppercase tracking-widest font-semibold bg-secondary/80 px-1.5 py-0.5 rounded border border-border">Em breve</span>
         </button>
       </div>
 
       {/* Divider */}
       <div className="flex items-center gap-3 py-1">
-        <div className="flex-1 h-px bg-zinc-800/60" />
-        <span className="text-[10px] text-zinc-600 uppercase tracking-widest font-medium">ou com e-mail</span>
-        <div className="flex-1 h-px bg-zinc-800/60" />
+        <div className="flex-1 h-px bg-border" />
+        <span className="text-[10px] text-muted-foreground uppercase tracking-widest font-medium">ou com e-mail</span>
+        <div className="flex-1 h-px bg-border" />
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
         {!isLogin && (
           <div className="space-y-1.5">
-            <label className="text-xs font-medium text-zinc-400">Nome completo</label>
+            <label className="text-xs font-medium text-muted-foreground">Nome completo</label>
             <Input 
               required
               placeholder="Ex: João da Silva"
               value={fullName}
               onChange={e => setFullName(e.target.value)}
-              className="bg-zinc-900/80 border-zinc-800/80 focus-visible:ring-zinc-700 focus-visible:border-zinc-700 h-11 rounded-xl text-sm"
+              className="bg-background border-input focus-visible:ring-ring focus-visible:border-input h-11 rounded-xl text-sm"
               autoComplete="name"
             />
           </div>
         )}
 
         <div className="space-y-1.5">
-          <label className="text-xs font-medium text-zinc-400">E-mail</label>
+          <label className="text-xs font-medium text-muted-foreground">E-mail</label>
           <Input 
             required
             type="email"
             placeholder="seu@email.com"
             value={email}
             onChange={e => setEmail(e.target.value)}
-            className="bg-zinc-900/80 border-zinc-800/80 focus-visible:ring-zinc-700 focus-visible:border-zinc-700 h-11 rounded-xl text-sm"
+            className="bg-background border-input focus-visible:ring-ring focus-visible:border-input h-11 rounded-xl text-sm"
             autoComplete="email"
           />
         </div>
 
         {!isLogin && (
           <div className="space-y-1.5">
-            <label className="text-xs font-medium text-zinc-400">Telefone (WhatsApp)</label>
+            <label className="text-xs font-medium text-muted-foreground">Telefone (WhatsApp)</label>
             <Input 
               required
               type="tel"
               placeholder="(11) 99999-9999"
               value={phone}
               onChange={e => handlePhoneChange(e.target.value)}
-              className="bg-zinc-900/80 border-zinc-800/80 focus-visible:ring-zinc-700 focus-visible:border-zinc-700 h-11 rounded-xl text-sm"
+              className="bg-background border-input focus-visible:ring-ring focus-visible:border-input h-11 rounded-xl text-sm"
               autoComplete="tel"
             />
           </div>
         )}
 
         <div className="space-y-1.5">
-          <label className="text-xs font-medium text-zinc-400">Senha</label>
+          <label className="text-xs font-medium text-muted-foreground">Senha</label>
           <div className="relative">
             <Input 
               required
@@ -221,21 +221,21 @@ function ClienteLoginContent() {
               placeholder="••••••••"
               value={password}
               onChange={e => setPassword(e.target.value)}
-              className="bg-zinc-900/80 border-zinc-800/80 focus-visible:ring-zinc-700 focus-visible:border-zinc-700 h-11 rounded-xl text-sm pr-10"
+              className="bg-background border-input focus-visible:ring-ring focus-visible:border-input h-11 rounded-xl text-sm pr-10"
               autoComplete={isLogin ? "current-password" : "new-password"}
               minLength={6}
             />
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 transition-colors p-0.5"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors p-0.5"
               tabIndex={-1}
             >
               {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
             </button>
           </div>
           {!isLogin && (
-            <p className="text-[10px] text-zinc-600 pl-1">Mínimo de 6 caracteres</p>
+            <p className="text-[10px] text-muted-foreground pl-1">Mínimo de 6 caracteres</p>
           )}
         </div>
 
@@ -243,7 +243,7 @@ function ClienteLoginContent() {
           <Button 
             type="submit" 
             disabled={isLoading}
-            className="w-full bg-white text-zinc-900 hover:bg-zinc-100 h-12 font-semibold rounded-xl active:scale-[0.98] transition-all duration-150 shadow-sm"
+            className="w-full bg-primary text-primary-foreground hover:bg-primary/90 h-12 font-semibold rounded-xl active:scale-[0.98] transition-all duration-150 shadow-sm"
           >
             {isLoading ? (
               <Loader2 className="w-5 h-5 animate-spin" />
@@ -260,7 +260,7 @@ function ClienteLoginContent() {
         <button 
           onClick={() => setIsLogin(!isLogin)}
           type="button"
-          className="text-sm text-zinc-500 hover:text-white transition-colors font-medium"
+          className="text-sm text-muted-foreground hover:text-foreground transition-colors font-medium"
         >
           {isLogin ? 'Não tem uma conta? Cadastre-se' : 'Já tem uma conta? Faça login'}
         </button>
@@ -274,7 +274,7 @@ export default function ClienteLoginPage() {
   return (
     <Suspense fallback={
       <div className="flex items-center justify-center h-full min-h-[50vh]">
-        <Loader2 className="w-8 h-8 animate-spin text-zinc-500" />
+        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
       </div>
     }>
       <ClienteLoginContent />

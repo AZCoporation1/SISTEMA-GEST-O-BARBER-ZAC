@@ -6,34 +6,34 @@
    ============================================================ */
 
 @theme inline {
-  /* ---- shadcn semantic color tokens ---- */
-  --color-background: #0a0a0f;
-  --color-foreground: #e8e8ed;
+  /* ---- shadcn semantic color tokens (mapped to CSS variables) ---- */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
 
-  --color-card: #111118;
-  --color-card-foreground: #e8e8ed;
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
 
-  --color-popover: #141420;
-  --color-popover-foreground: #e8e8ed;
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
 
-  --color-primary: #b8b8b8;
-  --color-primary-foreground: #0a0a0f;
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
 
-  --color-secondary: #1c1c28;
-  --color-secondary-foreground: #e8e8ed;
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
 
-  --color-muted: #18182400;
-  --color-muted-foreground: #7a7a90;
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
 
-  --color-accent: #1e1e2e;
-  --color-accent-foreground: #e8e8ed;
+  --color-accent: var(--accent-shadcn);
+  --color-accent-foreground: var(--accent-foreground);
 
-  --color-destructive: #ef4444;
-  --color-destructive-foreground: #fef2f2;
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
 
-  --color-border: rgba(255, 255, 255, 0.08);
-  --color-input: rgba(255, 255, 255, 0.10);
-  --color-ring: #6c6c6c;
+  --color-border: var(--border-shadcn);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
 
   /* ---- Radius ---- */
   --radius-sm: 6px;
@@ -43,50 +43,139 @@
 }
 
 /* ============================================================
-   CUSTOM DESIGN TOKENS
+   CUSTOM DESIGN TOKENS (LIGHT MODE)
    ============================================================ */
+@layer base {
+  :root {
+    /* Shadcn semantic tokens (Light) */
+    --background: #f8fafc;
+    --foreground: #0f172a;
+    --card: #ffffff;
+    --card-foreground: #0f172a;
+    --popover: #ffffff;
+    --popover-foreground: #0f172a;
+    --primary: #0f172a;
+    --primary-foreground: #f8fafc;
+    --secondary: #f1f5f9;
+    --secondary-foreground: #0f172a;
+    --muted: #f1f5f9;
+    --muted-foreground: #64748b;
+    --accent-shadcn: #f1f5f9;
+    --accent-foreground: #0f172a;
+    --destructive: #ef4444;
+    --destructive-foreground: #f8fafc;
+    --border-shadcn: #e2e8f0;
+    --input: #e2e8f0;
+    --ring: #94a3b8;
 
-:root {
-  /* Surfaces */
-  --bg-base: #0a0a0f;
-  --bg-surface: #111118;
-  --bg-elevated: #18182400;
-  --bg-hover: #1e1e2e;
+    /* Surfaces */
+    --bg-base: #f8fafc;
+    --bg-surface: #ffffff;
+    --bg-elevated: #ffffff;
+    --bg-hover: #f1f5f9;
 
-  /* Accent (Cinza Tech — substitui o dourado) */
-  --accent: #b8b8b8;
-  --accent-light: #d4d4d4;
-  --accent-subtle: rgba(184, 184, 184, 0.08);
-  --accent-border: rgba(184, 184, 184, 0.20);
+    /* Accent (Cinza Tech para Light Mode) */
+    --accent: #1e293b;
+    --accent-light: #334155;
+    --accent-subtle: rgba(15, 23, 42, 0.05);
+    --accent-border: rgba(15, 23, 42, 0.15);
 
-  /* Text */
-  --text-primary: #e8e8ed;
-  --text-secondary: #7a7a90;
-  --text-muted: #4a4a60;
+    /* Text */
+    --text-primary: #0f172a;
+    --text-secondary: #475569;
+    --text-muted: #64748b;
 
-  /* Borders */
-  --border: rgba(255, 255, 255, 0.08);
-  --border-strong: rgba(255, 255, 255, 0.14);
+    /* Borders */
+    --border: rgba(15, 23, 42, 0.1);
+    --border-strong: rgba(15, 23, 42, 0.2);
 
-  /* Status */
-  --success: #10b981;
-  --success-bg: rgba(16, 185, 129, 0.10);
-  --warning: #f59e0b;
-  --warning-bg: rgba(245, 158, 11, 0.10);
-  --danger: #ef4444;
-  --danger-bg: rgba(239, 68, 68, 0.10);
-  --info: #3b82f6;
-  --info-bg: rgba(59, 130, 246, 0.10);
+    /* Status */
+    --success: #059669;
+    --success-bg: rgba(16, 185, 129, 0.10);
+    --warning: #d97706;
+    --warning-bg: rgba(245, 158, 11, 0.10);
+    --danger: #dc2626;
+    --danger-bg: rgba(239, 68, 68, 0.10);
+    --info: #2563eb;
+    --info-bg: rgba(59, 130, 246, 0.10);
 
-  /* Layout */
-  --sidebar-width: 260px;
-  --sidebar-collapsed: 72px;
-  --topbar-height: 56px;
+    /* Layout */
+    --sidebar-width: 260px;
+    --sidebar-collapsed: 72px;
+    --topbar-height: 56px;
 
-  /* Gradient Signature */
-  --gradient-brand: linear-gradient(90deg, rgba(0,0,0,1) 0%, rgba(133,133,133,1) 50%, rgba(255,250,250,1) 100%);
-  --gradient-brand-subtle: linear-gradient(135deg, #3a3a3a 0%, #545454 100%);
+    /* Gradient Signature */
+    --gradient-brand: linear-gradient(90deg, #f1f5f9 0%, #cbd5e1 50%, #f8fafc 100%);
+    --gradient-brand-subtle: linear-gradient(135deg, #e2e8f0 0%, #f8fafc 100%);
+  }
+
+  /* ============================================================
+     CUSTOM DESIGN TOKENS (DARK MODE - ORIGINAL PREMIUM)
+     ============================================================ */
+  .dark {
+    /* Shadcn semantic tokens (Dark) */
+    --background: #0a0a0f;
+    --foreground: #e8e8ed;
+    --card: #111118;
+    --card-foreground: #e8e8ed;
+    --popover: #141420;
+    --popover-foreground: #e8e8ed;
+    --primary: #b8b8b8;
+    --primary-foreground: #0a0a0f;
+    --secondary: #1c1c28;
+    --secondary-foreground: #e8e8ed;
+    --muted: #18182400;
+    --muted-foreground: #7a7a90;
+    --accent-shadcn: #1e1e2e;
+    --accent-foreground: #e8e8ed;
+    --destructive: #ef4444;
+    --destructive-foreground: #fef2f2;
+    --border-shadcn: rgba(255, 255, 255, 0.08);
+    --input: rgba(255, 255, 255, 0.10);
+    --ring: #6c6c6c;
+
+    /* Surfaces */
+    --bg-base: #0a0a0f;
+    --bg-surface: #111118;
+    --bg-elevated: #18182400;
+    --bg-hover: #1e1e2e;
+
+    /* Accent (Cinza Tech — substitui o dourado) */
+    --accent: #b8b8b8;
+    --accent-light: #d4d4d4;
+    --accent-subtle: rgba(184, 184, 184, 0.08);
+    --accent-border: rgba(184, 184, 184, 0.20);
+
+    /* Text */
+    --text-primary: #e8e8ed;
+    --text-secondary: #7a7a90;
+    --text-muted: #4a4a60;
+
+    /* Borders */
+    --border: rgba(255, 255, 255, 0.08);
+    --border-strong: rgba(255, 255, 255, 0.14);
+
+    /* Status */
+    --success: #10b981;
+    --success-bg: rgba(16, 185, 129, 0.10);
+    --warning: #f59e0b;
+    --warning-bg: rgba(245, 158, 11, 0.10);
+    --danger: #ef4444;
+    --danger-bg: rgba(239, 68, 68, 0.10);
+    --info: #3b82f6;
+    --info-bg: rgba(59, 130, 246, 0.10);
+
+    /* Layout */
+    --sidebar-width: 260px;
+    --sidebar-collapsed: 72px;
+    --topbar-height: 56px;
+
+    /* Gradient Signature */
+    --gradient-brand: linear-gradient(90deg, rgba(0,0,0,1) 0%, rgba(133,133,133,1) 50%, rgba(255,250,250,1) 100%);
+    --gradient-brand-subtle: linear-gradient(135deg, #3a3a3a 0%, #545454 100%);
+  }
 }
+
 
 /* ============================================================
    BASE LAYER
