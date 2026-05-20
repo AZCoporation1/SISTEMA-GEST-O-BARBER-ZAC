@@ -47,7 +47,7 @@ const RECEPTION_STAFF = [
     email: 'granconatoleonela@gmail.com',
     full_name: 'Anthony',
     display_name: 'Anthony',
-    base_salary_per_period: 2500.00,
+    base_salary_per_period: 1250.00,
     settlement_primary_day: 23,
     settlement_secondary_day: 6,
   },
