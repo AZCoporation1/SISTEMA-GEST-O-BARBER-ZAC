@@ -3,9 +3,10 @@
 import { useState, useEffect, useRef, useCallback, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Loader2, Calendar as CalendarIcon } from 'lucide-react'
+import { ArrowLeft, Loader2, Calendar as CalendarIcon, Clock, DollarSign } from 'lucide-react'
 import { getCustomerAvailableSlots, Slot } from '@/features/agenda/services/availability.service'
-import { addDays, format, isBefore, startOfToday } from 'date-fns'
+import { getPublicBookingComposition } from '@/features/agenda/actions/public-booking.actions'
+import { addDays, format, startOfToday } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 
 function DataHoraContent() {
@@ -13,38 +14,76 @@ function DataHoraContent() {
   const searchParams = useSearchParams()
   const serviceId = searchParams.get('serviceId')
   const professionalId = searchParams.get('professionalId')
+  const addonsParam = searchParams.get('addons') || ''
+
+  const addonIds = addonsParam ? addonsParam.split(',').filter(Boolean) : []
 
   const [selectedDate, setSelectedDate] = useState<Date>(startOfToday())
   const [slots, setSlots] = useState<Slot[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // Validate required params
+  // Composition state — loaded once from server
+  const [composition, setComposition] = useState<{
+    totalDurationMinutes: number
+    totalPrice: number
+    displayName: string
+    items: Array<{ name: string; role: string }>
+  } | null>(null)
+  const [compositionLoading, setCompositionLoading] = useState(true)
+
   const missingParams = !serviceId || !professionalId
 
-  // Debounce ref — prevents rapid-fire fetches on fast date switching
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  // Fetch generation counter — discards stale responses
   const fetchGenRef = useRef(0)
 
-  // Generate 14 days for the horizontal calendar
   const today = startOfToday()
   const dates = Array.from({ length: 14 }).map((_, i) => addDays(today, i))
 
+  // Load composition from server (SOURCE OF TRUTH for duration)
+  useEffect(() => {
+    if (missingParams) {
+      setCompositionLoading(false)
+      return
+    }
+    async function loadComposition() {
+      try {
+        const res = await getPublicBookingComposition(serviceId!, addonIds)
+        if (res.success && res.data) {
+          setComposition({
+            totalDurationMinutes: res.data.totalDurationMinutes,
+            totalPrice: res.data.totalPrice,
+            displayName: res.data.displayName,
+            items: res.data.items.map(i => ({ name: i.name, role: i.role })),
+          })
+        }
+      } catch { /* silent */ }
+      setCompositionLoading(false)
+    }
+    loadComposition()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [serviceId, addonsParam])
+
   const loadSlots = useCallback(async (date: Date, gen: number) => {
+    if (!composition) return
     setIsLoading(true)
     setError(null)
     try {
       const dateStr = format(date, 'yyyy-MM-dd')
-      const res = await getCustomerAvailableSlots({ serviceId: serviceId!, professionalId: professionalId!, date: dateStr })
-      // Discard if a newer fetch was initiated
+      // USE COMPOSED DURATION — not just service duration
+      const res = await getCustomerAvailableSlots({
+        serviceId: serviceId!,
+        professionalId: professionalId!,
+        date: dateStr,
+        durationOverrideMinutes: composition.totalDurationMinutes,
+      })
       if (gen !== fetchGenRef.current) return
       if (res.success) {
         setSlots(res.data || [])
       } else {
         setError(res.error || "Erro ao carregar horários")
       }
-    } catch (err) {
+    } catch {
       if (gen !== fetchGenRef.current) return
       setError("Erro interno ao carregar horários")
     } finally {
@@ -52,15 +91,13 @@ function DataHoraContent() {
         setIsLoading(false)
       }
     }
-  }, [serviceId, professionalId])
+  }, [serviceId, professionalId, composition])
 
   useEffect(() => {
-    if (missingParams) return
+    if (missingParams || !composition) return
 
-    // Clear previous debounce
     if (debounceRef.current) clearTimeout(debounceRef.current)
 
-    // Debounce 150ms — enough to absorb rapid taps on calendar
     debounceRef.current = setTimeout(() => {
       const gen = ++fetchGenRef.current
       loadSlots(selectedDate, gen)
@@ -69,12 +106,13 @@ function DataHoraContent() {
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current)
     }
-  }, [selectedDate, loadSlots, missingParams])
+  }, [selectedDate, loadSlots, missingParams, composition])
 
   const handleSlotSelect = (time: string) => {
     if (missingParams) return
     const dateStr = format(selectedDate, 'yyyy-MM-dd')
-    const url = `/cliente/agendar/confirmacao?serviceId=${serviceId}&professionalId=${professionalId}&date=${dateStr}&time=${time}`
+    const addonsQuery = addonsParam ? `&addons=${addonsParam}` : ''
+    const url = `/cliente/agendar/confirmacao?serviceId=${serviceId}&professionalId=${professionalId}${addonsQuery}&date=${dateStr}&time=${time}`
     router.push(url)
   }
 
@@ -97,17 +135,53 @@ function DataHoraContent() {
     )
   }
 
+  if (compositionLoading) {
+    return (
+      <div className="flex items-center justify-center h-full min-h-[50vh]">
+        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+      </div>
+    )
+  }
+
+  const backQuery = addonsParam ? `&addons=${addonsParam}` : ''
+
   return (
     <div className="flex flex-col h-full space-y-6 pt-4 pb-12 fade-up">
       <div className="flex items-center gap-3">
         <Link 
-          href={`/cliente/agendar/profissional?serviceId=${serviceId}`} 
+          href={`/cliente/agendar/profissional?serviceId=${serviceId}${backQuery}`} 
           className="p-2 -ml-2 rounded-full hover:bg-accent text-muted-foreground transition-colors btn-press"
         >
           <ArrowLeft className="w-5 h-5" />
         </Link>
         <h1 className="text-xl font-bold text-foreground">Escolha a data e hora</h1>
       </div>
+
+      {/* Composition summary */}
+      {composition && (
+        <div className="p-3 rounded-xl border border-primary/20 bg-primary/5 fade-up-fast">
+          <div className="flex items-center justify-between">
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-foreground line-clamp-1">{composition.displayName}</p>
+              {composition.items.length > 1 && (
+                <p className="text-[10px] text-muted-foreground mt-0.5">
+                  {composition.items.map(i => i.name).join(' + ')}
+                </p>
+              )}
+            </div>
+            <div className="text-right shrink-0 ml-3">
+              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                <Clock className="w-3 h-3" />
+                {composition.totalDurationMinutes}min
+              </div>
+              <p className="text-sm font-bold text-foreground flex items-center gap-0.5">
+                <DollarSign className="w-3 h-3" />
+                {composition.totalPrice.toFixed(2).replace('.', ',')}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="space-y-4">
         {/* Horizontal Calendar */}
@@ -145,7 +219,6 @@ function DataHoraContent() {
           </h3>
 
           {isLoading ? (
-            /* Shimmer skeleton grid */
             <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
               {Array.from({ length: 8 }).map((_, i) => (
                 <div key={i} className="h-12 rounded-xl skeleton-shimmer" />

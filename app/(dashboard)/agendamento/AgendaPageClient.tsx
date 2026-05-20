@@ -1,8 +1,9 @@
 // @ts-nocheck
 "use client"
 
-import { useState, useCallback, useEffect } from "react"
-import { Plus, Lock, Calendar, ChevronLeft, ChevronRight, Settings, Clock, Repeat } from "lucide-react"
+import { useState, useCallback, useEffect, useMemo } from "react"
+import { Plus, Lock, Calendar, ChevronLeft, ChevronRight, Settings, Clock, Repeat, AlertTriangle, X } from "lucide-react"
+import { fetchCancelledAppointmentsByDate, type CancelledAppointmentInfo } from "@/features/agenda/services/agenda.service"
 import AgendaDayGrid from "@/features/agenda/components/AgendaDayGrid"
 import AgendaCalendarPicker from "@/features/agenda/components/AgendaCalendarPicker"
 import AgendaKPIs from "@/features/agenda/components/AgendaKPIs"
@@ -13,6 +14,7 @@ import BlockDialog from "@/features/agenda/components/BlockDialog"
 import AgendaSettingsDialog from "@/features/agenda/components/AgendaSettingsDialog"
 import WaitlistSheet from "@/features/agenda/components/WaitlistSheet"
 import AgendaMobileView from "@/features/agenda/components/AgendaMobileView"
+import ProfessionalViewSelector from "@/features/agenda/components/ProfessionalViewSelector"
 import RecurrenceDialog from "@/features/agenda/components/RecurrenceDialog"
 import AgendaRuntimeDiagnostics from "@/features/agenda/components/AgendaRuntimeDiagnostics"
 import MobileBlockActionSheet from "@/features/agenda/components/MobileBlockActionSheet"
@@ -62,6 +64,63 @@ export default function AgendaPageClient() {
   const professionals = rawProfessionals ?? []
   const workingHours = rawWorkingHours ?? []
   const services = rawServices ?? []
+
+  // ═══════════════════════════════════════════════════════════════
+  // PROFESSIONAL VIEW SELECTOR — localStorage-backed selection
+  // ═══════════════════════════════════════════════════════════════
+  const STORAGE_KEY = "barber-zac:agenda-selected-professionals"
+
+  const [selectedProfIds, setSelectedProfIds] = useState<string[]>([])
+  const [selectorInitialized, setSelectorInitialized] = useState(false)
+
+  // Initialize from localStorage or default to first professional
+  useEffect(() => {
+    if (professionals.length === 0) return
+    if (selectorInitialized) return
+
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY)
+      if (stored) {
+        const parsed = JSON.parse(stored) as string[]
+        // Filter out professionals that no longer exist
+        const valid = parsed.filter(id => professionals.some(p => p.id === id))
+        if (valid.length > 0) {
+          setSelectedProfIds(valid)
+          setSelectorInitialized(true)
+          return
+        }
+      }
+    } catch {}
+
+    // Default: first professional only
+    setSelectedProfIds([professionals[0].id])
+    setSelectorInitialized(true)
+  }, [professionals, selectorInitialized])
+
+  // Persist to localStorage on change
+  useEffect(() => {
+    if (!selectorInitialized || selectedProfIds.length === 0) return
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(selectedProfIds))
+    } catch {}
+  }, [selectedProfIds, selectorInitialized])
+
+  const handleSelectionChange = useCallback((ids: string[]) => {
+    // Never allow empty selection
+    if (ids.length === 0) return
+    setSelectedProfIds(ids)
+  }, [])
+
+  // ── Cancellation banner state ──
+  const [cancelledToday, setCancelledToday] = useState<CancelledAppointmentInfo[]>([])
+  const [cancelBannerDismissed, setCancelBannerDismissed] = useState(false)
+
+  useEffect(() => {
+    setCancelBannerDismissed(false)
+    fetchCancelledAppointmentsByDate(selectedDate)
+      .then(setCancelledToday)
+      .catch(() => setCancelledToday([]))
+  }, [selectedDate, appointments])
 
   // Determine professional restriction for `professional` role
   const restrictToProfessionalId = isProfessional && !hasAdminAccess
@@ -148,6 +207,31 @@ export default function AgendaPageClient() {
   const visibleProfessionals = restrictToProfessionalId
     ? professionals.filter(p => p.id === restrictToProfessionalId)
     : professionals
+
+  // ── Desktop grid professionals: filtered by selector ──
+  const gridProfessionals = useMemo(() => {
+    if (restrictToProfessionalId) {
+      return visibleProfessionals
+    }
+    if (selectedProfIds.length === 0) {
+      return professionals.length > 0 ? [professionals[0]] : []
+    }
+    // Maintain original order from professionals array
+    return professionals.filter(p => selectedProfIds.includes(p.id))
+  }, [restrictToProfessionalId, visibleProfessionals, selectedProfIds, professionals])
+
+  // ── Desktop grid filtered appointments & blocks ──
+  const gridAppointments = useMemo(() => {
+    if (restrictToProfessionalId) return visibleAppointments
+    const ids = new Set(gridProfessionals.map(p => p.id))
+    return appointments.filter(a => ids.has(a.professional_id))
+  }, [restrictToProfessionalId, visibleAppointments, gridProfessionals, appointments])
+
+  const gridBlocks = useMemo(() => {
+    if (restrictToProfessionalId) return visibleBlocks
+    const ids = new Set(gridProfessionals.map(p => p.id))
+    return blocks.filter(b => ids.has(b.professional_id))
+  }, [restrictToProfessionalId, visibleBlocks, gridProfessionals, blocks])
 
   return (
     <div className="page-content">
@@ -284,6 +368,57 @@ export default function AgendaPageClient() {
         date={selectedDate}
       />
 
+      {/* Cancellation Banner — internal signaling */}
+      {cancelledToday.length > 0 && !cancelBannerDismissed && (
+        <div style={{
+          display: "flex",
+          alignItems: "flex-start",
+          gap: 10,
+          padding: "10px 14px",
+          marginBottom: 12,
+          background: "rgba(239,68,68,0.06)",
+          border: "1px solid rgba(239,68,68,0.15)",
+          borderRadius: 10,
+          fontSize: 12,
+        }}>
+          <AlertTriangle size={16} style={{ color: "var(--destructive, #ef4444)", flexShrink: 0, marginTop: 1 }} />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontWeight: 700, color: "var(--destructive, #ef4444)", marginBottom: 4, fontSize: 11, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+              {cancelledToday.length} cancelamento{cancelledToday.length > 1 ? 's' : ''} neste dia
+            </div>
+            {cancelledToday.slice(0, 3).map(c => {
+              const time = new Date(c.start_at).toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit' })
+              const reason = c.cancellation_reason?.replace('[CLIENTE] ', '') || ''
+              return (
+                <div key={c.id} style={{ color: "var(--text-secondary)", lineHeight: 1.5 }}>
+                  <span style={{ fontWeight: 600 }}>{time}</span> — {c.customer_name_snapshot || 'Cliente'} · {c.service_name_snapshot}{c.professional?.name ? ` c/ ${c.professional.name}` : ''}{reason ? ` · "${reason}"` : ''}
+                </div>
+              )
+            })}
+            {cancelledToday.length > 3 && (
+              <div style={{ color: "var(--text-muted)", fontStyle: "italic", marginTop: 2 }}>
+                +{cancelledToday.length - 3} outro{cancelledToday.length - 3 > 1 ? 's' : ''}
+              </div>
+            )}
+          </div>
+          <button
+            onClick={() => setCancelBannerDismissed(true)}
+            style={{
+              background: "none",
+              border: "none",
+              padding: 4,
+              cursor: "pointer",
+              color: "var(--text-muted)",
+              flexShrink: 0,
+              borderRadius: 6,
+            }}
+            title="Dispensar"
+          >
+            <X size={14} />
+          </button>
+        </div>
+      )}
+
       {/* Date Navigation */}
       <div style={{
         display: "flex",
@@ -396,38 +531,50 @@ export default function AgendaPageClient() {
           onNewAppointment={() => { setDefaultSlot(null); setEditingAppointment(null); setShowAppointmentDialog(true) }}
           onNewBlock={() => setShowBlockDialog(true)}
           onOpenWaitlist={() => setShowWaitlistSheet(true)}
+          onRefresh={refresh}
           restrictToProfessionalId={restrictToProfessionalId}
           hasAdminAccess={hasAdminAccess}
           isProfessional={isProfessional}
         />
       ) : (
-        <div style={{
-          display: "grid",
-          gridTemplateColumns: "240px 1fr",
-          gap: 16,
-          alignItems: "flex-start",
-        }}>
-          {/* Sidebar: Calendar Picker */}
-          <div style={{ position: "sticky", top: 72 }}>
-            <AgendaCalendarPicker
+        <>
+          {/* Professional View Selector — desktop only, admin only */}
+          {!restrictToProfessionalId && professionals.length > 1 && (
+            <ProfessionalViewSelector
+              professionals={professionals}
+              selectedIds={selectedProfIds}
+              onSelectionChange={handleSelectionChange}
+            />
+          )}
+
+          <div style={{
+            display: "grid",
+            gridTemplateColumns: "240px 1fr",
+            gap: 16,
+            alignItems: "flex-start",
+          }}>
+            {/* Sidebar: Calendar Picker */}
+            <div style={{ position: "sticky", top: 72 }}>
+              <AgendaCalendarPicker
+                selectedDate={selectedDate}
+                onDateChange={setSelectedDate}
+              />
+            </div>
+
+            {/* Main: Day Grid */}
+            <AgendaDayGrid
+              appointments={gridAppointments}
+              blocks={gridBlocks}
+              professionals={gridProfessionals}
+              workingHours={workingHours}
+              settings={settings}
               selectedDate={selectedDate}
-              onDateChange={setSelectedDate}
+              onSlotClick={handleSlotClick}
+              onAppointmentClick={handleAppointmentClick}
+              onBlockClick={handleBlockClick}
             />
           </div>
-
-          {/* Main: Day Grid */}
-          <AgendaDayGrid
-            appointments={visibleAppointments}
-            blocks={visibleBlocks}
-            professionals={visibleProfessionals}
-            workingHours={workingHours}
-            settings={settings}
-            selectedDate={selectedDate}
-            onSlotClick={handleSlotClick}
-            onAppointmentClick={handleAppointmentClick}
-            onBlockClick={handleBlockClick}
-          />
-        </div>
+        </>
       )}
 
       {/* ═══ Dialogs ═══ */}

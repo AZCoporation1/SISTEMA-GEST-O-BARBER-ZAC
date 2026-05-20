@@ -1,27 +1,64 @@
 "use client"
 
 import { useState } from "react"
-import { Plus, Search, Upload } from "lucide-react"
+import { Plus, Search, Upload, Trash2, Pencil } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { DataTable } from "@/components/ui/data-table"
-import { useServices } from "../hooks/useServices"
+import { useServices, useServiceMutations } from "../hooks/useServices"
 import { ServiceNode } from "../types"
 import { ServiceFormDialog } from "./ServiceFormDialog"
 import { ServiceImportDialog } from "./ServiceImportDialog"
 import { Badge } from "@/components/ui/badge"
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+  AlertDialogAction,
+} from "@/components/ui/alert-dialog"
 
 export function ServicesDashboard() {
   const [search, setSearch] = useState("")
   const [formOpen, setFormOpen] = useState(false)
   const [importOpen, setImportOpen] = useState(false)
   const [selectedService, setSelectedService] = useState<ServiceNode | null>(null)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [serviceToDelete, setServiceToDelete] = useState<ServiceNode | null>(null)
 
   const { data, isLoading } = useServices({
     page: 1,
     perPage: 10000,
     search: search.length > 2 ? search : undefined
   })
+
+  const { deleteService, isDeleting } = useServiceMutations()
+
+  const handleDeleteClick = (service: ServiceNode, e: React.MouseEvent) => {
+    e.stopPropagation()
+    setServiceToDelete(service)
+    setDeleteDialogOpen(true)
+  }
+
+  const handleConfirmDelete = async () => {
+    if (!serviceToDelete) return
+    try {
+      await deleteService(serviceToDelete.id)
+      setDeleteDialogOpen(false)
+      setServiceToDelete(null)
+    } catch {
+      // Error is handled by the mutation's onError (toast)
+      // Keep dialog open so user sees the context
+    }
+  }
+
+  const handleCancelDelete = () => {
+    setDeleteDialogOpen(false)
+    setServiceToDelete(null)
+  }
 
   const cols = [
     { header: "Nome", accessorKey: "name" },
@@ -48,17 +85,30 @@ export function ServicesDashboard() {
   ]
 
   const actions = (row: ServiceNode) => (
-    <Button 
-      variant="ghost" 
-      size="sm"
-      onClick={(e) => {
-        e.stopPropagation()
-        setSelectedService(row)
-        setFormOpen(true)
-      }}
-    >
-      Editar
-    </Button>
+    <div className="flex items-center gap-1">
+      <Button 
+        variant="ghost" 
+        size="sm"
+        onClick={(e) => {
+          e.stopPropagation()
+          setSelectedService(row)
+          setFormOpen(true)
+        }}
+      >
+        <Pencil className="mr-1 h-3.5 w-3.5" />
+        Editar
+      </Button>
+      <Button 
+        variant="ghost" 
+        size="sm"
+        className="text-[var(--danger)] hover:text-[var(--danger)] hover:bg-[var(--danger-bg)]"
+        onClick={(e) => handleDeleteClick(row, e)}
+        disabled={isDeleting}
+      >
+        <Trash2 className="mr-1 h-3.5 w-3.5" />
+        Excluir
+      </Button>
+    </div>
   )
 
   return (
@@ -106,6 +156,34 @@ export function ServicesDashboard() {
         open={importOpen}
         onOpenChange={setImportOpen}
       />
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir Serviço</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir o serviço{" "}
+              <strong className="text-[var(--text-primary)]">
+                {serviceToDelete?.name}
+              </strong>
+              ? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={handleCancelDelete} disabled={isDeleting}>
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDelete}
+              disabled={isDeleting}
+              className="bg-[var(--danger-bg)] text-[var(--danger)] border-[rgba(239,68,68,0.2)] hover:bg-[rgba(239,68,68,0.15)]"
+            >
+              {isDeleting ? "Excluindo..." : "Sim, Excluir"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

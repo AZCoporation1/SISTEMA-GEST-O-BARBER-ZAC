@@ -1,22 +1,32 @@
 import Link from "next/link"
 import { redirect } from "next/navigation"
 import { ArrowLeft, ChevronRight, Scissors } from "lucide-react"
-import { getPublicBookingProfessionals, getPublicBookingService } from "@/features/agenda/actions/public-booking.actions"
+import { getPublicBookingProfessionals, getPublicBookingService, getPublicBookingComposition } from "@/features/agenda/actions/public-booking.actions"
 
 export default async function AgendarProfessionalPage({
   searchParams,
 }: {
-  searchParams: Promise<{ serviceId?: string }>
+  searchParams: Promise<{ serviceId?: string; addons?: string }>
 }) {
   const params = await searchParams
   const serviceId = params.serviceId
+  const addonsParam = params.addons || ''
 
   if (!serviceId) {
     redirect('/cliente/agendar')
   }
 
-  // Validate service via service-role (bypasses RLS)
-  const serviceResult = await getPublicBookingService(serviceId)
+  // Parse addon IDs
+  const addonIds = addonsParam ? addonsParam.split(',').filter(Boolean) : []
+
+  // Fetch service and composition in parallel
+  const [serviceResult, compositionResult, profResult] = await Promise.all([
+    getPublicBookingService(serviceId),
+    addonIds.length > 0
+      ? getPublicBookingComposition(serviceId, addonIds)
+      : Promise.resolve(null),
+    getPublicBookingProfessionals(),
+  ])
 
   if (!serviceResult.success || !serviceResult.data) {
     return (
@@ -38,9 +48,12 @@ export default async function AgendarProfessionalPage({
   }
 
   const service = serviceResult.data
+  const composition = compositionResult?.success ? compositionResult.data : null
 
-  // Fetch professionals via service-role (bypasses RLS)
-  const profResult = await getPublicBookingProfessionals()
+  // Display name: use composition if has addons, else service name
+  const displayName = composition?.displayName || service.name
+  const totalPrice = composition?.totalPrice || service.price
+  const totalDuration = composition?.totalDurationMinutes || service.durationMinutes
 
   if (!profResult.success || !profResult.data || profResult.data.length === 0) {
     return (
@@ -63,6 +76,8 @@ export default async function AgendarProfessionalPage({
   }
 
   const professionals = profResult.data
+  // Build query string preserving addons
+  const addonsQuery = addonsParam ? `&addons=${addonsParam}` : ''
 
   return (
     <div className="flex flex-col h-full space-y-6 pt-4 pb-12 fade-up px-4">
@@ -72,9 +87,25 @@ export default async function AgendarProfessionalPage({
         </Link>
         <div>
           <h1 className="text-xl font-bold text-foreground">Escolha o profissional</h1>
-          <p className="text-xs text-muted-foreground mt-0.5">{service.name}</p>
+          <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{displayName}</p>
         </div>
       </div>
+
+      {/* Composition summary */}
+      {composition && composition.items && composition.items.length > 1 && (
+        <div className="p-3 rounded-xl border border-primary/20 bg-primary/5 text-sm fade-up-fast">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs text-primary font-medium">Atendimento montado</p>
+              <p className="text-foreground font-semibold text-sm line-clamp-1">{displayName}</p>
+            </div>
+            <div className="text-right">
+              <p className="text-xs text-muted-foreground">{totalDuration}min</p>
+              <p className="text-sm font-bold text-foreground">R$ {totalPrice.toFixed(2).replace('.', ',')}</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="space-y-3 stagger">
         {professionals.map(prof => {
@@ -82,7 +113,7 @@ export default async function AgendarProfessionalPage({
           return (
             <Link 
               key={prof.id} 
-              href={`/cliente/agendar/data-hora?serviceId=${serviceId}&professionalId=${prof.id}`}
+              href={`/cliente/agendar/data-hora?serviceId=${serviceId}${addonsQuery}&professionalId=${prof.id}`}
               className="block group"
             >
               <div className="p-4 rounded-2xl border border-border bg-card/50 premium-card hover:border-primary/20 flex items-center justify-between">

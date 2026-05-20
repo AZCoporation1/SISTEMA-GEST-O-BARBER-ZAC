@@ -464,9 +464,12 @@ export async function getCustomerAppointments() {
       .select(`
         id,
         start_at,
+        end_at,
         status,
+        customer_id,
         service_name_snapshot,
         service_price_snapshot,
+        cancellation_reason,
         professional_id,
         collaborators (name)
       `)

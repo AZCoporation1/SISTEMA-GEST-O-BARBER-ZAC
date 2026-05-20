@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
-import { fetchServices, saveService, fetchServiceCategories } from "../actions/services.actions"
+import { fetchServices, saveService, deleteService, fetchServiceCategories } from "../actions/services.actions"
 import { ServicesFetchParams } from "../types"
 import { ServiceFormValues } from "../validators"
 import { toast } from "sonner"
@@ -36,8 +36,30 @@ export function useServiceMutations() {
     }
   })
 
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await deleteService(id)
+      if (!res.success) {
+        const error = new Error(res.error) as any
+        error.hasLinkedSales = (res as any).hasLinkedSales
+        throw error
+      }
+      return res
+    },
+    onSuccess: () => {
+      toast.success("Serviço excluído com sucesso!")
+      queryClient.invalidateQueries({ queryKey: ["services"] })
+    },
+    onError: (err: any) => {
+      toast.error(err.message || "Erro ao excluir serviço.")
+    }
+  })
+
   return {
     saveService: saveMutation.mutateAsync,
-    isSaving: saveMutation.isPending
+    isSaving: saveMutation.isPending,
+    deleteService: deleteMutation.mutateAsync,
+    isDeleting: deleteMutation.isPending,
   }
 }
+

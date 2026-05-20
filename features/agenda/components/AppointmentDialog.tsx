@@ -429,9 +429,13 @@ export default function AppointmentDialog({
                 onChange={e => setDurationMinutes(Number(e.target.value))}
                 style={inputStyle}
               >
-                {[15, 30, 45, 60, 90, 120].map(m => (
-                  <option key={m} value={m}>{m}min</option>
-                ))}
+                {(() => {
+                  const opts = [15, 20, 30, 40, 45, 60, 90, 120]
+                  if (!opts.includes(durationMinutes)) opts.push(durationMinutes)
+                  return opts.sort((a, b) => a - b).map(m => (
+                    <option key={m} value={m}>{m}min</option>
+                  ))
+                })()}
               </select>
             </div>
           </div>

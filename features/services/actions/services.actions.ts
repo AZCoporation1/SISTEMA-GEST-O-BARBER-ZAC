@@ -129,6 +129,89 @@ export async function saveService(data: ServiceFormValues) {
   }
 }
 
+export async function deleteService(id: string) {
+  try {
+    const supabase = await createServerClient()
+
+    // 1. Fetch the service data before deleting (for audit)
+    const { data: serviceData, error: fetchError } = await (supabase as any)
+      .from("services")
+      .select("*")
+      .eq("id", id)
+      .single()
+
+    if (fetchError || !serviceData) {
+      return { success: false, error: "Serviço não encontrado." }
+    }
+
+    // 2. Check if service is linked to any sale_items (FK constraint)
+    const { count: saleItemsCount, error: checkError } = await supabase
+      .from("sale_items")
+      .select("id", { count: "exact", head: true })
+      .eq("service_id", id)
+
+    if (checkError) {
+      console.error("Error checking sale_items:", checkError)
+      // If we can't check, still try the delete and handle FK error below
+    }
+
+    if (saleItemsCount && saleItemsCount > 0) {
+      return {
+        success: false,
+        error: `Este serviço está vinculado a ${saleItemsCount} venda(s) e não pode ser excluído. Você pode desativá-lo pelo formulário de edição.`,
+        hasLinkedSales: true,
+      }
+    }
+
+    // 3. Check if service is linked to any professional_requests
+    const { count: requestsCount } = await supabase
+      .from("professional_requests")
+      .select("id", { count: "exact", head: true })
+      .eq("service_id", id)
+
+    if (requestsCount && requestsCount > 0) {
+      return {
+        success: false,
+        error: `Este serviço está vinculado a ${requestsCount} solicitação(ões) de profissional e não pode ser excluído. Você pode desativá-lo pelo formulário de edição.`,
+        hasLinkedSales: true,
+      }
+    }
+
+    // 4. Perform the hard delete
+    const { error: deleteError } = await supabase
+      .from("services")
+      .delete()
+      .eq("id", id)
+
+    if (deleteError) {
+      // Handle FK constraint violations gracefully
+      if (deleteError.code === '23503') {
+        return {
+          success: false,
+          error: "Este serviço possui registros vinculados e não pode ser excluído. Você pode desativá-lo pelo formulário de edição.",
+          hasLinkedSales: true,
+        }
+      }
+      throw deleteError
+    }
+
+    // 5. Log the audit
+    await logAudit({
+      action: 'DELETE',
+      entity: 'services',
+      entity_id: id,
+      oldData: serviceData,
+      observation: `Serviço excluído: ${serviceData.name}`,
+    })
+
+    revalidatePath("/servicos")
+    return { success: true }
+  } catch (err: any) {
+    console.error("Error deleting service:", err)
+    return { success: false, error: err.message || "Erro ao excluir serviço." }
+  }
+}
+
 export async function fetchServiceCategories() {
   const supabase = await createServerClient()
   const { data, error } = await supabase

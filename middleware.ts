@@ -15,6 +15,7 @@ const isPublicCustomerRoute = (pathname: string) => isCustomerRoute(pathname) &&
 // Routes exclusively for admin/owner users
 const ADMIN_ROUTES = [
   '/dashboard',
+  '/recepcao',
   '/estoque',
   '/movimentacoes',
   '/vendas',

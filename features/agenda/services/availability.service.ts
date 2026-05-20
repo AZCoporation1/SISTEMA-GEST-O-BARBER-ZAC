@@ -11,6 +11,8 @@ interface GetAvailableSlotsParams {
   serviceId: string
   professionalId: string
   date: string // YYYY-MM-DD
+  /** Optional override for composed services (main + addons). Uses service's own duration if omitted. */
+  durationOverrideMinutes?: number
 }
 
 // ── In-memory cache for rarely-changing data ──
@@ -50,6 +52,7 @@ export async function getCustomerAvailableSlots({
   serviceId,
   professionalId,
   date,
+  durationOverrideMinutes,
 }: GetAvailableSlotsParams): Promise<{ success: boolean; data?: Slot[]; error?: string }> {
   try {
     // Use service role to bypass RLS — this is called from public customer routes
@@ -137,7 +140,10 @@ export async function getCustomerAvailableSlots({
       return { success: false, error: "Serviço sem duração configurada." }
     }
 
-    const duration = service.duration_minutes
+    // Use override duration for composed services, or service's own duration
+    const duration = durationOverrideMinutes && durationOverrideMinutes > 0
+      ? durationOverrideMinutes
+      : service.duration_minutes
 
     if (!workingHour) {
       // Professional does not work on this day

@@ -1,10 +1,11 @@
 // @ts-nocheck
 "use client"
 
-import { useState, useMemo } from "react"
-import { Plus, Lock, Clock, User, Users, Phone, ChevronLeft, ChevronRight, CalendarPlus, Scissors, List, Globe } from "lucide-react"
+import { useState, useMemo, useEffect, useCallback } from "react"
+import { Plus, Lock, Clock, User, Users, Phone, ChevronLeft, ChevronRight, CalendarPlus, Scissors, List, Globe, CheckCircle, RefreshCw } from "lucide-react"
 import type { AppointmentWithRelations, AppointmentBlockRow, ProfessionalForAgenda, ProfessionalWorkingHoursRow, AgendaSettingsRow } from "../types"
 import { APPOINTMENT_STATUS_LABELS, APPOINTMENT_STATUS_COLORS } from "../types"
+import { resolveAppointmentVisual } from "../utils/resolveAppointmentVisual"
 import MobileSlotActionSheet from "./MobileSlotActionSheet"
 import MobileBlockActionSheet from "./MobileBlockActionSheet"
 
@@ -22,6 +23,7 @@ interface Props {
   onNewAppointment: () => void
   onNewBlock: () => void
   onOpenWaitlist: () => void
+  onRefresh?: () => Promise<void>
   restrictToProfessionalId?: string | null
   hasAdminAccess: boolean
   isProfessional: boolean
@@ -35,10 +37,25 @@ function minToTime(m: number): string {
   return `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`
 }
 
+function fmtTime(iso: string) {
+  try { const d = new Date(iso); return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}` }
+  catch { return "--:--" }
+}
+
+const SLOT_H = 84
+
+// Visual state resolution is now centralized in resolveAppointmentVisual
+
+function getSaoPauloMinutes(): number {
+  const now = new Date()
+  const sp = new Date(now.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }))
+  return sp.getHours() * 60 + sp.getMinutes()
+}
+
 export default function AgendaMobileView({
   date, appointments, blocks, professionals, workingHours, settings,
   onSlotClick, onAppointmentClick, onBlockUnblocked, onDateChange,
-  onNewAppointment, onNewBlock, onOpenWaitlist,
+  onNewAppointment, onNewBlock, onOpenWaitlist, onRefresh,
   restrictToProfessionalId, hasAdminAccess, isProfessional,
 }: Props) {
   const visibleProfessionals = useMemo(() => {
@@ -51,6 +68,28 @@ export default function AgendaMobileView({
 
   // FAB menu
   const [fabOpen, setFabOpen] = useState(false)
+
+  // Refresh state
+  const [isRefreshing, setIsRefreshing] = useState(false)
+  const [refreshFeedback, setRefreshFeedback] = useState<'success' | 'error' | null>(null)
+
+  const handleRefreshAgenda = useCallback(async () => {
+    if (isRefreshing) return
+    setFabOpen(false)
+    setIsRefreshing(true)
+    setRefreshFeedback(null)
+    try {
+      if (onRefresh) {
+        await onRefresh()
+      }
+      setRefreshFeedback('success')
+    } catch {
+      setRefreshFeedback('error')
+    } finally {
+      setIsRefreshing(false)
+      setTimeout(() => setRefreshFeedback(null), 2500)
+    }
+  }, [isRefreshing, onRefresh])
 
   // Slot action sheet
   const [slotSheet, setSlotSheet] = useState<{ open: boolean; time: string } | null>(null)
@@ -101,6 +140,9 @@ export default function AgendaMobileView({
   const openTime = settings?.opening_time || "07:00"
   const closeTime = settings?.closing_time || "21:00"
   const currentDayOfWeek = dateObj.getDay()
+  const openMin = timeToMin(openTime)
+  const closeMin = timeToMin(closeTime)
+  const pxPerMin = SLOT_H / slotInterval
 
   const todayHours = useMemo(() => {
     if (!selectedProf) return null
@@ -108,12 +150,26 @@ export default function AgendaMobileView({
   }, [workingHours, selectedProf, currentDayOfWeek])
 
   const timeSlots = useMemo(() => {
-    const openMin = timeToMin(openTime)
-    const closeMin = timeToMin(closeTime)
     const slots: string[] = []
     for (let m = openMin; m < closeMin; m += slotInterval) slots.push(minToTime(m))
     return slots
-  }, [openTime, closeTime, slotInterval])
+  }, [openMin, closeMin, slotInterval])
+
+  // Appointments for selected professional
+  const profAppointments = useMemo(() => {
+    if (!selectedProf) return []
+    return (appointments ?? []).filter(a => a.professional_id === selectedProf.id && a.status !== 'cancelled')
+  }, [appointments, selectedProf])
+
+  // Current time marker
+  const todayStr = new Date().toISOString().split('T')[0]
+  const isToday = date === todayStr
+  const [nowMinutes, setNowMinutes] = useState(getSaoPauloMinutes)
+  useEffect(() => {
+    if (!isToday) return
+    const iv = setInterval(() => setNowMinutes(getSaoPauloMinutes()), 60000)
+    return () => clearInterval(iv)
+  }, [isToday])
 
   // ── Helpers ──
   const isWithinWorkingHours = (time: string) => {
@@ -147,21 +203,6 @@ export default function AgendaMobileView({
     return (appointments ?? []).filter(a => a.professional_id === selectedProf.id && !["cancelled"].includes(a.status))
       .find(a => new Date(a.start_at).getTime() < slotEnd && new Date(a.end_at).getTime() > slotStart) || null
   }
-
-  const isFirstSlot = (appt: AppointmentWithRelations, time: string) => {
-    const slotStart = new Date(`${date}T${time}:00-03:00`).getTime()
-    const aStart = new Date(appt.start_at).getTime()
-    return Math.abs(aStart - slotStart) < slotInterval * 60000 && slotStart <= aStart
-  }
-
-  const getSpan = (appt: AppointmentWithRelations) => Math.max(1, Math.ceil((appt.service_duration_minutes_snapshot || 30) / slotInterval))
-
-  const fmtTime = (iso: string) => {
-    try { const d = new Date(iso); return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}` }
-    catch { return "--:--" }
-  }
-
-  const SLOT_H = 52
 
   // ── No-linkage state ──
   if (isProfessional && !restrictToProfessionalId) {
@@ -282,16 +323,11 @@ export default function AgendaMobileView({
           </div>
         ) : (
           <div style={{ position: "relative" }}>
+            {/* ── Slot grid lines ── */}
             {timeSlots.map((time) => {
               const within = isWithinWorkingHours(time)
               const block = within ? getBlockAtSlot(time) : null
-              const appt = within && !block ? getApptAtSlot(time) : null
-              const first = appt ? isFirstSlot(appt, time) : false
-              const span = appt && first ? getSpan(appt) : 1
-              let colors = appt ? APPOINTMENT_STATUS_COLORS[appt.status] || APPOINTMENT_STATUS_COLORS.scheduled : null
-              if (appt && appt.source === 'customer' && appt.status === 'scheduled') {
-                colors = { bg: "rgba(20, 184, 166, 0.1)", border: "rgba(20, 184, 166, 0.3)", text: "#2dd4bf" }
-              }
+              const hasAppt = within && !block ? !!getApptAtSlot(time) : false
 
               return (
                 <div key={time} style={{
@@ -299,18 +335,14 @@ export default function AgendaMobileView({
                   borderBottom: time.endsWith(":00") ? "1px solid var(--border)" : "1px solid color-mix(in srgb, var(--border) 30%, transparent)",
                   background: !within ? "var(--bg-elevated, rgba(128,128,128,0.04))" : "transparent",
                 }}>
-                  {/* Time label */}
                   <div style={{
                     width: 48, minWidth: 48, display: "flex", alignItems: "center", justifyContent: "center",
                     fontSize: time.endsWith(":00") ? 11 : 10, fontWeight: time.endsWith(":00") ? 700 : 500,
                     color: time.endsWith(":00") ? "var(--text-secondary)" : "var(--text-muted)",
-                    borderRight: "1px solid var(--border)",
-                    fontVariantNumeric: "tabular-nums",
+                    borderRight: "1px solid var(--border)", fontVariantNumeric: "tabular-nums",
                   }}>
                     {time}
                   </div>
-
-                  {/* Slot content */}
                   <div style={{ flex: 1, position: "relative", padding: "2px 6px" }}>
                     {!within ? (
                       <div style={{ height: "100%", opacity: 0.3 }} />
@@ -320,8 +352,7 @@ export default function AgendaMobileView({
                         style={{
                           width: "100%", height: "100%", display: "flex", alignItems: "center", gap: 8,
                           padding: "0 10px", borderRadius: 8, cursor: "pointer", fontFamily: "inherit",
-                          background: "rgba(55,65,81,0.12)", border: "1px solid rgba(55,65,81,0.25)",
-                          textAlign: "left",
+                          background: "rgba(55,65,81,0.12)", border: "1px solid rgba(55,65,81,0.25)", textAlign: "left",
                         }}
                       >
                         <Lock size={11} style={{ color: "#6b7280", flexShrink: 0 }} />
@@ -329,55 +360,11 @@ export default function AgendaMobileView({
                           {block.reason || "Bloqueado"}
                         </span>
                       </button>
-                    ) : appt && first ? (
+                    ) : hasAppt ? (
+                      <div style={{ height: "100%" }} />
+                    ) : (
                       <button
-                        onClick={() => onAppointmentClick(appt)}
-                        style={{
-                          position: "absolute", top: 2, left: 6, right: 6,
-                          height: span * SLOT_H - 4, zIndex: 5,
-                          display: "flex", flexDirection: "column", justifyContent: "center",
-                          padding: "6px 10px", borderRadius: 8, cursor: "pointer",
-                          background: colors?.bg,
-                          borderLeft: `3px solid ${colors?.text}`,
-                          borderTop: `1px solid ${colors?.border}`,
-                          borderRight: `1px solid ${colors?.border}`,
-                          borderBottom: `1px solid ${colors?.border}`,
-                          fontFamily: "inherit", textAlign: "left", overflow: "hidden",
-                          transition: "transform 100ms ease, box-shadow 100ms ease",
-                        }}
-                      >
-                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                          <span style={{ fontSize: 12, fontWeight: 700, color: colors?.text }}>
-                            {fmtTime(appt.start_at)} — {fmtTime(appt.end_at)}
-                          </span>
-                          <span style={{
-                            fontSize: 8, fontWeight: 700, padding: "1px 5px", borderRadius: 3,
-                            background: "rgba(0,0,0,0.25)", color: colors?.text,
-                            textTransform: "uppercase", letterSpacing: "0.05em",
-                          }}>
-                            {APPOINTMENT_STATUS_LABELS[appt.status]}
-                          </span>
-                        </div>
-                        <div style={{ fontSize: 11, fontWeight: 600, color: "var(--text-primary)", marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", display: "flex", alignItems: "center", gap: 4 }}>
-                          {appt.customer_name_snapshot || "Walk-in"}
-                          {appt.source === 'customer' && (
-                            <Globe size={10} style={{ color: "var(--accent)" }} />
-                          )}
-                        </div>
-                        {appt.service_name_snapshot && (
-                          <div style={{ fontSize: 9, color: "var(--text-muted)", marginTop: 1, display: "flex", alignItems: "center", gap: 3 }}>
-                            <Scissors size={8} /> {appt.service_name_snapshot}
-                            {appt.source === 'customer' && (
-                              <span style={{ color: "var(--accent)", fontWeight: 500 }}>• App Cliente</span>
-                            )}
-                          </div>
-                        )}
-                      </button>
-                    ) : appt && !first ? null : (
-                      <button
-                        onClick={() => {
-                          if (selectedProf) setSlotSheet({ open: true, time })
-                        }}
+                        onClick={() => { if (selectedProf) setSlotSheet({ open: true, time }) }}
                         style={{
                           width: "100%", height: "100%", background: "transparent",
                           border: "1px dashed color-mix(in srgb, var(--border) 60%, transparent)", borderRadius: 6,
@@ -391,6 +378,153 @@ export default function AgendaMobileView({
                 </div>
               )
             })}
+
+            {/* ── Appointments overlay (absolute, premium operational cards) ── */}
+            {profAppointments.map(appt => {
+              const colors = resolveAppointmentVisual(appt)
+              const isCompleted = appt.status === 'completed'
+              const aStart = new Date(appt.start_at)
+              const aEnd = new Date(appt.end_at)
+              const startMin = aStart.getHours() * 60 + aStart.getMinutes()
+              const endMin = aEnd.getHours() * 60 + aEnd.getMinutes()
+              const durMin = Math.max(endMin - startMin, 1)
+              const top = (startMin - openMin) * pxPerMin
+              const height = durMin * pxPerMin
+              const isCompact = height < 48
+              const isExpanded = height >= 112
+
+              return (
+                <button
+                  key={appt.id}
+                  onClick={() => onAppointmentClick(appt)}
+                  style={{
+                    position: "absolute", top, left: 54, right: 6,
+                    height,
+                    zIndex: 5, display: "flex", flexDirection: "column",
+                    justifyContent: "center",
+                    padding: isCompact ? "2px 8px" : isExpanded ? "8px 12px" : "5px 10px",
+                    borderRadius: 10, cursor: "pointer", overflow: "hidden",
+                    boxSizing: "border-box",
+                    background: colors.bg,
+                    borderLeft: `3.5px solid ${colors.text}`,
+                    borderTop: `1px solid ${colors.border}`,
+                    borderRight: `1px solid ${colors.border}`,
+                    borderBottom: `1px solid ${colors.border}`,
+                    fontFamily: "inherit", textAlign: "left",
+                    gap: 0,
+                    boxShadow: "0 1px 4px rgba(0,0,0,0.06), 0 0 0 0.5px rgba(0,0,0,0.03)",
+                    transition: "transform 100ms ease, box-shadow 100ms ease",
+                  }}
+                >
+                  {isCompact ? (
+                    /* ── Compact (15-20min, < 48px): 2 tight lines ── */
+                    <>
+                      <div style={{ display: "flex", alignItems: "center", gap: 4, width: "100%", minWidth: 0, flexShrink: 0 }}>
+                        <span style={{ fontSize: 10, fontWeight: 800, color: colors.text, flexShrink: 0, fontVariantNumeric: "tabular-nums", lineHeight: 1 }}>
+                          {fmtTime(appt.start_at)}–{fmtTime(appt.end_at)}
+                        </span>
+                        <span style={{ fontSize: 9, fontWeight: 500, color: "var(--text-secondary)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", flex: 1, minWidth: 0, lineHeight: 1 }}>
+                          {appt.service_name_snapshot || ""}
+                        </span>
+                        <span style={{ fontSize: 7, fontWeight: 700, padding: "0 4px", borderRadius: 3, background: colors.badgeBg, color: colors.text, flexShrink: 0, textTransform: "uppercase", lineHeight: "13px", display: "flex", alignItems: "center", gap: 2 }}>
+                          {isCompleted && <CheckCircle size={7} />}
+                          {colors.badge}
+                        </span>
+                        {isCompleted && colors.secondaryBadge && (
+                          <span style={{ fontSize: 6, fontWeight: 600, padding: "0 3px", borderRadius: 2, background: "rgba(0,0,0,0.08)", color: "var(--text-muted)", flexShrink: 0, textTransform: "uppercase", lineHeight: "11px" }}>
+                            {colors.secondaryBadge}
+                          </span>
+                        )}
+                      </div>
+                      <div style={{ fontSize: 10, fontWeight: 600, color: "var(--text-primary)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", width: "100%", lineHeight: 1.1, marginTop: 1 }}>
+                        {appt.customer_name_snapshot || "Cliente não informado"}
+                      </div>
+                    </>
+                  ) : (
+                    /* ── Standard / Expanded (30min+): 3-4 lines ── */
+                    <>
+                      {/* Line 1: Time + Badge */}
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", flexShrink: 0 }}>
+                        <span style={{
+                          fontSize: isExpanded ? 13 : 12, fontWeight: 800, color: colors.text,
+                          fontVariantNumeric: "tabular-nums", lineHeight: 1, letterSpacing: "-0.01em",
+                        }}>
+                          {fmtTime(appt.start_at)} — {fmtTime(appt.end_at)}
+                        </span>
+                        <span style={{
+                          fontSize: 8, fontWeight: 700, padding: "2px 7px", borderRadius: 4,
+                          background: colors.badgeBg, color: colors.text,
+                          textTransform: "uppercase", letterSpacing: "0.06em",
+                          flexShrink: 0, lineHeight: "14px",
+                          display: "flex", alignItems: "center", gap: 3,
+                        }}>
+                          {isCompleted && <CheckCircle size={9} />}
+                          {colors.badge}
+                        </span>
+                        {isCompleted && colors.secondaryBadge && (
+                          <span style={{
+                            fontSize: 7, fontWeight: 600, padding: "2px 5px", borderRadius: 3,
+                            background: "rgba(0,0,0,0.08)", color: "var(--text-muted)",
+                            textTransform: "uppercase", letterSpacing: "0.04em",
+                            lineHeight: "12px", marginLeft: 2,
+                          }}>
+                            {colors.secondaryBadge}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Line 2: Service */}
+                      <div style={{
+                        fontSize: isExpanded ? 11 : 10.5, fontWeight: 500, color: "var(--text-secondary)",
+                        whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+                        width: "100%", lineHeight: 1.2, marginTop: isExpanded ? 5 : 3,
+                      }}>
+                        {appt.service_name_snapshot || "Serviço não informado"}
+                      </div>
+
+                      {/* Line 3: Client */}
+                      <div style={{
+                        fontSize: isExpanded ? 12 : 11.5, fontWeight: 600, color: "var(--text-primary)",
+                        whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+                        width: "100%", lineHeight: 1.2, marginTop: 2,
+                      }}>
+                        {appt.customer_name_snapshot || "Cliente não informado"}
+                      </div>
+
+                      {/* Line 4: Notes (expanded cards only, 60min+) */}
+                      {isExpanded && appt.notes && (
+                        <div style={{
+                          fontSize: 9, fontWeight: 400, color: "var(--text-muted)",
+                          whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+                          width: "100%", lineHeight: 1.1, marginTop: 3,
+                          fontStyle: "italic",
+                        }}>
+                          {appt.notes}
+                        </div>
+                      )}
+                    </>
+                  )}
+                </button>
+              )
+            })}
+
+            {/* ── Current time marker ── */}
+            {isToday && nowMinutes >= openMin && nowMinutes <= closeMin && (
+              <div style={{
+                position: "absolute",
+                top: (nowMinutes - openMin) * pxPerMin,
+                left: 40, right: 0, height: 0,
+                zIndex: 10, pointerEvents: "none",
+                display: "flex", alignItems: "center",
+              }}>
+                <div style={{
+                  width: 8, height: 8, borderRadius: "50%",
+                  background: "#ef4444", marginLeft: -4, flexShrink: 0,
+                  boxShadow: "0 0 4px rgba(239,68,68,0.5)",
+                }} />
+                <div style={{ flex: 1, height: 2, background: "#ef4444", opacity: 0.7 }} />
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -440,6 +574,30 @@ export default function AgendaMobileView({
               }}>
                 <List size={15} /> Lista de espera
               </button>
+              <button
+                onClick={handleRefreshAgenda}
+                disabled={isRefreshing}
+                style={{
+                  display: "flex", alignItems: "center", gap: 8,
+                  padding: "10px 14px", borderRadius: 10,
+                  background: "var(--bg-surface)", border: "1px solid var(--border)",
+                  color: isRefreshing ? "var(--text-muted)" : "var(--text-secondary)",
+                  fontSize: 12, fontWeight: 600,
+                  cursor: isRefreshing ? "not-allowed" : "pointer", fontFamily: "inherit",
+                  boxShadow: "0 4px 16px rgba(0,0,0,0.4)",
+                  opacity: isRefreshing ? 0.7 : 1,
+                  transition: "opacity 150ms ease",
+                }}
+              >
+                <RefreshCw
+                  size={15}
+                  style={{
+                    animation: isRefreshing ? "spinRefresh 800ms linear infinite" : "none",
+                    transition: "transform 150ms ease",
+                  }}
+                />
+                {isRefreshing ? "Atualizando..." : "Atualizar agenda"}
+              </button>
             </div>
           )}
           <button
@@ -487,10 +645,51 @@ export default function AgendaMobileView({
         professionalName={selectedProf?.display_name || selectedProf?.name || undefined}
       />
 
+      {/* ═══ Refresh toast feedback ═══ */}
+      {refreshFeedback && (
+        <div style={{
+          position: "fixed", bottom: 84, left: "50%", transform: "translateX(-50%)",
+          zIndex: 100, padding: "8px 18px", borderRadius: 10,
+          background: refreshFeedback === 'success' ? "rgba(16,185,129,0.95)" : "rgba(239,68,68,0.95)",
+          color: "#fff", fontSize: 12, fontWeight: 600,
+          boxShadow: "0 4px 20px rgba(0,0,0,0.3)",
+          animation: "fadeInUp 200ms ease",
+          backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)",
+          whiteSpace: "nowrap",
+        }}>
+          {refreshFeedback === 'success' ? "Agenda atualizada." : "Não foi possível atualizar a agenda. Tente novamente."}
+        </div>
+      )}
+
+      {/* ═══ Refresh indicator (top bar) ═══ */}
+      {isRefreshing && (
+        <div style={{
+          position: "fixed", top: 0, left: 0, right: 0, height: 3,
+          zIndex: 100, overflow: "hidden",
+          background: "rgba(0,0,0,0.05)",
+        }}>
+          <div style={{
+            width: "40%", height: "100%",
+            background: "var(--accent, #d4a853)",
+            borderRadius: 2,
+            animation: "refreshBar 1.2s ease-in-out infinite",
+          }} />
+        </div>
+      )}
+
       <style jsx global>{`
         @keyframes fadeInUp {
           from { transform: translateY(12px); opacity: 0; }
           to { transform: translateY(0); opacity: 1; }
+        }
+        @keyframes spinRefresh {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+        @keyframes refreshBar {
+          0% { transform: translateX(-100%); }
+          50% { transform: translateX(150%); }
+          100% { transform: translateX(350%); }
         }
       `}</style>
     </div>

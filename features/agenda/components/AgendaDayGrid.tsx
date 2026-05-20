@@ -1,7 +1,7 @@
 "use client"
 
-import { useMemo } from "react"
-import { Lock, User, Clock, Phone, Globe, FileText, Scissors } from "lucide-react"
+import { useMemo, useState, useEffect, useRef, useCallback } from "react"
+import { Lock, User, Clock, Phone, Globe, FileText, Scissors, CheckCircle } from "lucide-react"
 import type {
   AppointmentWithRelations,
   AppointmentBlockRow,
@@ -10,6 +10,7 @@ import type {
   AgendaSettingsRow,
 } from "../types"
 import { APPOINTMENT_STATUS_COLORS, APPOINTMENT_STATUS_LABELS } from "../types"
+import { resolveAppointmentVisual } from "../utils/resolveAppointmentVisual"
 
 interface Props {
   appointments: AppointmentWithRelations[]
@@ -41,6 +42,14 @@ function fmtTime(iso: string): string {
   } catch {
     return "--:--"
   }
+}
+
+// Visual state resolution is now centralized in resolveAppointmentVisual
+
+function getSaoPauloMinutes(): number {
+  const now = new Date()
+  const sp = new Date(now.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }))
+  return sp.getHours() * 60 + sp.getMinutes()
 }
 
 export default function AgendaDayGrid({
@@ -75,7 +84,17 @@ export default function AgendaDayGrid({
 
   const SLOT_HEIGHT = 56
   const TIME_COL_WIDTH = 56
-  const MIN_COL_WIDTH = 180
+  const MIN_COL_WIDTH = 260
+
+  // ── Scroll sync refs ──
+  const headerRef = useRef<HTMLDivElement>(null)
+  const bodyRef = useRef<HTMLDivElement>(null)
+
+  const handleBodyScroll = useCallback(() => {
+    if (bodyRef.current && headerRef.current) {
+      headerRef.current.scrollLeft = bodyRef.current.scrollLeft
+    }
+  }, [])
 
   // Helper: get professional working hours for today
   const getProfHours = (profId: string) => {
@@ -119,11 +138,31 @@ export default function AgendaDayGrid({
     return Math.abs(aStart - slotStart) < slotInterval * 60 * 1000 && slotStart <= aStart
   }
 
-  // Helper: get appointment height in slots
+  // Helper: get real duration from start_at/end_at
+  const getRealDurationMin = (appt: AppointmentWithRelations) => {
+    const s = new Date(appt.start_at).getTime()
+    const e = new Date(appt.end_at).getTime()
+    return Math.max(1, (e - s) / 60000)
+  }
+
   const getAppointmentSlotSpan = (appt: AppointmentWithRelations) => {
-    const durationMin = appt.service_duration_minutes_snapshot || 30
+    const durationMin = getRealDurationMin(appt)
     return Math.max(1, Math.ceil(durationMin / slotInterval))
   }
+
+  const pxPerMin = SLOT_HEIGHT / slotInterval
+
+  // Current time marker
+  const todayStr = new Date().toISOString().split('T')[0]
+  const isToday = selectedDate === todayStr
+  const [nowMinutes, setNowMinutes] = useState(getSaoPauloMinutes)
+  useEffect(() => {
+    if (!isToday) return
+    const iv = setInterval(() => setNowMinutes(getSaoPauloMinutes()), 60000)
+    return () => clearInterval(iv)
+  }, [isToday])
+  const openMinutes = timeToMinutes(openingStr)
+  const closeMinutes = timeToMinutes(closingStr)
 
   // Helper: find block at slot (returns the block or undefined)
   const getBlockAtSlot = (profId: string, time: string) => {
@@ -154,16 +193,23 @@ export default function AgendaDayGrid({
       border: "1px solid var(--border)",
       borderRadius: 12,
       overflow: "hidden",
+      display: "flex",
+      flexDirection: "column",
     }}>
       {/* Header — Professional Columns */}
-      <div style={{
-        display: "flex",
-        borderBottom: "2px solid var(--border)",
-        position: "sticky",
-        top: 0,
-        zIndex: 10,
-        background: "var(--bg-surface)",
-      }}>
+      <div
+        ref={headerRef}
+        style={{
+          display: "flex",
+          borderBottom: "2px solid var(--border)",
+          position: "sticky",
+          top: 0,
+          zIndex: 10,
+          background: "var(--bg-surface)",
+          overflowX: "hidden",
+          flexShrink: 0,
+        }}
+      >
         <div style={{
           width: TIME_COL_WIDTH,
           minWidth: TIME_COL_WIDTH,
@@ -243,7 +289,11 @@ export default function AgendaDayGrid({
       </div>
 
       {/* Grid Body */}
-      <div style={{ overflowX: "auto", overflowY: "auto", maxHeight: "calc(100dvh - 280px)" }}>
+      <div
+        ref={bodyRef}
+        onScroll={handleBodyScroll}
+        style={{ overflowX: "auto", overflowY: "auto", maxHeight: "calc(100dvh - 280px)", position: "relative", flex: 1 }}
+      >
         {timeSlots.map((time, slotIdx) => {
           const isHourMark = time.endsWith(":00")
           return (
@@ -303,6 +353,7 @@ export default function AgendaDayGrid({
                         flex: 1,
                         minWidth: MIN_COL_WIDTH,
                         borderRight: "1px solid var(--border)",
+                        borderBottom: "1px solid color-mix(in srgb, var(--border) 30%, transparent)",
                         background: "repeating-linear-gradient(135deg, transparent, transparent 4px, rgba(107,114,128,0.06) 4px, rgba(107,114,128,0.06) 8px)",
                         display: "flex",
                         alignItems: "center",
@@ -311,6 +362,7 @@ export default function AgendaDayGrid({
                         cursor: onBlockClick ? "pointer" : "default",
                         transition: "background 100ms ease, filter 100ms ease",
                         padding: "0 8px",
+                        boxSizing: "border-box",
                       }}
                       onMouseEnter={e => {
                         if (onBlockClick) (e.currentTarget as HTMLElement).style.filter = "brightness(0.92)"
@@ -346,15 +398,26 @@ export default function AgendaDayGrid({
 
                 // Appointment slot — first slot renders the card
                 if (appointment && isFirst) {
-                  let colors = APPOINTMENT_STATUS_COLORS[appointment.status] || APPOINTMENT_STATUS_COLORS.scheduled
-                  if (appointment.source === 'customer' && appointment.status === 'scheduled') {
-                    colors = { bg: "rgba(20, 184, 166, 0.1)", border: "rgba(20, 184, 166, 0.3)", text: "#2dd4bf" }
-                  }
+                  const colors = resolveAppointmentVisual(appointment)
+                  const isCompleted = appointment.status === 'completed'
+                  const realDur = getRealDurationMin(appointment)
+                  const realHeight = realDur * pxPerMin
                   const span = getAppointmentSlotSpan(appointment)
                   const isCompact = span === 1
+                  const isNormal = span === 2
                   const isExpanded = span >= 3
                   const startStr = fmtTime(appointment.start_at)
                   const endStr = fmtTime(appointment.end_at)
+
+                  // Build tooltip
+                  const tooltipParts = [
+                    `${startStr} — ${endStr}`,
+                    appointment.customer_name_snapshot || "Cliente",
+                    appointment.service_name_snapshot,
+                    appointment.customer_phone_snapshot,
+                    colors.badge,
+                    appointment.notes,
+                  ].filter(Boolean)
 
                   return (
                     <div
@@ -368,183 +431,222 @@ export default function AgendaDayGrid({
                       }}
                     >
                       <button
+                        title={tooltipParts.join(" · ")}
                         onClick={() => onAppointmentClick(appointment)}
                         style={{
                           position: "absolute",
                           top: 3,
                           left: 3,
                           right: 3,
-                          height: span * SLOT_HEIGHT - 6,
+                          height: realHeight - 6,
                           background: colors.bg,
-                          borderLeft: `3px solid ${colors.text}`,
+                          borderLeft: `3.5px solid ${colors.text}`,
                           borderTop: `1px solid ${colors.border}`,
                           borderRight: `1px solid ${colors.border}`,
                           borderBottom: `1px solid ${colors.border}`,
                           borderRadius: 8,
-                          padding: isCompact ? "4px 8px" : "6px 10px",
+                          padding: isCompact ? "3px 8px" : isExpanded ? "6px 10px" : "5px 10px",
                           cursor: "pointer",
                           display: "flex",
-                          flexDirection: isCompact ? "row" : "column",
-                          alignItems: isCompact ? "center" : "flex-start",
-                          justifyContent: isCompact ? "space-between" : "flex-start",
-                          gap: isCompact ? 6 : 2,
+                          flexDirection: "column",
+                          justifyContent: "center",
+                          gap: 0,
                           overflow: "hidden",
                           textAlign: "left",
                           zIndex: 5,
+                          boxSizing: "border-box",
+                          boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
                           transition: "box-shadow 120ms ease, transform 120ms ease",
                         }}
                         onMouseEnter={e => {
-                          (e.currentTarget as HTMLElement).style.boxShadow = `0 4px 16px rgba(0,0,0,0.15)`
+                          (e.currentTarget as HTMLElement).style.boxShadow = `0 4px 16px rgba(0,0,0,0.13)`
                           ;(e.currentTarget as HTMLElement).style.transform = "scale(1.01)"
                         }}
                         onMouseLeave={e => {
-                          (e.currentTarget as HTMLElement).style.boxShadow = "none"
+                          (e.currentTarget as HTMLElement).style.boxShadow = "0 1px 3px rgba(0,0,0,0.04)"
                           ;(e.currentTarget as HTMLElement).style.transform = "scale(1)"
                         }}
                       >
                         {isCompact ? (
-                          /* ── Compact: 1 slot ── */
+                          /* ── Compact (30min / 1 slot): dense horizontal layout ── */
                           <>
+                            {/* Row 1: time · client · service · badge */}
                             <div style={{
                               display: "flex",
                               alignItems: "center",
-                              gap: 4,
+                              gap: 5,
+                              width: "100%",
                               minWidth: 0,
-                              flex: 1,
                             }}>
                               <span style={{
-                                fontSize: 10,
-                                fontWeight: 700,
+                                fontSize: 11,
+                                fontWeight: 800,
                                 color: colors.text,
                                 whiteSpace: "nowrap",
                                 fontVariantNumeric: "tabular-nums",
+                                lineHeight: 1,
+                                flexShrink: 0,
                               }}>
                                 {startStr}
                               </span>
                               <span style={{
-                                fontSize: 10,
+                                fontSize: 11,
                                 fontWeight: 600,
                                 color: "var(--text-primary)",
                                 whiteSpace: "nowrap",
                                 overflow: "hidden",
                                 textOverflow: "ellipsis",
+                                lineHeight: 1,
+                                minWidth: 0,
                               }}>
                                 {appointment.customer_name_snapshot || "Cliente"}
                               </span>
-                              {!appointment.customer_id && (
+                              {appointment.service_name_snapshot && (
                                 <span style={{
-                                  fontSize: 7,
-                                  fontWeight: 700,
-                                  padding: "1px 4px",
-                                  borderRadius: 3,
-                                  background: "var(--bg-elevated)",
-                                  border: "1px solid var(--border)",
-                                  color: "var(--text-secondary)",
-                                  textTransform: "uppercase",
-                                  flexShrink: 0,
+                                  fontSize: 9,
+                                  fontWeight: 400,
+                                  color: "var(--text-muted)",
+                                  whiteSpace: "nowrap",
+                                  overflow: "hidden",
+                                  textOverflow: "ellipsis",
+                                  lineHeight: 1,
+                                  minWidth: 0,
+                                  flexShrink: 1,
                                 }}>
-                                  Avulso
+                                  · {appointment.service_name_snapshot}
                                 </span>
                               )}
-                              {appointment.source === 'customer' && (
-                                <Globe size={9} style={{ color: "var(--accent)", flexShrink: 0 }} />
+                              <span style={{
+                                fontSize: 7,
+                                fontWeight: 700,
+                                padding: "1px 5px",
+                                borderRadius: 3,
+                                background: colors.badgeBg,
+                                color: colors.text,
+                                textTransform: "uppercase",
+                                letterSpacing: "0.05em",
+                                flexShrink: 0,
+                                lineHeight: "13px",
+                                marginLeft: "auto",
+                              }}>
+                                {isCompleted && <CheckCircle size={8} style={{ marginRight: 2, verticalAlign: 'middle' }} />}
+                                {colors.badge}
+                              </span>
+                              {isCompleted && colors.secondaryBadge && (
+                                <span style={{
+                                  fontSize: 6,
+                                  fontWeight: 600,
+                                  padding: "1px 4px",
+                                  borderRadius: 3,
+                                  background: "rgba(0,0,0,0.08)",
+                                  color: "var(--text-muted)",
+                                  textTransform: "uppercase",
+                                  letterSpacing: "0.04em",
+                                  flexShrink: 0,
+                                  lineHeight: "11px",
+                                }}>
+                                  {colors.secondaryBadge}
+                                </span>
                               )}
                             </div>
-                            <div style={{
-                              width: 6,
-                              height: 6,
-                              borderRadius: "50%",
-                              background: colors.text,
-                              flexShrink: 0,
-                            }} title={APPOINTMENT_STATUS_LABELS[appointment.status]} />
+                            {/* Row 2: phone (if fits) */}
+                            {appointment.customer_phone_snapshot && (
+                              <div style={{
+                                fontSize: 9,
+                                color: "var(--text-muted)",
+                                opacity: 0.7,
+                                lineHeight: 1,
+                                marginTop: 2,
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 3,
+                              }}>
+                                <Phone size={7} style={{ flexShrink: 0 }} />
+                                {appointment.customer_phone_snapshot}
+                              </div>
+                            )}
                           </>
                         ) : (
                           /* ── Normal / Expanded: 2+ slots ── */
                           <>
-                            {/* Line 1: Time + status badge */}
+                            {/* Line 1: Time + origin badge */}
                             <div style={{
                               display: "flex",
                               alignItems: "center",
                               justifyContent: "space-between",
                               width: "100%",
+                              flexShrink: 0,
                             }}>
                               <span style={{
-                                fontSize: 11,
-                                fontWeight: 700,
+                                fontSize: 12,
+                                fontWeight: 800,
                                 color: colors.text,
                                 fontVariantNumeric: "tabular-nums",
+                                lineHeight: 1,
+                                letterSpacing: "-0.01em",
                               }}>
-                                {startStr} – {endStr}
+                                {startStr} — {endStr}
                               </span>
-                              <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                                {appointment.source === 'customer' && (
-                                  <span style={{
-                                    fontSize: 7,
-                                    fontWeight: 700,
-                                    padding: "1px 5px",
-                                    borderRadius: 3,
-                                    background: "rgba(20,184,166,0.15)",
-                                    color: "#2dd4bf",
-                                    textTransform: "uppercase",
-                                    letterSpacing: "0.05em",
-                                    whiteSpace: "nowrap",
-                                  }}>
-                                    App
-                                  </span>
-                                )}
+                              <div style={{ display: "flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
                                 <span style={{
-                                  fontSize: 7,
+                                  fontSize: 8,
                                   fontWeight: 700,
-                                  padding: "1px 5px",
-                                  borderRadius: 3,
-                                  background: "rgba(0,0,0,0.12)",
+                                  padding: "2px 6px",
+                                  borderRadius: 4,
+                                  background: colors.badgeBg,
                                   color: colors.text,
                                   textTransform: "uppercase",
                                   letterSpacing: "0.05em",
-                                  whiteSpace: "nowrap",
+                                  lineHeight: "14px",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: 3,
                                 }}>
-                                  {APPOINTMENT_STATUS_LABELS[appointment.status]}
+                                  {isCompleted && <CheckCircle size={9} />}
+                                  {colors.badge}
                                 </span>
+                                {isCompleted && colors.secondaryBadge && (
+                                  <span style={{
+                                    fontSize: 7,
+                                    fontWeight: 600,
+                                    padding: "2px 5px",
+                                    borderRadius: 3,
+                                    background: "rgba(0,0,0,0.08)",
+                                    color: "var(--text-muted)",
+                                    textTransform: "uppercase",
+                                    letterSpacing: "0.04em",
+                                    lineHeight: "12px",
+                                  }}>
+                                    {colors.secondaryBadge}
+                                  </span>
+                                )}
                               </div>
                             </div>
 
                             {/* Line 2: Client name */}
                             <div style={{
-                              fontSize: 11,
-                              fontWeight: 700,
+                              fontSize: 12,
+                              fontWeight: 600,
                               color: "var(--text-primary)",
                               whiteSpace: "nowrap",
                               overflow: "hidden",
                               textOverflow: "ellipsis",
                               width: "100%",
-                              marginTop: 1,
+                              lineHeight: 1.2,
+                              marginTop: 3,
                               display: "flex",
                               alignItems: "center",
                               gap: 4,
                             }}>
-                              <User size={10} style={{ flexShrink: 0, opacity: 0.5 }} />
+                              <User size={11} style={{ flexShrink: 0, opacity: 0.5 }} />
                               {appointment.customer_name_snapshot || "Cliente"}
-                              {!appointment.customer_id && (
-                                <span style={{
-                                  fontSize: 7,
-                                  fontWeight: 700,
-                                  padding: "1px 4px",
-                                  borderRadius: 3,
-                                  background: "var(--bg-elevated)",
-                                  border: "1px solid var(--border)",
-                                  color: "var(--text-secondary)",
-                                  textTransform: "uppercase",
-                                  flexShrink: 0,
-                                }}>
-                                  Avulso
-                                </span>
-                              )}
                             </div>
 
                             {/* Line 3: Service */}
                             <div style={{
-                              fontSize: 9,
-                              color: "var(--text-muted)",
+                              fontSize: 10,
+                              fontWeight: 500,
+                              color: "var(--text-secondary)",
                               whiteSpace: "nowrap",
                               overflow: "hidden",
                               textOverflow: "ellipsis",
@@ -552,48 +654,52 @@ export default function AgendaDayGrid({
                               display: "flex",
                               alignItems: "center",
                               gap: 3,
-                              marginTop: 1,
+                              marginTop: 2,
+                              lineHeight: 1.2,
                             }}>
-                              <Scissors size={8} style={{ flexShrink: 0 }} />
+                              <Scissors size={9} style={{ flexShrink: 0, opacity: 0.6 }} />
                               {appointment.service_name_snapshot || "Serviço"}
-                              <span style={{ opacity: 0.6 }}>•</span>
-                              <span style={{ fontVariantNumeric: "tabular-nums" }}>
-                                {appointment.service_duration_minutes_snapshot || 30}min
+                              <span style={{ opacity: 0.4, fontSize: 8 }}>•</span>
+                              <span style={{ fontVariantNumeric: "tabular-nums", fontSize: 9, opacity: 0.7 }}>
+                                {realDur}min
                               </span>
                             </div>
 
-                            {/* Line 4 — Expanded: phone / notes */}
+                            {/* Line 4+ — Expanded: phone / notes */}
                             {isExpanded && (
                               <>
                                 {appointment.customer_phone_snapshot && (
                                   <div style={{
-                                    fontSize: 8,
+                                    fontSize: 9,
                                     color: "var(--text-muted)",
                                     opacity: 0.7,
                                     display: "flex",
                                     alignItems: "center",
                                     gap: 3,
-                                    marginTop: 2,
+                                    marginTop: 3,
+                                    lineHeight: 1,
                                   }}>
-                                    <Phone size={7} style={{ flexShrink: 0 }} />
+                                    <Phone size={8} style={{ flexShrink: 0 }} />
                                     {appointment.customer_phone_snapshot}
                                   </div>
                                 )}
                                 {appointment.notes && (
                                   <div style={{
-                                    fontSize: 8,
+                                    fontSize: 9,
                                     color: "var(--text-muted)",
-                                    opacity: 0.7,
+                                    opacity: 0.6,
                                     display: "flex",
                                     alignItems: "center",
                                     gap: 3,
-                                    marginTop: 1,
+                                    marginTop: 2,
                                     whiteSpace: "nowrap",
                                     overflow: "hidden",
                                     textOverflow: "ellipsis",
                                     width: "100%",
+                                    fontStyle: "italic",
+                                    lineHeight: 1,
                                   }}>
-                                    <FileText size={7} style={{ flexShrink: 0 }} />
+                                    <FileText size={8} style={{ flexShrink: 0 }} />
                                     {appointment.notes}
                                   </div>
                                 )}

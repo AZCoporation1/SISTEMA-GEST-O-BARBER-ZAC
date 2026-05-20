@@ -6,6 +6,8 @@ import { appointmentSchema, blockSchema, agendaSettingsSchema, waitlistSchema, t
 import { logAudit } from "@/features/audit/actions/audit.actions"
 import { resolveUserProfileId } from "@/lib/supabase/resolve-user"
 import { processSale } from "@/features/sales/actions/sales.actions"
+import { calculateServiceComposition, validateCompositionCompatibility } from "../services/service-composition"
+import type { CompositionServiceInput } from "../services/service-composition"
 import { revalidatePath } from "next/cache"
 import type { SaleFormValues } from "@/features/sales/validators"
 
@@ -1110,6 +1112,8 @@ interface CustomerAppointmentInput {
   date: string
   startTime: string
   notes?: string
+  /** Optional addon service IDs for composed booking */
+  addonServiceIds?: string[]
 }
 
 export async function createCustomerAppointment(data: CustomerAppointmentInput) {
@@ -1197,9 +1201,46 @@ export async function createCustomerAppointment(data: CustomerAppointmentInput) 
       return { success: false, error: "Profissional não está ativo no momento." }
     }
 
-    // 5. Calculate Times
+    // ── Addon Validation (if provided) ──
+    let addonServices: CompositionServiceInput[] = []
+    if (data.addonServiceIds && data.addonServiceIds.length > 0) {
+      const { data: addons, error: addonsErr } = await adminDb
+        .from('services')
+        .select('id, name, price, duration_minutes, is_active, is_bookable, description, category_id')
+        .in('id', data.addonServiceIds)
+
+      if (addonsErr || !addons || addons.length !== data.addonServiceIds.length) {
+        return { success: false, error: "Um ou mais adicionais não foram encontrados." }
+      }
+
+      // Validate each addon is active and bookable
+      for (const addon of addons) {
+        if (!addon.is_active || !addon.is_bookable) {
+          return { success: false, error: `Adicional "${addon.name}" não está disponível para agendamento.` }
+        }
+        if (!addon.duration_minutes) {
+          return { success: false, error: `Adicional "${addon.name}" não tem duração configurada.` }
+        }
+      }
+
+      addonServices = addons as CompositionServiceInput[]
+
+      // Validate compatibility
+      const compat = validateCompositionCompatibility(service as CompositionServiceInput, addonServices)
+      if (!compat.valid) {
+        return { success: false, error: compat.errors[0] }
+      }
+    }
+
+    // ── Calculate Composition (backend is source of truth) ──
+    const composition = calculateServiceComposition({
+      mainService: service as CompositionServiceInput,
+      addons: addonServices,
+    })
+
+    // 5. Calculate Times (using composed duration)
     const startAtDate = buildSaoPauloDateTime(data.date, data.startTime)
-    const endAtDate = addMinutes(startAtDate, service.duration_minutes)
+    const endAtDate = addMinutes(startAtDate, composition.totalDurationMinutes)
     const startAt = startAtDate.toISOString()
     const endAt = endAtDate.toISOString()
 
@@ -1238,7 +1279,7 @@ export async function createCustomerAppointment(data: CustomerAppointmentInput) 
     // 8. Snapshots
     const customerPhone = customer.mobile_phone || customer.phone || null
 
-    // 9. Insert Appointment
+    // 9. Insert Appointment (with composed snapshots)
     const { data: appointment, error: insertError } = await adminDb
       .from('appointments')
       .insert({
@@ -1247,9 +1288,9 @@ export async function createCustomerAppointment(data: CustomerAppointmentInput) 
         customer_phone_snapshot: customerPhone,
         professional_id: data.professionalId,
         service_id: service.id,
-        service_name_snapshot: service.name,
-        service_price_snapshot: service.price,
-        service_duration_minutes_snapshot: service.duration_minutes,
+        service_name_snapshot: composition.displayName,
+        service_price_snapshot: composition.totalPrice,
+        service_duration_minutes_snapshot: composition.totalDurationMinutes,
         start_at: startAt,
         end_at: endAt,
         status: 'scheduled',
@@ -1261,7 +1302,7 @@ export async function createCustomerAppointment(data: CustomerAppointmentInput) 
 
     if (insertError) throw insertError
 
-    // 10. Also add as command item
+    // 10. Add main service as command item
     await adminDb.from('appointment_command_items').insert({
       appointment_id: appointment.id,
       item_type: 'service',
@@ -1272,12 +1313,26 @@ export async function createCustomerAppointment(data: CustomerAppointmentInput) 
       professional_id: data.professionalId,
     })
 
+    // 11. Add addon services as command items (if any)
+    if (addonServices.length > 0) {
+      const addonItems = addonServices.map(addon => ({
+        appointment_id: appointment.id,
+        item_type: 'service' as const,
+        service_id: addon.id,
+        description_snapshot: addon.name,
+        quantity: 1,
+        unit_price_snapshot: addon.price || 0,
+        professional_id: data.professionalId,
+      }))
+      await adminDb.from('appointment_command_items').insert(addonItems)
+    }
+
     await logAudit({
       action: 'INSERT',
       entity: 'appointments',
       entity_id: appointment.id,
       newData: appointment,
-      observation: `Agendamento criado pelo APP CLIENTE: ${customer.full_name} — ${service.name} às ${data.startTime}`,
+      observation: `Agendamento criado pelo APP CLIENTE: ${customer.full_name} — ${composition.displayName} às ${data.startTime}${addonServices.length > 0 ? ` (${addonServices.length} adicional/ais)` : ''}`,
     })
 
     revalidatePath("/agendamento")
@@ -1287,6 +1342,142 @@ export async function createCustomerAppointment(data: CustomerAppointmentInput) 
   } catch (err: any) {
     console.error("createCustomerAppointment Error:", err)
     return { success: false, error: err.message || "Erro interno ao criar agendamento." }
+  }
+}
+
+// ══════════════════════════════════════════════════════════
+// CANCEL CUSTOMER APPOINTMENT (ÁREA DO CLIENTE)
+// ══════════════════════════════════════════════════════════
+
+const CANCELLABLE_STATUSES = ['scheduled', 'confirmed'] as const
+
+interface CancelCustomerAppointmentInput {
+  appointmentId: string
+  reason?: string
+}
+
+export async function cancelCustomerAppointment(data: CancelCustomerAppointmentInput) {
+  try {
+    const supabase = await createServerClient()
+
+    // 1. Verify Authentication
+    const { data: authData } = await supabase.auth.getUser()
+    const authUser = authData.user
+    if (!authUser?.id) {
+      return { success: false, error: "Usuário não autenticado." }
+    }
+
+    // 2. Resolve customer identity
+    const { createClient: createAdminClient } = await import('@supabase/supabase-js')
+    const adminDb = createAdminClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    )
+
+    const { ensureCustomerForAuthUser } = await import('@/features/customers/services/customer-auth-sync.service')
+    const ensureResult = await ensureCustomerForAuthUser(authUser.id, {
+      email: authUser.email,
+      fullName: authUser.user_metadata?.full_name,
+      phone: authUser.user_metadata?.phone,
+    })
+
+    if (!ensureResult.success || !ensureResult.customerId) {
+      return { success: false, error: "Não foi possível verificar sua identidade de cliente." }
+    }
+
+    const customerId = ensureResult.customerId
+
+    // 3. Fetch appointment with full context
+    const { data: appointment, error: fetchErr } = await adminDb
+      .from('appointments')
+      .select(`
+        id, customer_id, professional_id, status,
+        start_at, end_at,
+        service_name_snapshot, service_price_snapshot,
+        customer_name_snapshot,
+        collaborators (name)
+      `)
+      .eq('id', data.appointmentId)
+      .single() as { data: any, error: any }
+
+    if (fetchErr || !appointment) {
+      return { success: false, error: "Agendamento não encontrado." }
+    }
+
+    // 4. Ownership check
+    if (appointment.customer_id !== customerId) {
+      return { success: false, error: "Este agendamento não pertence à sua conta." }
+    }
+
+    // 5. Status check — only scheduled/confirmed can be cancelled
+    if (!CANCELLABLE_STATUSES.includes(appointment.status)) {
+      if (appointment.status === 'cancelled') {
+        return { success: false, error: "Este agendamento já foi cancelado." }
+      }
+      return { success: false, error: "Este agendamento não pode mais ser cancelado pelo app." }
+    }
+
+    // 6. Future check — appointment must be in the future
+    const appointmentStart = new Date(appointment.start_at)
+    if (appointmentStart <= new Date()) {
+      return { success: false, error: "Não é possível cancelar um agendamento que já passou." }
+    }
+
+    // 7. Update status to cancelled + fill cancellation fields
+    const now = new Date().toISOString()
+    const reasonText = data.reason?.trim() || null
+
+    const { error: updateErr } = await adminDb
+      .from('appointments')
+      .update({
+        status: 'cancelled',
+        cancelled_at: now,
+        // cancelled_by references user_profiles(id) — customers don't have user_profile
+        // so we leave it null and record customer context in cancellation_reason
+        cancelled_by: null,
+        cancellation_reason: reasonText
+          ? `[CLIENTE] ${reasonText}`
+          : '[CLIENTE] Cancelado pelo cliente via app',
+      } as any)
+      .eq('id', appointment.id)
+
+    if (updateErr) {
+      console.error("cancelCustomerAppointment update error:", updateErr)
+      return { success: false, error: "Erro ao cancelar agendamento. Tente novamente." }
+    }
+
+    // 8. Format date for audit message
+    const startDate = new Date(appointment.start_at)
+    const formattedDate = startDate.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit' })
+    const formattedTime = startDate.toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit' })
+    const professionalName = appointment.collaborators?.name || 'Profissional'
+    const customerName = appointment.customer_name_snapshot || ensureResult.fullName || 'Cliente'
+    const serviceName = appointment.service_name_snapshot || 'Serviço'
+    const reasonMsg = reasonText || 'não informado'
+
+    // 9. Audit log with full context
+    await logAudit({
+      action: 'UPDATE',
+      entity: 'appointments',
+      entity_id: appointment.id,
+      oldData: { status: appointment.status },
+      newData: { status: 'cancelled', cancelled_at: now, cancellation_reason: reasonText },
+      source: 'web',
+      observation: `CANCELAMENTO PELO CLIENTE: ${customerName} cancelou ${serviceName} com ${professionalName} em ${formattedDate} às ${formattedTime}. Motivo: ${reasonMsg}.`,
+    })
+
+    // 10. Revalidate all affected paths
+    revalidatePath("/agendamento")
+    revalidatePath("/cliente/meus-agendamentos")
+    revalidatePath("/cliente/agendar")
+    revalidatePath("/cliente/agendar/data-hora")
+    revalidatePath("/profissional/agenda")
+
+    return { success: true }
+
+  } catch (err: any) {
+    console.error("cancelCustomerAppointment Error:", err)
+    return { success: false, error: err.message || "Erro interno ao cancelar agendamento." }
   }
 }
 

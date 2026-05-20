@@ -221,37 +221,40 @@ export function POSView() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="page-header">
+    <div className="pos-layout">
+      {/* Page Header — compact */}
+      <div className="pos-header">
         <div>
-          <h1 className="page-title">Ponto de Venda</h1>
-          <p className="page-subtitle">Processamento de vendas, produtos e serviços (PDV).</p>
+          <h1 className="page-title" style={{ fontSize: 20 }}>Ponto de Venda</h1>
+          <p className="page-subtitle" style={{ fontSize: 12 }}>Vendas de produtos e serviços (PDV)</p>
         </div>
       </div>
 
       {/* Stock Warning */}
       {stockWarning && (
-        <div className="flex items-center gap-3 p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg text-amber-600 dark:text-amber-400 animate-in slide-in-from-top-2">
+        <div className="flex items-center gap-3 p-2.5 bg-amber-500/10 border border-amber-500/30 rounded-lg text-amber-600 dark:text-amber-400 animate-in slide-in-from-top-2 flex-shrink-0">
           <AlertCircle className="h-4 w-4 flex-shrink-0" />
           <p className="text-sm font-medium">{stockWarning}</p>
         </div>
       )}
 
-      <div className="pos-grid-container flex flex-col xl:flex-row gap-6 items-start xl:h-[calc(100vh-180px)]">
+      {/* Two-column POS Grid */}
+      <div className="pos-grid">
         
-        {/* Left Panel - Selectors */}
-        <div className="pos-panel w-full xl:w-2/3 space-y-4 flex flex-col xl:h-full overflow-hidden">
+        {/* Left Panel - Catalog */}
+        <div className="pos-left-panel">
           
+          {/* Service Quick Add — compact */}
           <div className="section-card flex-shrink-0">
-            <div className="section-card-header">
-              <h3 className="section-card-title">Inserir Rápido</h3>
+            <div className="section-card-header" style={{ padding: '10px 16px' }}>
+              <h3 className="section-card-title" style={{ fontSize: 12 }}>Inserir Rápido</h3>
             </div>
-            <div className="section-card-body">
-              <div className="flex flex-col sm:flex-row gap-4 items-end">
+            <div className="section-card-body" style={{ padding: '10px 16px' }}>
+              <div className="flex flex-col sm:flex-row gap-3 items-end">
                 <div className="flex-1 w-full text-left">
                   <label className="text-[11px] font-medium text-muted-foreground block mb-1">Serviço</label>
                   <Select value={selectedServiceId} onValueChange={handleServiceSelection}>
-                    <SelectTrigger className="h-9 w-full bg-background">
+                    <SelectTrigger className="h-8 w-full bg-background text-xs">
                       <SelectValue placeholder="Selecione um serviço" />
                     </SelectTrigger>
                     <SelectContent>
@@ -269,11 +272,11 @@ export function POSView() {
                       value={serviceNameInput}
                       onChange={e => setServiceNameInput(e.target.value)}
                       placeholder="Ex: Corte Degradê"
-                      className="h-9 w-full"
+                      className="h-8 w-full text-xs"
                     />
                   </div>
                 )}
-                <div className="w-full sm:w-32 text-left">
+                <div className="w-full sm:w-28 text-left">
                   <label className="text-[11px] font-medium text-muted-foreground block mb-1">Valor (R$)</label>
                   <Input
                     type="number"
@@ -281,47 +284,48 @@ export function POSView() {
                     min="0.01"
                     value={servicePriceInput || ""}
                     onChange={e => setServicePriceInput(parseFloat(e.target.value) || 0)}
-                    className="h-9 w-full"
+                    className="h-8 w-full text-xs"
                   />
                 </div>
-                <Button onClick={handleAddService} variant="outline" className="w-full sm:w-auto h-9 hover:border-emerald-500 hover:text-emerald-500 transition-colors">
-                  <Plus className="h-4 w-4 mr-1" /> Adicionar
+                <Button onClick={handleAddService} variant="outline" className="w-full sm:w-auto h-8 text-xs hover:border-emerald-500 hover:text-emerald-500 transition-colors">
+                  <Plus className="h-3.5 w-3.5 mr-1" /> Adicionar
                 </Button>
               </div>
             </div>
           </div>
 
-          <div className="section-card flex-1 flex flex-col overflow-hidden">
-            <div className="section-card-header flex items-center justify-between">
-              <h3 className="section-card-title flex items-center gap-2">
+          {/* Product Catalog — scrollable */}
+          <div className="section-card pos-catalog-card">
+            <div className="section-card-header flex items-center justify-between" style={{ padding: '10px 16px' }}>
+              <h3 className="section-card-title flex items-center gap-2" style={{ fontSize: 12 }}>
                 <Package className="h-4 w-4 text-emerald-500" />
                 Catálogo de Produtos
               </h3>
             </div>
-            <div className="p-4 border-b">
+            <div className="p-3 border-b">
                <div className="relative w-full max-w-sm">
-                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                 <Search className="absolute left-2.5 top-2 h-4 w-4 text-muted-foreground" />
                  <Input
                    placeholder="Buscar por nome ou código..."
                    value={searchQuery}
                    onChange={(e) => setSearchQuery(e.target.value)}
-                   className="pl-8"
+                   className="pl-8 h-8 text-xs"
                  />
                </div>
             </div>
-            <div className="section-card-body overflow-y-auto bg-muted/5 p-4">
+            <div className="pos-catalog-scroll">
               {isInventoryLoading ? (
                 <div className="h-32 flex items-center justify-center text-muted-foreground">Carregando catálogo...</div>
               ) : filteredProducts.length === 0 ? (
-                 <div className="empty-state py-8">
-                   <Package className="empty-state-icon w-12 h-12" />
+                 <div className="empty-state py-6" style={{ margin: 8, padding: '32px 16px' }}>
+                   <Package className="empty-state-icon w-10 h-10" />
                    <h3 className="empty-state-title text-sm">
                      {searchQuery ? "Nenhum produto encontrado" : "Nenhum produto em estoque"}
                    </h3>
                    {searchQuery && <p className="empty-state-description text-xs">Tente buscar por outro nome ou código.</p>}
                  </div>
               ) : (
-                <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-2 p-3">
                   {filteredProducts.map((p: any) => {
                     const balance = p.current_balance || 0
                     const isOutOfStock = balance <= 0
@@ -329,7 +333,7 @@ export function POSView() {
                       <div 
                         key={p.product_id} 
                         onClick={() => !isOutOfStock && handleAddProduct(p.product_id!)}
-                        className={`border rounded-xl p-3 flex flex-col justify-between min-h-[110px] transition-all ${
+                        className={`border rounded-xl p-2.5 flex flex-col justify-between min-h-[90px] transition-all ${
                           isOutOfStock 
                             ? 'opacity-50 cursor-not-allowed border-dashed' 
                             : 'cursor-pointer hover:border-emerald-500 hover:shadow-md bg-card active:scale-95'
@@ -337,16 +341,16 @@ export function POSView() {
                       >
                         <div>
                           {p.external_code && (
-                            <span className="text-[9px] font-semibold tracking-wider text-[var(--accent)] font-mono bg-[var(--accent-subtle)] px-1 py-0.5 rounded mb-1 inline-block" style={{ letterSpacing: '0.06em' }}>
+                            <span className="text-[9px] font-semibold tracking-wider text-[var(--accent)] font-mono bg-[var(--accent-subtle)] px-1 py-0.5 rounded mb-0.5 inline-block" style={{ letterSpacing: '0.06em' }}>
                               {p.external_code}
                             </span>
                           )}
-                          <p className="font-semibold text-xs sm:text-sm line-clamp-2 leading-tight">{p.product_name}</p>
-                          <p className={`text-[10px] mt-1 uppercase font-medium tracking-wider ${isOutOfStock ? 'text-red-500' : 'text-muted-foreground'}`}>
+                          <p className="font-semibold text-xs line-clamp-2 leading-tight">{p.product_name}</p>
+                          <p className={`text-[10px] mt-0.5 uppercase font-medium tracking-wider ${isOutOfStock ? 'text-red-500' : 'text-muted-foreground'}`}>
                             Est: {balance}
                           </p>
                         </div>
-                        <p className="font-bold text-base sm:text-lg text-emerald-600 dark:text-emerald-400 mt-1">R$ {p.sale_price?.toFixed(2)}</p>
+                        <p className="font-bold text-sm text-emerald-600 dark:text-emerald-400 mt-1">R$ {p.sale_price?.toFixed(2)}</p>
                       </div>
                     )
                   })}
@@ -357,9 +361,10 @@ export function POSView() {
         </div>
 
         {/* Right Panel - Cart & Checkout */}
-        <div className="pos-panel w-full xl:w-1/3 section-card flex flex-col xl:h-full overflow-hidden min-h-[500px]">
-          <div className="section-card-header bg-emerald-950/20 border-b-emerald-900/30">
-            <h3 className="section-card-title text-emerald-500 flex items-center gap-2">
+        <div className="pos-right-panel section-card">
+          {/* Cart Header */}
+          <div className="section-card-header bg-emerald-950/20 border-b-emerald-900/30" style={{ padding: '10px 16px' }}>
+            <h3 className="section-card-title text-emerald-500 flex items-center gap-2" style={{ fontSize: 12 }}>
               <ShoppingCart className="h-4 w-4" />
               Carrinho Atual
               {cart.length > 0 && (
@@ -370,11 +375,12 @@ export function POSView() {
             </h3>
           </div>
 
-          <div className="p-4 space-y-3 border-b flex-shrink-0 bg-muted/10">
-            <div className="flex items-center gap-2 bg-background p-2 rounded-lg border">
-              <User className="h-4 w-4 text-muted-foreground ml-2" />
+          {/* Customer/Collaborator Selectors — compact */}
+          <div className="p-3 space-y-2 border-b flex-shrink-0 bg-muted/10">
+            <div className="flex items-center gap-2 bg-background p-1.5 rounded-lg border">
+              <User className="h-3.5 w-3.5 text-muted-foreground ml-1.5" />
               <Select value={selectedCustomer} onValueChange={setSelectedCustomer}>
-                <SelectTrigger className="border-0 bg-transparent shrink focus:ring-0 text-sm h-8">
+                <SelectTrigger className="border-0 bg-transparent shrink focus:ring-0 text-xs h-7">
                   <SelectValue placeholder="Vincular Cliente (Opcional)" />
                 </SelectTrigger>
                 <SelectContent>
@@ -387,21 +393,21 @@ export function POSView() {
             </div>
 
             {(!selectedCustomer || selectedCustomer === "none") && (
-              <div className="flex items-center gap-2 bg-background p-2 rounded-lg border animate-in slide-in-from-top-1 fade-in duration-200">
-                <User className="h-4 w-4 text-muted-foreground ml-2 opacity-50" />
+              <div className="flex items-center gap-2 bg-background p-1.5 rounded-lg border animate-in slide-in-from-top-1 fade-in duration-200">
+                <User className="h-3.5 w-3.5 text-muted-foreground ml-1.5 opacity-50" />
                 <Input
                   placeholder="Nome do cliente avulso (Opcional)"
                   value={customerNameOverride}
                   onChange={e => setCustomerNameOverride(e.target.value)}
-                  className="border-0 bg-transparent shrink focus-visible:ring-0 text-sm h-8 px-3 shadow-none"
+                  className="border-0 bg-transparent shrink focus-visible:ring-0 text-xs h-7 px-2 shadow-none"
                 />
               </div>
             )}
 
-            <div className="flex items-center gap-2 bg-background p-2 rounded-lg border">
-              <MapPin className="h-4 w-4 text-muted-foreground ml-2" />
+            <div className="flex items-center gap-2 bg-background p-1.5 rounded-lg border">
+              <MapPin className="h-3.5 w-3.5 text-muted-foreground ml-1.5" />
               <Select value={selectedCollaborator} onValueChange={setSelectedCollaborator}>
-                <SelectTrigger className="border-0 bg-transparent shrink focus:ring-0 text-sm h-8">
+                <SelectTrigger className="border-0 bg-transparent shrink focus:ring-0 text-xs h-7">
                   <SelectValue placeholder="Atendente / Barbeiro (Opcional)" />
                 </SelectTrigger>
                 <SelectContent>
@@ -414,19 +420,20 @@ export function POSView() {
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-4 space-y-3">
+          {/* Cart Items — scrollable */}
+          <div className="pos-cart-items">
             {cart.length === 0 ? (
-              <div className="empty-state h-full justify-center opacity-70">
-                <ShoppingCart className="empty-state-icon" />
-                <p className="empty-state-title">O carrinho está vazio</p>
-                <p className="empty-state-description">Selecione produtos ou serviços no painel ao lado.</p>
+              <div className="empty-state h-full justify-center opacity-70" style={{ padding: '24px 16px', margin: 0, border: 'none', background: 'none' }}>
+                <ShoppingCart className="empty-state-icon" style={{ width: 36, height: 36 }} />
+                <p className="empty-state-title" style={{ fontSize: 13 }}>O carrinho está vazio</p>
+                <p className="empty-state-description" style={{ fontSize: 11 }}>Selecione produtos ou serviços no painel ao lado.</p>
               </div>
             ) : (
               cart.map(item => (
-                <div key={item.id} className="flex justify-between items-center p-3 border rounded-lg bg-card shadow-sm">
+                <div key={item.id} className="flex justify-between items-center p-2.5 border rounded-lg bg-card shadow-sm">
                   <div className="flex-1 min-w-0 pr-2">
-                    <p className="font-semibold text-sm truncate">{item.name}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">
+                    <p className="font-semibold text-xs truncate">{item.name}</p>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">
                       R$ {item.unitPrice.toFixed(2)}
                       {item.type === 'product' && (
                         <span className="ml-2 text-[10px] opacity-60">
@@ -437,17 +444,17 @@ export function POSView() {
                   </div>
                   
                   <div className="flex items-center gap-1">
-                    <div className="flex items-center bg-muted rounded-md border h-8">
-                      <Button variant="ghost" size="icon" className="h-full w-7 rounded-none hover:bg-background" onClick={() => updateQuantity(item.id, -1)}>
+                    <div className="flex items-center bg-muted rounded-md border h-7">
+                      <Button variant="ghost" size="icon" className="h-full w-6 rounded-none hover:bg-background" onClick={() => updateQuantity(item.id, -1)}>
                         <Minus className="h-3 w-3" />
                       </Button>
-                      <span className="w-6 text-center text-xs font-bold">{item.quantity}</span>
-                      <Button variant="ghost" size="icon" className="h-full w-7 rounded-none hover:bg-background" onClick={() => updateQuantity(item.id, 1)}>
+                      <span className="w-5 text-center text-xs font-bold">{item.quantity}</span>
+                      <Button variant="ghost" size="icon" className="h-full w-6 rounded-none hover:bg-background" onClick={() => updateQuantity(item.id, 1)}>
                         <Plus className="h-3 w-3" />
                       </Button>
                     </div>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10 hover:text-destructive" onClick={() => removeItem(item.id)}>
-                      <Trash2 className="h-4 w-4" />
+                    <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:bg-destructive/10 hover:text-destructive" onClick={() => removeItem(item.id)}>
+                      <Trash2 className="h-3.5 w-3.5" />
                     </Button>
                   </div>
                 </div>
@@ -455,38 +462,38 @@ export function POSView() {
             )}
           </div>
 
-          {/* Totals & Actions */}
-          <div className="p-4 bg-muted/10 border-t space-y-4 flex-shrink-0">
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm font-medium text-muted-foreground">
+          {/* Checkout Footer — ALWAYS VISIBLE (sticky) */}
+          <div className="pos-checkout-footer">
+            <div className="space-y-1.5">
+              <div className="flex justify-between text-xs font-medium text-muted-foreground">
                 <span>Subtotal</span>
                 <span>R$ {subtotal.toFixed(2)}</span>
               </div>
               
               <div className="flex justify-between items-center">
-                <span className="text-sm font-medium text-muted-foreground flex items-center gap-1">
-                  <Tag className="h-3.5 w-3.5" /> Desconto (R$)
+                <span className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                  <Tag className="h-3 w-3" /> Desconto
                 </span>
                 <Input 
                   type="number" 
                   min="0" 
-                  className="w-24 h-8 text-right font-medium" 
+                  className="w-20 h-7 text-right font-medium text-xs" 
                   value={discountAmount || ''}
                   onChange={e => setDiscountAmount(parseFloat(e.target.value) || 0)}
                 />
               </div>
             </div>
 
-            <div className="flex justify-between items-end border-t pt-4">
-              <span className="font-semibold text-muted-foreground uppercase tracking-wider text-xs">Total a Pagar</span>
-              <span className="text-3xl font-bold tracking-tight text-emerald-500">
+            <div className="flex justify-between items-end border-t pt-2">
+              <span className="font-semibold text-muted-foreground uppercase tracking-wider text-[10px]">Total</span>
+              <span className="text-2xl font-bold tracking-tight text-emerald-500">
                 R$ {total.toFixed(2)}
               </span>
             </div>
 
             <Select value={paymentMethodId} onValueChange={setPaymentMethodId}>
-              <SelectTrigger className="h-12 border-2 focus:ring-emerald-500/20 data-[state=open]:border-emerald-500">
-                <SelectValue placeholder="Selecione a Forma de Pagamento*" />
+              <SelectTrigger className="h-10 border-2 focus:ring-emerald-500/20 data-[state=open]:border-emerald-500 text-xs">
+                <SelectValue placeholder="Forma de Pagamento *" />
               </SelectTrigger>
               <SelectContent>
                 {(paymentMethods || []).filter((pm: any) => pm.id).map((pm: any) => (
@@ -496,7 +503,7 @@ export function POSView() {
             </Select>
 
             <Button 
-              className="w-full h-14 text-base font-bold uppercase tracking-wide btn-gold shadow-lg shadow-emerald-900/20" 
+              className="pos-cta-button" 
               disabled={!isValid || isProcessing}
               onClick={onSubmit}
             >

@@ -601,6 +601,9 @@ export interface Database {
       audit_logs: GenericTable
       professional_advances: GenericTable
       professional_closures: GenericTable
+      reception_staff: GenericTable
+      reception_advances: GenericTable
+      reception_closures: GenericTable
       perfume_sales: GenericTable
       perfume_sale_installments: GenericTable
       services: GenericTable

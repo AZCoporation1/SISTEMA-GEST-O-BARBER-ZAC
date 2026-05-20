@@ -3,9 +3,9 @@
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Loader2, Calendar as CalendarIcon, Clock, Scissors, CheckCircle2, AlertCircle, User, Phone, MessageSquare, RefreshCw, LogOut, ShieldAlert } from 'lucide-react'
+import { ArrowLeft, Loader2, Calendar as CalendarIcon, Clock, Scissors, CheckCircle2, AlertCircle, User, Phone, MessageSquare, RefreshCw, LogOut, ShieldAlert, DollarSign, Plus } from 'lucide-react'
 import { createCustomerAppointment } from '@/features/agenda/actions/agenda.actions'
-import { getPublicBookingService, getPublicBookingProfessionals } from '@/features/agenda/actions/public-booking.actions'
+import { getPublicBookingProfessionals, getPublicBookingComposition } from '@/features/agenda/actions/public-booking.actions'
 import { ensureCustomerForAuthUser } from '@/features/customers/actions/customer-auth.actions'
 import { resolveCustomerAreaIdentity } from '@/features/customers/services/resolve-identity'
 import { toast } from 'sonner'
@@ -20,12 +20,21 @@ function ConfirmacaoContent() {
   const professionalId = searchParams.get('professionalId')
   const date = searchParams.get('date')
   const time = searchParams.get('time')
+  const addonsParam = searchParams.get('addons') || ''
+
+  const addonIds = addonsParam ? addonsParam.split(',').filter(Boolean) : []
 
   const [isLoading, setIsLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isRetrying, setIsRetrying] = useState(false)
   const [isSuccess, setIsSuccess] = useState(false)
-  const [service, setService] = useState<{ name: string; price: number; durationMinutes: number } | null>(null)
+  const [composition, setComposition] = useState<{
+    totalPrice: number
+    totalDurationMinutes: number
+    displayName: string
+    items: Array<{ id: string; name: string; price: number; durationMinutes: number; role: "main" | "addon" }>
+    warnings: string[]
+  } | null>(null)
   const [professional, setProfessional] = useState<{ displayName: string } | null>(null)
   const [customerInfo, setCustomerInfo] = useState<{ name: string; phone: string } | null>(null)
   const [customerReady, setCustomerReady] = useState(false)
@@ -49,22 +58,22 @@ function ConfirmacaoContent() {
       
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) {
-        const currentPath = `/cliente/agendar/confirmacao?serviceId=${serviceId}&professionalId=${professionalId}&date=${date}&time=${time}`
+        // PRESERVE ADDONS in callbackUrl
+        const addonsQuery = addonsParam ? `&addons=${addonsParam}` : ''
+        const currentPath = `/cliente/agendar/confirmacao?serviceId=${serviceId}&professionalId=${professionalId}${addonsQuery}&date=${date}&time=${time}`
         router.push(`/cliente/login?callbackUrl=${encodeURIComponent(currentPath)}`)
         return
       }
 
-      // ── Run ALL independent fetches in parallel ──
-      // Identity, customer ensure, service data, and professional data
-      // are all independent — run them simultaneously to cut latency
-      const [identity, ensureResult, svcRes, profRes] = await Promise.all([
+      // Run ALL independent fetches in parallel
+      const [identity, ensureResult, compositionRes, profRes] = await Promise.all([
         resolveCustomerAreaIdentity(session.user.id, session.user.email),
         ensureCustomerForAuthUser(session.user.id, {
           email: session.user.email,
           fullName: session.user.user_metadata?.full_name || session.user.user_metadata?.name,
           phone: session.user.user_metadata?.phone,
         }),
-        getPublicBookingService(serviceId!),
+        getPublicBookingComposition(serviceId!, addonIds),
         getPublicBookingProfessionals(),
       ])
 
@@ -90,8 +99,9 @@ function ConfirmacaoContent() {
         setSyncCode(ensureResult.code || null)
       }
 
-      if (svcRes.success && svcRes.data) {
-        setService(svcRes.data)
+      // Process composition (server-side source of truth)
+      if (compositionRes.success && compositionRes.data) {
+        setComposition(compositionRes.data)
       }
 
       if (profRes.success && profRes.data) {
@@ -105,7 +115,8 @@ function ConfirmacaoContent() {
     }
 
     fetchData()
-  }, [serviceId, professionalId, date, time, router])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [serviceId, professionalId, date, time, addonsParam, router])
 
   const handleRetrySync = async () => {
     setIsRetrying(true)
@@ -162,6 +173,7 @@ function ConfirmacaoContent() {
         date: date!,
         startTime: time!,
         notes: notes.trim() || undefined,
+        addonServiceIds: addonIds.length > 0 ? addonIds : undefined,
       })
 
       if (!res.success) {
@@ -219,7 +231,7 @@ function ConfirmacaoContent() {
         <div className="text-center space-y-2">
           <h2 className="text-xl font-bold text-foreground">Agendamento Confirmado!</h2>
           <p className="text-sm text-muted-foreground max-w-xs">
-            {service?.name} com {professional?.displayName} — {dateFormatted} às {time}
+            {composition?.displayName || 'Serviço'} com {professional?.displayName} — {dateFormatted} às {time}
           </p>
         </div>
         <div className="p-4 rounded-2xl border border-green-500/20 bg-green-500/5 w-full max-w-sm fade-up-fast" style={{ animationDelay: '200ms' }}>
@@ -265,12 +277,13 @@ function ConfirmacaoContent() {
   }
 
   const syncErrorDisplay = getSyncErrorDisplay()
+  const addonsQuery = addonsParam ? `&addons=${addonsParam}` : ''
 
   return (
     <div className="flex flex-col h-full space-y-6 pt-4 pb-12 fade-up px-4">
       <div className="flex items-center gap-3">
         <Link 
-          href={`/cliente/agendar/data-hora?serviceId=${serviceId}&professionalId=${professionalId}`} 
+          href={`/cliente/agendar/data-hora?serviceId=${serviceId}&professionalId=${professionalId}${addonsQuery}`} 
           className="p-2 -ml-2 rounded-full hover:bg-accent text-muted-foreground transition-colors btn-press"
         >
           <ArrowLeft className="w-5 h-5" />
@@ -333,13 +346,49 @@ function ConfirmacaoContent() {
 
       <div className="p-6 rounded-2xl border border-border bg-card/50 space-y-6 shadow-sm">
         
-        {/* Service */}
+        {/* Service — show full composition */}
         <div className="fade-up-fast">
-          <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Serviço</h3>
-          <p className="text-lg font-semibold text-foreground">{service?.name || 'Carregando...'}</p>
-          <p className="text-sm text-muted-foreground mt-1">
-            R$ {service?.price?.toFixed(2).replace('.', ',') || '0,00'} • {service?.durationMinutes || 0} min
-          </p>
+          <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
+            {composition && composition.items.length > 1 ? 'Atendimento montado' : 'Serviço'}
+          </h3>
+
+          {composition ? (
+            <div className="space-y-2">
+              <p className="text-lg font-semibold text-foreground">{composition.displayName}</p>
+              
+              {/* Individual items breakdown */}
+              {composition.items.length > 1 && (
+                <div className="space-y-1.5 pl-3 border-l-2 border-primary/20">
+                  {composition.items.map((item, idx) => (
+                    <div key={idx} className="flex items-center justify-between text-sm">
+                      <div className="flex items-center gap-2">
+                        {item.role === 'addon' && <Plus className="w-3 h-3 text-primary" />}
+                        <span className={item.role === 'main' ? 'font-medium text-foreground' : 'text-muted-foreground'}>
+                          {item.name}
+                        </span>
+                      </div>
+                      <span className="text-xs text-muted-foreground">
+                        R$ {item.price.toFixed(2).replace('.', ',')} · {item.durationMinutes}min
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1 pt-1 border-t border-border/50">
+                <span className="flex items-center gap-1 font-semibold text-foreground">
+                  <DollarSign className="w-3.5 h-3.5" />
+                  Total: R$ {composition.totalPrice.toFixed(2).replace('.', ',')}
+                </span>
+                <span className="flex items-center gap-1">
+                  <Clock className="w-3.5 h-3.5" />
+                  {composition.totalDurationMinutes} min
+                </span>
+              </div>
+            </div>
+          ) : (
+            <p className="text-lg font-semibold text-foreground">Carregando...</p>
+          )}
         </div>
 
         {/* Professional */}

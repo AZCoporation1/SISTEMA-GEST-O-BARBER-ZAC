@@ -258,3 +258,43 @@ export async function fetchPaymentMethods() {
   if (error) return []
   return data || []
 }
+
+// ── Cancelled Appointments (for internal notification) ────
+
+export interface CancelledAppointmentInfo {
+  id: string
+  customer_name_snapshot: string | null
+  service_name_snapshot: string | null
+  start_at: string
+  end_at: string
+  cancellation_reason: string | null
+  cancelled_at: string | null
+  professional_id: string
+  professional: { name: string } | null
+}
+
+export async function fetchCancelledAppointmentsByDate(date: string): Promise<CancelledAppointmentInfo[]> {
+  const startOfDay = `${date}T00:00:00-03:00`
+  const endOfDay = `${date}T23:59:59-03:00`
+
+  const { data, error } = await supabase
+    .from("appointments")
+    .select(`
+      id, customer_name_snapshot, service_name_snapshot,
+      start_at, end_at, cancellation_reason, cancelled_at, professional_id,
+      professional:collaborators!appointments_professional_id_fkey(name)
+    `)
+    .eq("status", "cancelled")
+    .gte("start_at", startOfDay)
+    .lte("start_at", endOfDay)
+    .not("cancellation_reason", "is", null)
+    .order("cancelled_at", { ascending: false })
+    .limit(20)
+
+  if (error) {
+    console.error("Fetch cancelled appointments error:", error)
+    return []
+  }
+
+  return (data as any) || []
+}

@@ -25,10 +25,14 @@ import {
   Sparkles,
   ClipboardCheck,
   LogOut,
-  User
+  User,
+  ChevronsLeft,
+  ChevronsRight,
+  Headset
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { useSidebarCollapsed } from './SidebarContext'
 
 export type NavItem = {
   section: string
@@ -65,6 +69,7 @@ export const navItems: NavItem[] = [
     section: 'Comercial',
     items: [
       { href: '/agendamento', icon: Calendar, label: 'Agenda' },
+      { href: '/recepcao', icon: Headset, label: 'Recepção' },
       { href: '/vendas', icon: ShoppingCart, label: 'Vendas' },
       { href: '/perfumes', icon: Sparkles, label: 'Perfumes' },
       { href: '/clientes', icon: Users, label: 'Clientes' },
@@ -96,11 +101,13 @@ export const navItems: NavItem[] = [
   },
 ]
 
+
 export function Sidebar() {
   const pathname = usePathname()
   const { organizationName } = useAppSettings()
   const { user, signOut, isOwner, hasAdminAccess } = useAuth()
   const [pendingCount, setPendingCount] = useState(0)
+  const { collapsed, toggle } = useSidebarCollapsed()
 
   // Fetch pending approval count for badge
   useEffect(() => {
@@ -133,7 +140,7 @@ export function Sidebar() {
   const roleBadgeClass = user?.systemRole === 'owner_admin_professional' ? 'owner' : user?.systemRole === 'admin_total' ? 'admin' : 'professional'
 
   return (
-    <aside className="sidebar">
+    <aside className={`sidebar ${collapsed ? 'sidebar--collapsed' : ''}`}>
       {/* Brand */}
       <div className="sidebar-logo">
         <div className="w-12 h-12 flex items-center justify-center flex-shrink-0">
@@ -146,27 +153,40 @@ export function Sidebar() {
             priority
           />
         </div>
-        <div className="sidebar-logo-text">
-          <span className="sidebar-logo-name">{organizationName}</span>
-          <span className="sidebar-logo-sub">Sistema de Gestão</span>
-        </div>
+        {!collapsed && (
+          <div className="sidebar-logo-text">
+            <span className="sidebar-logo-name">{organizationName}</span>
+            <span className="sidebar-logo-sub">Sistema de Gestão</span>
+          </div>
+        )}
       </div>
+
+      {/* Collapse Toggle */}
+      <button
+        onClick={toggle}
+        className="sidebar-collapse-btn"
+        title={collapsed ? 'Expandir menu' : 'Recolher menu'}
+      >
+        {collapsed ? <ChevronsRight size={16} /> : <ChevronsLeft size={16} />}
+        {!collapsed && <span>Recolher</span>}
+      </button>
 
       {/* Navigation */}
       <nav className="sidebar-nav">
         {enrichedNavItems.map(({ section, items }) => (
           <div key={section}>
-            <div className="sidebar-section-label">{section}</div>
+            {!collapsed && <div className="sidebar-section-label">{section}</div>}
             {items.map(({ href, icon: Icon, label, badge, badgeCount }) => (
               <Link
                 key={href}
                 href={href}
                 className={`sidebar-item ${isActive(href) ? 'active' : ''}`}
+                title={collapsed ? label : undefined}
               >
                 <Icon size={17} strokeWidth={1.7} />
-                <span>{label}</span>
-                {badge && <span className="sidebar-badge">{badge}</span>}
-                {badgeCount !== undefined && badgeCount > 0 && (
+                {!collapsed && <span>{label}</span>}
+                {!collapsed && badge && <span className="sidebar-badge">{badge}</span>}
+                {!collapsed && badgeCount !== undefined && badgeCount > 0 && (
                   <span style={{
                     marginLeft: 'auto',
                     background: 'var(--warning)',
@@ -189,13 +209,14 @@ export function Sidebar() {
         {/* Owner: link to professional area */}
         {isOwner && (
           <div>
-            <div className="sidebar-section-label">Minha Área</div>
+            {!collapsed && <div className="sidebar-section-label">Minha Área</div>}
             <Link
               href="/profissional"
               className={`sidebar-item ${pathname.startsWith('/profissional') ? 'active' : ''}`}
+              title={collapsed ? 'Área Profissional' : undefined}
             >
               <User size={17} strokeWidth={1.7} />
-              <span>Área Profissional</span>
+              {!collapsed && <span>Área Profissional</span>}
             </Link>
           </div>
         )}
@@ -204,7 +225,7 @@ export function Sidebar() {
       {/* User + PWA + Footer */}
       <div className="px-3 py-3 border-t border-[var(--border)] flex flex-col gap-2">
         {/* User info */}
-        {user && (
+        {user && !collapsed && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 8px', marginBottom: 4 }}>
             <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'var(--accent-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: 'var(--accent)', flexShrink: 0 }}>
               {user.displayName?.[0] || user.fullName?.[0] || '?'}
@@ -217,18 +238,27 @@ export function Sidebar() {
             </div>
           </div>
         )}
+        {user && collapsed && (
+          <div style={{ display: 'flex', justifyContent: 'center', padding: '4px 0' }}>
+            <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'var(--accent-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: 'var(--accent)', flexShrink: 0 }}>
+              {user.displayName?.[0] || user.fullName?.[0] || '?'}
+            </div>
+          </div>
+        )}
         <button
           onClick={signOut}
           className="sidebar-item"
           style={{ width: '100%', color: 'var(--text-secondary)', border: '1px solid var(--border)', borderRadius: 8, justifyContent: 'center' }}
         >
           <LogOut size={14} />
-          <span>Sair</span>
+          {!collapsed && <span>Sair</span>}
         </button>
-        <PWAInstallButton />
-        <span className="text-[10px] text-[var(--text-muted)] tracking-wide font-medium px-2">
-          v1.0.0 · Instituto {organizationName}
-        </span>
+        {!collapsed && <PWAInstallButton />}
+        {!collapsed && (
+          <span className="text-[10px] text-[var(--text-muted)] tracking-wide font-medium px-2">
+            v1.0.0 · Instituto {organizationName}
+          </span>
+        )}
       </div>
     </aside>
   )

@@ -178,6 +178,19 @@ export const WAITLIST_STATUS_LABELS: Record<WaitlistStatus, string> = {
   cancelled: 'Cancelado',
 }
 
+// ── Service Composition Types ────────────────────────────
+
+/** Input for creating a customer appointment with optional addons */
+export interface CustomerAppointmentCompositionInput {
+  serviceId: string
+  professionalId: string
+  date: string
+  startTime: string
+  notes?: string
+  /** Optional addon service IDs for composed booking */
+  addonServiceIds?: string[]
+}
+
 export const WEEKDAY_LABELS: Record<number, string> = {
   0: 'Domingo',
   1: 'Segunda',

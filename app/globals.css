@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "tw-animate-css";
 
 /* ============================================================
    BARBER ZAC — Premium Design System (Tailwind v4 + shadcn)
@@ -226,7 +227,8 @@
   /* ============ APP SHELL ============ */
   .app-shell {
     display: flex;
-    min-height: 100vh;
+    height: 100dvh;
+    overflow: hidden;
     background: var(--bg-base);
   }
 
@@ -241,20 +243,73 @@
     position: fixed;
     top: 0;
     left: 0;
-    height: 100vh;
+    height: 100dvh;
     z-index: 50;
     overflow-y: auto;
     overflow-x: hidden;
     transition: width 200ms ease, min-width 200ms ease;
   }
 
+  /* Sidebar collapsed (manual toggle) */
+  .sidebar.sidebar--collapsed {
+    width: var(--sidebar-collapsed);
+    min-width: var(--sidebar-collapsed);
+  }
+
+  .sidebar.sidebar--collapsed .sidebar-item {
+    justify-content: center;
+    padding: 10px;
+  }
+
+  .sidebar.sidebar--collapsed .sidebar-logo {
+    justify-content: center;
+    padding: 16px 8px;
+  }
+
+  /* Sidebar collapse toggle button */
+  .sidebar-collapse-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin: 4px 12px 8px;
+    padding: 6px 10px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--bg-hover);
+    color: var(--text-secondary);
+    font-size: 11px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 150ms ease;
+  }
+
+  .sidebar-collapse-btn:hover {
+    background: var(--accent-subtle);
+    color: var(--text-primary);
+    border-color: var(--accent-border);
+  }
+
+  .sidebar.sidebar--collapsed .sidebar-collapse-btn {
+    margin: 4px 8px 8px;
+    padding: 8px;
+  }
+
   .main-content {
     margin-left: var(--sidebar-width);
     flex: 1;
-    min-height: 100vh;
+    height: 100dvh;
     display: flex;
     flex-direction: column;
+    min-width: 0;
+    overflow: hidden;
     transition: margin-left 200ms ease;
+  }
+
+  /* When sidebar is collapsed manually */
+  .app-shell.sidebar-collapsed .main-content {
+    margin-left: var(--sidebar-collapsed);
   }
 
   /* ============ TOPBAR / HEADER ============ */
@@ -276,8 +331,10 @@
   .page-content {
     padding: 24px 32px;
     flex: 1;
+    min-height: 0;
     max-width: 100%;
     overflow-x: hidden;
+    overflow-y: auto;
   }
 
   @media (max-width: 1280px) {
@@ -782,7 +839,8 @@
     .sidebar-logo-text,
     .sidebar-item span,
     .sidebar-section-label,
-    .sidebar-badge {
+    .sidebar-badge,
+    .sidebar-collapse-btn {
       display: none;
     }
 
@@ -839,16 +897,172 @@
     -webkit-overflow-scrolling: touch;
   }
 
-  /* PDV Mobile optimizations */
-  @media (max-width: 1280px) {
-    .pos-grid-container {
-      height: auto !important;
-      display: flex;
-      flex-direction: column;
+  /* ============ POS / PDV LAYOUT ============ */
+  .pos-page-wrapper {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .pos-layout {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+    gap: 8px;
+    padding: 16px 20px 0;
+  }
+
+  .pos-header {
+    flex-shrink: 0;
+  }
+
+  .pos-grid {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    gap: 12px;
+    overflow: hidden;
+  }
+
+  @media (min-width: 1280px) {
+    .pos-grid {
+      flex-direction: row;
     }
-    
-    .pos-panel {
-      height: 600px !important;
+  }
+
+  /* Left Panel — Catalog */
+  .pos-left-panel {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    min-width: 0;
+    overflow: hidden;
+    gap: 8px;
+  }
+
+  @media (min-width: 1280px) {
+    .pos-left-panel {
+      flex: 2;
+    }
+  }
+
+  .pos-catalog-card {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .pos-catalog-scroll {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+
+  /* Right Panel — Cart & Checkout */
+  .pos-right-panel {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  @media (min-width: 1280px) {
+    .pos-right-panel {
+      flex: 1;
+      max-width: 420px;
+    }
+  }
+
+  @media (max-width: 1279px) {
+    .pos-right-panel {
+      max-height: 50vh;
+    }
+  }
+
+  /* Cart items scroll area */
+  .pos-cart-items {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 8px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  /* Checkout Footer — ALWAYS VISIBLE */
+  .pos-checkout-footer {
+    flex-shrink: 0;
+    padding: 12px 16px;
+    padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+    background: var(--bg-surface);
+    border-top: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    z-index: 20;
+  }
+
+  /* CTA Button */
+  .pos-cta-button {
+    width: 100%;
+    min-height: 44px;
+    height: 48px;
+    font-size: 14px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #059669 0%, #10b981 100%) !important;
+    color: #fff !important;
+    border: none !important;
+    box-shadow: 0 4px 16px rgba(16, 185, 129, 0.25), inset 0 1px 1px rgba(255,255,255,0.15);
+    transition: all 200ms ease;
+    cursor: pointer;
+  }
+
+  .pos-cta-button:hover:not(:disabled) {
+    box-shadow: 0 6px 24px rgba(16, 185, 129, 0.35), inset 0 1px 1px rgba(255,255,255,0.2);
+    transform: translateY(-1px);
+  }
+
+  .pos-cta-button:active:not(:disabled) {
+    transform: translateY(0);
+  }
+
+  .pos-cta-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    box-shadow: none;
+  }
+
+  /* Notebook-specific compact adjustments */
+  @media (max-height: 800px) {
+    .pos-layout {
+      padding: 10px 16px 0;
+      gap: 6px;
+    }
+
+    .pos-checkout-footer {
+      padding: 8px 12px;
+      gap: 6px;
+    }
+
+    .pos-cta-button {
+      min-height: 40px;
+      height: 42px;
+      font-size: 13px;
     }
   }
 

@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 
 export default function VendasPage() {
   return (
-    <div className="p-6 h-full min-h-screen">
+    <div className="pos-page-wrapper">
       <POSView />
     </div>
   )

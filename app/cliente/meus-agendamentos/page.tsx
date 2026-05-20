@@ -1,12 +1,13 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { ArrowLeft, CalendarDays, Clock, User, Plus, Loader2, AlertTriangle, LogOut, RefreshCw, ShieldAlert, UserPlus } from "lucide-react"
+import { ArrowLeft, CalendarDays, Clock, User, Plus, Loader2, AlertTriangle, LogOut, RefreshCw, ShieldAlert, UserPlus, X, MessageSquare } from "lucide-react"
 import { format, parseISO } from "date-fns"
 import { ptBR } from "date-fns/locale"
 import { getCustomerAppointments, customerLogout, createCustomerForInternalUser } from "@/features/customers/actions/customer-auth.actions"
+import { cancelCustomerAppointment } from "@/features/agenda/actions/agenda.actions"
 import { useAuth } from "@/components/auth-provider"
 import { toast } from "sonner"
 
@@ -24,18 +25,12 @@ export default function MeusAgendamentosPage() {
   const [historyLimit, setHistoryLimit] = useState(10)
   const [isLoadingMore, setIsLoadingMore] = useState(false)
 
-  useEffect(() => {
-    if (authLoading) return
+  // Cancel dialog state
+  const [cancelDialog, setCancelDialog] = useState<{ open: boolean; appointment: any | null }>({ open: false, appointment: null })
+  const [cancelReason, setCancelReason] = useState("")
+  const [isCancelling, setIsCancelling] = useState(false)
 
-    if (!user) {
-      router.replace('/cliente/login?callbackUrl=/cliente/meus-agendamentos')
-      return
-    }
-
-    loadAppointments()
-  }, [authLoading, user, router])
-
-  async function loadAppointments() {
+  const loadAppointments = useCallback(async () => {
     setIsLoading(true)
     setError(null)
     const res = await getCustomerAppointments()
@@ -52,7 +47,18 @@ export default function MeusAgendamentosPage() {
       setErpRedirectPath((res as any).erpRedirectPath ?? null)
     }
     setIsLoading(false)
-  }
+  }, [user])
+
+  useEffect(() => {
+    if (authLoading) return
+
+    if (!user) {
+      router.replace('/cliente/login?callbackUrl=/cliente/meus-agendamentos')
+      return
+    }
+
+    loadAppointments()
+  }, [authLoading, user, router, loadAppointments])
 
   const handleLogout = async () => {
     await customerLogout()
@@ -79,6 +85,48 @@ export default function MeusAgendamentosPage() {
       setHistoryLimit(prev => prev + 10)
       setIsLoadingMore(false)
     }, 300)
+  }
+
+  // ── Cancel flow ──
+  const openCancelDialog = (appt: any) => {
+    setCancelDialog({ open: true, appointment: appt })
+    setCancelReason("")
+  }
+
+  const closeCancelDialog = () => {
+    setCancelDialog({ open: false, appointment: null })
+    setCancelReason("")
+  }
+
+  const handleConfirmCancel = async () => {
+    if (!cancelDialog.appointment) return
+    setIsCancelling(true)
+    try {
+      const res = await cancelCustomerAppointment({
+        appointmentId: cancelDialog.appointment.id,
+        reason: cancelReason.trim() || undefined,
+      })
+
+      if (res.success) {
+        toast.success("Agendamento cancelado com sucesso.")
+        closeCancelDialog()
+        // Refresh list
+        await loadAppointments()
+      } else {
+        toast.error(res.error || "Erro ao cancelar agendamento.")
+      }
+    } catch {
+      toast.error("Erro ao cancelar agendamento. Tente novamente.")
+    } finally {
+      setIsCancelling(false)
+    }
+  }
+
+  const canCancel = (appt: any): boolean => {
+    if (!appt) return false
+    const isActive = appt.status === 'scheduled' || appt.status === 'confirmed'
+    const isFuture = new Date(appt.start_at) > new Date()
+    return isActive && isFuture
   }
 
   if (authLoading || isLoading) {
@@ -232,7 +280,7 @@ export default function MeusAgendamentosPage() {
           <div className="space-y-3">
             {upcoming.map((appt, idx) => (
               <div key={appt.id} className="fade-up" style={{ animationDelay: `${Math.min(idx * 50, 200)}ms` }}>
-                <AppointmentCard appt={appt} isUpcoming />
+                <AppointmentCard appt={appt} isUpcoming onCancel={openCancelDialog} canCancel={canCancel(appt)} />
               </div>
             ))}
           </div>
@@ -263,19 +311,122 @@ export default function MeusAgendamentosPage() {
           )}
         </div>
       )}
+
+      {/* ── Cancel Confirmation Dialog ── */}
+      {cancelDialog.open && cancelDialog.appointment && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center px-4"
+          onClick={closeCancelDialog}
+        >
+          {/* Backdrop */}
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+
+          {/* Dialog */}
+          <div
+            className="relative w-full max-w-sm rounded-2xl border border-border bg-card p-6 shadow-2xl fade-up-fast"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Close button */}
+            <button
+              onClick={closeCancelDialog}
+              className="absolute top-3 right-3 p-1.5 rounded-full hover:bg-accent text-muted-foreground transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            {/* Title */}
+            <div className="space-y-1 mb-5">
+              <h3 className="text-lg font-bold text-foreground">Cancelar este agendamento?</h3>
+              <p className="text-sm text-muted-foreground">
+                Ao cancelar, esse horário será liberado para outros clientes.
+              </p>
+            </div>
+
+            {/* Appointment details */}
+            <div className="p-4 rounded-xl border border-destructive/20 bg-destructive/5 space-y-2 mb-5">
+              <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                <CalendarDays className="w-4 h-4 text-muted-foreground" />
+                <span className="capitalize">
+                  {format(parseISO(cancelDialog.appointment.start_at), "EEEE, dd 'de' MMM", { locale: ptBR })}
+                </span>
+              </div>
+              <div className="flex items-center gap-2 text-sm text-foreground">
+                <Clock className="w-4 h-4 text-muted-foreground" />
+                <span>{format(parseISO(cancelDialog.appointment.start_at), "HH:mm")}</span>
+                {cancelDialog.appointment.end_at && (
+                  <span className="text-muted-foreground">— {format(parseISO(cancelDialog.appointment.end_at), "HH:mm")}</span>
+                )}
+              </div>
+              <div className="text-sm text-muted-foreground">
+                {cancelDialog.appointment.service_name_snapshot} · {cancelDialog.appointment.collaborators?.name || 'Profissional'}
+              </div>
+            </div>
+
+            {/* Reason (optional) */}
+            <div className="mb-5">
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1.5 mb-2">
+                <MessageSquare className="w-3.5 h-3.5" />
+                Motivo (opcional)
+              </label>
+              <textarea
+                value={cancelReason}
+                onChange={e => setCancelReason(e.target.value)}
+                placeholder="Informe o motivo do cancelamento..."
+                maxLength={200}
+                rows={2}
+                className="w-full bg-background border border-input rounded-xl px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/50 focus:border-ring resize-none transition-all duration-200"
+              />
+            </div>
+
+            {/* Actions */}
+            <div className="flex gap-3">
+              <button
+                onClick={closeCancelDialog}
+                disabled={isCancelling}
+                className="flex-1 h-11 rounded-xl bg-secondary hover:bg-secondary/80 text-secondary-foreground font-medium text-sm transition-colors btn-press disabled:opacity-50"
+              >
+                Manter agendamento
+              </button>
+              <button
+                onClick={handleConfirmCancel}
+                disabled={isCancelling}
+                className="flex-1 h-11 rounded-xl bg-destructive hover:bg-destructive/90 text-destructive-foreground font-semibold text-sm transition-colors btn-press disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {isCancelling ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  "Confirmar Cancelamento"
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
 
-function AppointmentCard({ appt, isUpcoming = false }: { appt: any, isUpcoming?: boolean }) {
+function AppointmentCard({
+  appt,
+  isUpcoming = false,
+  onCancel,
+  canCancel = false,
+}: {
+  appt: any
+  isUpcoming?: boolean
+  onCancel?: (appt: any) => void
+  canCancel?: boolean
+}) {
   const date = parseISO(appt.start_at)
   const isCancelled = appt.status === 'cancelled'
   
   return (
     <div className={`p-4 rounded-2xl border premium-card ${
-      isUpcoming 
-        ? 'border-primary/20 bg-primary/5 shadow-sm' 
-        : 'border-border bg-card/50'
+      isCancelled
+        ? 'border-destructive/15 bg-destructive/5'
+        : isUpcoming 
+          ? 'border-primary/20 bg-primary/5 shadow-sm' 
+          : 'border-border bg-card/50'
     }`}>
       {/* Accent bar for upcoming */}
       <div className="flex justify-between items-start mb-3">
@@ -313,6 +464,25 @@ function AppointmentCard({ appt, isUpcoming = false }: { appt: any, isUpcoming?:
           <span>{format(date, "HH:mm")}</span>
         </div>
       </div>
+
+      {/* Cancellation reason (for cancelled items) */}
+      {isCancelled && appt.cancellation_reason && (
+        <p className="text-xs text-muted-foreground mt-2 italic">
+          {appt.cancellation_reason.replace('[CLIENTE] ', '')}
+        </p>
+      )}
+
+      {/* Cancel link — discreet, secondary */}
+      {canCancel && onCancel && !isCancelled && (
+        <div className="flex justify-end mt-3 pt-2 border-t border-border/30">
+          <button
+            onClick={() => onCancel(appt)}
+            className="text-[11px] text-muted-foreground hover:text-destructive transition-colors duration-200 flex items-center gap-1"
+          >
+            Cancelar agendamento
+          </button>
+        </div>
+      )}
     </div>
   )
 }
