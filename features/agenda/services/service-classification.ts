@@ -69,13 +69,13 @@ export const CATEGORY_DISPLAY_NAMES: Record<string, string> = {
 
 const KEYWORD_GROUPS = {
   combo: /combo|pacote/,
-  corte: /corte|degrade|social|executivo|fade|tesoura|texturizacao|zac|infantil|pezinho cabelo|passar a maquina/,
+  corte: /corte|degrade|social|executivo|fade|tesoura|texturizacao|zac|infantil|pezinho cabelo|pezinho|passar a maquina/,
   barba: /barba|barboterapia|terapia de barba|razor|aparar barba|cavanhaque|pezinho barba/,
   bigode: /bigode/,
   sobrancelha: /sobrancelha|sombrancelha/,
   depilacao: /cera nasal|nazal|nasal|orelha|depilacao|apenugem|limpeza orelha|raspagem.*(costas|peito)/,
   estetica: /limpeza de pele|massoterapia|remocao de cravos|ozonio|estetica|facial|skin care|detox/,
-  quimica: /progressiva|alisamento|alissamento|luzes|reflexo|nevou|platinado|tintura|colorimetria|mechas|selagem|botox capilar|botox \(redutor|pintura black|pintura colors|camuflagem|pigmentacao|micropigmentacao|colors fun/,
+  quimica: /progressiva|alisamento|alissamento|luzes|reflexo|nevou|platinado|tintura|colorimetria|mechas|selagem|botox|pintura black|pintura colors|pintura.*artistica|camuflagem|pigmentacao|micropigmentacao|colors fun/,
   tratamento: /hidratacao|reconstrucao|mascara|tratamento|cauterizacao|nutricao|acidificacao|sos reconstrutor|lavagem|lavatorio/,
   finalizacao: /penteado|finalizacao/,
   consultoria: /consultoria|aula particular|metodo tbe|visagista|abordagem visagista|entrega.*(certificado)/,

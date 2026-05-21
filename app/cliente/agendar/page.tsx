@@ -1,22 +1,7 @@
 import Link from "next/link"
 import { ArrowLeft } from "lucide-react"
-import { unstable_cache } from "next/cache"
 import { getPublicBookingCatalogV2, getPublicBookingCatalog } from "@/features/agenda/actions/public-booking.actions"
 import AgendarClientContent from "./AgendarClientContent"
-
-// Cache V2 catalog for 120 seconds
-const getCachedCatalogV2 = unstable_cache(
-  async () => getPublicBookingCatalogV2(),
-  ['public-booking-catalog-v2'],
-  { revalidate: 120 }
-)
-
-// Cache legacy catalog for fallback
-const getCachedCatalog = unstable_cache(
-  async () => getPublicBookingCatalog(),
-  ['public-booking-catalog'],
-  { revalidate: 120 }
-)
 
 export default async function AgendarServicePage({
   searchParams,
@@ -26,10 +11,10 @@ export default async function AgendarServicePage({
   const params = await searchParams
   const mode = params.mode || 'hub'
 
-  // Fetch both catalogs in parallel
+  // Fetch both catalogs in parallel (no cache wrapper — page is dynamic)
   const [resultV2, resultLegacy] = await Promise.all([
-    getCachedCatalogV2(),
-    getCachedCatalog(),
+    getPublicBookingCatalogV2(),
+    getPublicBookingCatalog(),
   ])
 
   const hasV2 = resultV2.success && resultV2.data && resultV2.data.length > 0
