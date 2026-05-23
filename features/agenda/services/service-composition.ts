@@ -184,6 +184,7 @@ const QUIMICA_KEYWORDS = /progressiva|alisamento|alissamento|luzes|reflexo|nevou
 const BLOCKED_PUBLIC_CATEGORY_SLUGS = new Set([
   "consultoria-e-educacao",
   "atendimento-especial",
+  "planos-mensais",
 ])
 
 /**

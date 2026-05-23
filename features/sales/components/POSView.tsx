@@ -6,6 +6,8 @@ import { useInventory } from "@/features/inventory/hooks/useInventory"
 import { useServices } from "@/features/services/hooks/useServices"
 import { CartItem } from "../types"
 import { SaleFormValues } from "../validators"
+import { SaleWithReceivablesPayload } from "../actions/processSaleWithReceivables"
+import { generateInstallmentSchedule } from "@/features/receivables/helpers"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { 
@@ -15,7 +17,7 @@ import {
   SelectTrigger, 
   SelectValue 
 } from "@/components/ui/select"
-import { ShoppingCart, Plus, Minus, Trash2, Tag, User, Search, MapPin, Package, AlertCircle } from "lucide-react"
+import { ShoppingCart, Plus, Minus, Trash2, Tag, User, Search, MapPin, Package, AlertCircle, CalendarDays, FileText } from "lucide-react"
 
 export function POSView() {
   const [cart, setCart] = useState<CartItem[]>([])
@@ -27,6 +29,17 @@ export function POSView() {
   const [customerNameOverride, setCustomerNameOverride] = useState("")
   const [searchQuery, setSearchQuery] = useState("")
   const [stockWarning, setStockWarning] = useState<string | null>(null)
+
+  // Installment state
+  const [paymentMode, setPaymentMode] = useState<'upfront' | 'installment' | 'mixed'>('upfront')
+  const [paymentOrigin, setPaymentOrigin] = useState<'credit_card_installment' | 'store_credit'>('credit_card_installment')
+  const [installmentCount, setInstallmentCount] = useState(2)
+  const [firstDueDate, setFirstDueDate] = useState(() => {
+    const d = new Date(); d.setDate(d.getDate() + 30)
+    return d.toISOString().split('T')[0]
+  })
+  const [upfrontPayAmount, setUpfrontPayAmount] = useState(0)
+  const [installmentNotes, setInstallmentNotes] = useState('')
   
   // Data hooks
   const { data: inventoryData, isLoading: isInventoryLoading } = useInventory({ page: 1, perPage: 1000, status: "active", search: "" })
@@ -187,7 +200,7 @@ export function POSView() {
       }
     }
 
-    const payload: SaleFormValues = {
+    const payload: SaleWithReceivablesPayload = {
       customer_id: selectedCustomer && selectedCustomer !== "none" ? selectedCustomer : null,
       customer_name_override: (!selectedCustomer || selectedCustomer === "none") && customerNameOverride.trim() !== "" ? customerNameOverride.trim() : null,
       collaborator_id: selectedCollaborator && selectedCollaborator !== "none" ? selectedCollaborator : null,
@@ -204,7 +217,25 @@ export function POSView() {
         unitPrice: c.unitPrice,
         unitCost: c.unitCost,
         discount: c.discount
-      }))
+      })),
+      payment_mode: paymentMode,
+      payment_origin: paymentMode !== 'upfront' ? paymentOrigin : undefined,
+      installment_count: paymentMode !== 'upfront' ? installmentCount : undefined,
+      first_due_date: paymentMode !== 'upfront' ? firstDueDate : undefined,
+      upfront_amount: paymentMode === 'mixed' ? upfrontPayAmount : undefined,
+      installment_notes: paymentMode !== 'upfront' ? installmentNotes : undefined,
+    }
+
+    // Validate boca a boca
+    if (paymentMode !== 'upfront' && paymentOrigin === 'store_credit') {
+      if (!selectedCustomer || selectedCustomer === 'none') {
+        setStockWarning('Cliente cadastrado obrigatório para venda a prazo / boca a boca.')
+        return
+      }
+      if (!installmentNotes.trim()) {
+        setStockWarning('Observação/motivo obrigatório para venda a prazo.')
+        return
+      }
     }
 
     await processSale(payload)
@@ -218,6 +249,11 @@ export function POSView() {
     setSelectedCollaborator("")
     setPaymentMethodId("")
     setStockWarning(null)
+    setPaymentMode('upfront')
+    setPaymentOrigin('credit_card_installment')
+    setInstallmentCount(2)
+    setInstallmentNotes('')
+    setUpfrontPayAmount(0)
   }
 
   return (
@@ -502,12 +538,133 @@ export function POSView() {
               </SelectContent>
             </Select>
 
+            {/* ── PAYMENT MODE SELECTOR ── */}
+            <div className="border-t pt-2 mt-1">
+              <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider block mb-1.5">Modo de Pagamento</label>
+              <div className="flex gap-1">
+                {[
+                  { value: 'upfront', label: 'À Vista' },
+                  { value: 'installment', label: 'Parcelado' },
+                  { value: 'mixed', label: 'Misto' },
+                ].map(opt => (
+                  <button
+                    key={opt.value}
+                    className={`flex-1 px-2 py-1.5 rounded-lg text-[11px] font-semibold transition-all border ${
+                      paymentMode === opt.value
+                        ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-600 dark:text-emerald-400'
+                        : 'bg-muted/30 border-transparent text-muted-foreground hover:bg-muted/50'
+                    }`}
+                    onClick={() => setPaymentMode(opt.value as any)}
+                    type="button"
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* ── INSTALLMENT OPTIONS ── */}
+            {paymentMode !== 'upfront' && (
+              <div className="border rounded-xl p-3 space-y-2.5 bg-muted/10 animate-in slide-in-from-top-1 fade-in duration-200">
+                <div>
+                  <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Tipo</label>
+                  <Select value={paymentOrigin} onValueChange={(v) => setPaymentOrigin(v as any)}>
+                    <SelectTrigger className="h-8 text-xs mt-1"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="credit_card_installment">Crédito Parcelado</SelectItem>
+                      <SelectItem value="store_credit">A Prazo / Boca a Boca</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Parcelas</label>
+                    <Select value={String(installmentCount)} onValueChange={(v) => setInstallmentCount(Number(v))}>
+                      <SelectTrigger className="h-8 text-xs mt-1"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {[2,3,4,5,6,7,8,9,10,11,12].map(n => (
+                          <SelectItem key={n} value={String(n)}>{n}x</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">1º Vencimento</label>
+                    <Input type="date" className="h-8 text-xs mt-1" value={firstDueDate} onChange={(e) => setFirstDueDate(e.target.value)} />
+                  </div>
+                </div>
+
+                {paymentMode === 'mixed' && (
+                  <div>
+                    <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Valor de Entrada (R$)</label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      min="0.01"
+                      className="h-8 text-xs mt-1"
+                      value={upfrontPayAmount || ''}
+                      onChange={(e) => setUpfrontPayAmount(parseFloat(e.target.value) || 0)}
+                    />
+                  </div>
+                )}
+
+                {paymentOrigin === 'store_credit' && (
+                  <div>
+                    <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+                      <FileText className="h-3 w-3" /> Observação / Motivo *
+                    </label>
+                    <Input
+                      placeholder="Ex: Pagamento quinzenal combinado"
+                      className="h-8 text-xs mt-1"
+                      value={installmentNotes}
+                      onChange={(e) => setInstallmentNotes(e.target.value)}
+                    />
+                  </div>
+                )}
+
+                {/* Preview parcelas */}
+                {total > 0 && firstDueDate && (
+                  <div className="bg-background border rounded-lg p-2.5">
+                    <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 flex items-center gap-1">
+                      <CalendarDays className="h-3 w-3" /> Preview das Parcelas
+                    </div>
+                    {(() => {
+                      const receivableAmount = paymentMode === 'mixed' ? Math.max(0, total - upfrontPayAmount) : total
+                      if (receivableAmount <= 0) return <div className="text-xs text-muted-foreground">Valor de entrada cobre o total.</div>
+                      const schedule = generateInstallmentSchedule(receivableAmount, installmentCount, firstDueDate)
+                      return (
+                        <div className="space-y-0.5">
+                          {paymentMode === 'mixed' && upfrontPayAmount > 0 && (
+                            <div className="flex justify-between text-[11px] text-emerald-600 dark:text-emerald-400 font-medium">
+                              <span>Entrada (à vista)</span>
+                              <span>R$ {upfrontPayAmount.toFixed(2)}</span>
+                            </div>
+                          )}
+                          {schedule.map((s) => (
+                            <div key={s.installment_number} className="flex justify-between text-[11px] text-muted-foreground">
+                              <span>{s.installment_number}/{s.total_installments} — {new Date(s.due_date + 'T12:00:00').toLocaleDateString('pt-BR')}</span>
+                              <span className="font-medium">R$ {s.amount.toFixed(2)}</span>
+                            </div>
+                          ))}
+                          <div className="flex justify-between text-[11px] font-bold border-t pt-1 mt-1">
+                            <span>Total A Receber</span>
+                            <span className="text-amber-500">R$ {receivableAmount.toFixed(2)}</span>
+                          </div>
+                        </div>
+                      )
+                    })()}
+                  </div>
+                )}
+              </div>
+            )}
+
             <Button 
               className="pos-cta-button" 
               disabled={!isValid || isProcessing}
               onClick={onSubmit}
             >
-               {isProcessing ? "Processando..." : "Finalizar Venda"}
+               {isProcessing ? "Processando..." : paymentMode === 'upfront' ? "Finalizar Venda" : "Finalizar Venda Parcelada"}
             </Button>
           </div>
         </div>

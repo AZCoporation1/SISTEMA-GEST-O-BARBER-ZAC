@@ -68,6 +68,12 @@ export interface AppointmentRow {
   notes: string | null
   linked_sale_id: string | null
   recurrence_rule: any | null
+  /** Subscription link — set when appointment belongs to a subscription */
+  subscription_id: string | null
+  /** Specific occurrence within the subscription cycle */
+  subscription_occurrence_id: string | null
+  /** Quick flag — true for subscription-generated appointments */
+  is_subscription: boolean
   created_by: string | null
   updated_by: string | null
   cancelled_by: string | null

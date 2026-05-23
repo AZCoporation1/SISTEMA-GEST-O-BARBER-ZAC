@@ -102,7 +102,7 @@ export default function AgendaKPIs({ appointments, blocks = [], workingHours = [
             </div>
           </div>
           <div className="kpi-value">{kpi.value}</div>
-          <span style={{ fontSize: 11, color: "var(--text-secondary)" }}>{kpi.detail}</span>
+          <span style={{ fontSize: 10, color: "var(--text-secondary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", display: "block" }}>{kpi.detail}</span>
         </div>
       ))}
     </div>

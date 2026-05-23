@@ -2,6 +2,19 @@
 
 import { useMemo, useState, useEffect, useRef, useCallback } from "react"
 import { Lock, User, Clock, Phone, Globe, FileText, Scissors, CheckCircle } from "lucide-react"
+
+// ── Notebook density detection ──
+function useIsNotebook(breakpoint = 1280) {
+  const [isNotebook, setIsNotebook] = useState(false)
+  useEffect(() => {
+    const mq = window.matchMedia(`(max-width: ${breakpoint}px)`)
+    const handler = (e: MediaQueryListEvent | MediaQueryList) => setIsNotebook(e.matches)
+    handler(mq)
+    mq.addEventListener("change", handler)
+    return () => mq.removeEventListener("change", handler)
+  }, [breakpoint])
+  return isNotebook
+}
 import type {
   AppointmentWithRelations,
   AppointmentBlockRow,
@@ -66,6 +79,7 @@ export default function AgendaDayGrid({
   const slotInterval = settings?.slot_interval_minutes || 30
   const openingStr = settings?.opening_time || "07:00"
   const closingStr = settings?.closing_time || "21:00"
+  const nb = useIsNotebook()
 
   // Get the weekday for working hours lookup
   const selectedDateObj = new Date(selectedDate + "T12:00:00")
@@ -82,9 +96,12 @@ export default function AgendaDayGrid({
     return slots
   }, [openingStr, closingStr, slotInterval])
 
-  const SLOT_HEIGHT = 56
-  const TIME_COL_WIDTH = 56
-  const MIN_COL_WIDTH = 260
+  // ── Responsive density constants ──
+  const SLOT_HEIGHT = nb ? 48 : 56
+  const TIME_COL_WIDTH = nb ? 44 : 56
+
+  // ── Shared grid template: ensures header & body are always aligned ──
+  const gridTemplate = `${TIME_COL_WIDTH}px repeat(${professionals.length}, minmax(0, 1fr))`
 
   // ── Scroll sync refs ──
   const headerRef = useRef<HTMLDivElement>(null)
@@ -191,7 +208,7 @@ export default function AgendaDayGrid({
     <div style={{
       background: "var(--bg-surface)",
       border: "1px solid var(--border)",
-      borderRadius: 12,
+      borderRadius: nb ? 10 : 12,
       overflow: "hidden",
       display: "flex",
       flexDirection: "column",
@@ -200,13 +217,13 @@ export default function AgendaDayGrid({
       <div
         ref={headerRef}
         style={{
-          display: "flex",
+          display: "grid",
+          gridTemplateColumns: gridTemplate,
           borderBottom: "2px solid var(--border)",
           position: "sticky",
           top: 0,
           zIndex: 10,
           background: "var(--bg-surface)",
-          overflowX: "hidden",
           flexShrink: 0,
         }}
       >
@@ -214,8 +231,8 @@ export default function AgendaDayGrid({
           width: TIME_COL_WIDTH,
           minWidth: TIME_COL_WIDTH,
           borderRight: "1px solid var(--border)",
-          padding: "12px 8px",
-          fontSize: 9,
+          padding: nb ? "8px 4px" : "12px 8px",
+          fontSize: nb ? 8 : 9,
           fontWeight: 700,
           color: "var(--text-muted)",
           letterSpacing: "0.1em",
@@ -227,34 +244,35 @@ export default function AgendaDayGrid({
         {professionals.map(prof => {
           const ph = getProfHours(prof.id)
           const initial = (prof.display_name || prof.name).charAt(0).toUpperCase()
+          const displayName = prof.display_name || prof.name
           return (
             <div
               key={prof.id}
               style={{
-                flex: 1,
-                minWidth: MIN_COL_WIDTH,
+                minWidth: 0,
                 borderRight: "1px solid var(--border)",
-                padding: "10px 12px",
+                padding: nb ? "6px 4px" : "10px 12px",
                 textAlign: "center",
+                overflow: "hidden",
               }}
             >
               <div style={{
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                gap: 8,
-                marginBottom: 2,
+                gap: nb ? 4 : 8,
+                marginBottom: nb ? 1 : 2,
               }}>
                 <div style={{
-                  width: 26,
-                  height: 26,
+                  width: nb ? 20 : 26,
+                  height: nb ? 20 : 26,
                   borderRadius: "50%",
                   background: "var(--accent-subtle)",
                   border: "1px solid var(--accent-border)",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  fontSize: 11,
+                  fontSize: nb ? 8 : 11,
                   fontWeight: 800,
                   color: "var(--accent)",
                   flexShrink: 0,
@@ -262,16 +280,20 @@ export default function AgendaDayGrid({
                   {initial}
                 </div>
                 <span style={{
-                  fontSize: 12,
+                  fontSize: nb ? 10 : 12,
                   fontWeight: 700,
                   color: "var(--text-primary)",
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  minWidth: 0,
                 }}>
-                  {prof.display_name || prof.name}
+                  {nb && displayName.length > 10 ? displayName.split(' ')[0] : displayName}
                 </span>
               </div>
               {ph && (
                 <div style={{
-                  fontSize: 9,
+                  fontSize: nb ? 8 : 9,
                   color: "var(--text-muted)",
                   fontWeight: 500,
                   display: "flex",
@@ -279,8 +301,8 @@ export default function AgendaDayGrid({
                   justifyContent: "center",
                   gap: 3,
                 }}>
-                  <Clock size={8} />
-                  {ph.start_time.slice(0, 5)} — {ph.end_time.slice(0, 5)}
+                  <Clock size={nb ? 7 : 8} />
+                  {ph.start_time.slice(0, 5)}—{ph.end_time.slice(0, 5)}
                 </div>
               )}
             </div>
@@ -292,7 +314,7 @@ export default function AgendaDayGrid({
       <div
         ref={bodyRef}
         onScroll={handleBodyScroll}
-        style={{ overflowX: "auto", overflowY: "auto", maxHeight: "calc(100dvh - 280px)", position: "relative", flex: 1 }}
+        style={{ overflowY: "auto", maxHeight: nb ? "calc(100dvh - 220px)" : "calc(100dvh - 280px)", position: "relative", flex: 1 }}
       >
         {timeSlots.map((time, slotIdx) => {
           const isHourMark = time.endsWith(":00")
@@ -300,20 +322,20 @@ export default function AgendaDayGrid({
             <div
               key={time}
               style={{
-                display: "flex",
+                display: "grid",
+                gridTemplateColumns: gridTemplate,
                 height: SLOT_HEIGHT,
                 borderBottom: isHourMark ? "1px solid var(--border)" : "1px solid color-mix(in srgb, var(--border) 40%, transparent)",
               }}
             >
               {/* Time label */}
               <div style={{
-                width: TIME_COL_WIDTH,
-                minWidth: TIME_COL_WIDTH,
+                minWidth: 0,
                 borderRight: "1px solid var(--border)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                fontSize: isHourMark ? 12 : 10,
+                fontSize: nb ? (isHourMark ? 10 : 8) : (isHourMark ? 12 : 10),
                 fontWeight: isHourMark ? 700 : 500,
                 color: isHourMark ? "var(--text-secondary)" : "var(--text-muted)",
                 fontVariantNumeric: "tabular-nums",
@@ -334,8 +356,7 @@ export default function AgendaDayGrid({
                     <div
                       key={prof.id}
                       style={{
-                        flex: 1,
-                        minWidth: MIN_COL_WIDTH,
+                        minWidth: 0,
                         borderRight: "1px solid var(--border)",
                         background: "var(--bg-elevated, rgba(128,128,128,0.04))",
                       }}
@@ -350,19 +371,19 @@ export default function AgendaDayGrid({
                       key={prof.id}
                       onClick={() => onBlockClick?.(blockAtSlot)}
                       style={{
-                        flex: 1,
-                        minWidth: MIN_COL_WIDTH,
+                        minWidth: 0,
                         borderRight: "1px solid var(--border)",
                         borderBottom: "1px solid color-mix(in srgb, var(--border) 30%, transparent)",
                         background: "repeating-linear-gradient(135deg, transparent, transparent 4px, rgba(107,114,128,0.06) 4px, rgba(107,114,128,0.06) 8px)",
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        gap: 6,
+                        gap: nb ? 4 : 6,
                         cursor: onBlockClick ? "pointer" : "default",
                         transition: "background 100ms ease, filter 100ms ease",
-                        padding: "0 8px",
+                        padding: nb ? "0 4px" : "0 8px",
                         boxSizing: "border-box",
+                        overflow: "hidden",
                       }}
                       onMouseEnter={e => {
                         if (onBlockClick) (e.currentTarget as HTMLElement).style.filter = "brightness(0.92)"
@@ -371,13 +392,14 @@ export default function AgendaDayGrid({
                         (e.currentTarget as HTMLElement).style.filter = "none"
                       }}
                     >
-                      <Lock size={10} style={{ color: "var(--text-muted)", opacity: 0.6, flexShrink: 0 }} />
+                      <Lock size={nb ? 8 : 10} style={{ color: "var(--text-muted)", opacity: 0.6, flexShrink: 0 }} />
                       <span style={{
-                        fontSize: 9,
+                        fontSize: nb ? 7 : 9,
                         color: "var(--text-muted)",
                         fontWeight: 700,
                         letterSpacing: "0.06em",
                         textTransform: "uppercase",
+                        whiteSpace: "nowrap",
                       }}>Bloqueado</span>
                       {blockAtSlot.reason && (
                         <span style={{
@@ -387,7 +409,8 @@ export default function AgendaDayGrid({
                           whiteSpace: "nowrap",
                           overflow: "hidden",
                           textOverflow: "ellipsis",
-                          maxWidth: 80,
+                          maxWidth: nb ? 40 : 80,
+                          minWidth: 0,
                         }}>
                           • {blockAtSlot.reason}
                         </span>
@@ -423,10 +446,9 @@ export default function AgendaDayGrid({
                     <div
                       key={prof.id}
                       style={{
-                        flex: 1,
-                        minWidth: MIN_COL_WIDTH,
+                        minWidth: 0,
                         borderRight: "1px solid var(--border)",
-                        padding: 3,
+                        padding: nb ? 2 : 3,
                         position: "relative",
                       }}
                     >
@@ -435,17 +457,19 @@ export default function AgendaDayGrid({
                         onClick={() => onAppointmentClick(appointment)}
                         style={{
                           position: "absolute",
-                          top: 3,
-                          left: 3,
-                          right: 3,
-                          height: realHeight - 6,
+                          top: nb ? 2 : 3,
+                          left: nb ? 2 : 3,
+                          right: nb ? 2 : 3,
+                          height: realHeight - (nb ? 4 : 6),
                           background: colors.bg,
-                          borderLeft: `3.5px solid ${colors.text}`,
+                          borderLeft: `${nb ? 2.5 : 3.5}px solid ${colors.text}`,
                           borderTop: `1px solid ${colors.border}`,
                           borderRight: `1px solid ${colors.border}`,
                           borderBottom: `1px solid ${colors.border}`,
-                          borderRadius: 8,
-                          padding: isCompact ? "3px 8px" : isExpanded ? "6px 10px" : "5px 10px",
+                          borderRadius: nb ? 6 : 8,
+                          padding: nb
+                            ? (isCompact ? "2px 4px" : isExpanded ? "3px 5px" : "2px 5px")
+                            : (isCompact ? "3px 8px" : isExpanded ? "6px 10px" : "5px 10px"),
                           cursor: "pointer",
                           display: "flex",
                           flexDirection: "column",
@@ -470,16 +494,16 @@ export default function AgendaDayGrid({
                         {isCompact ? (
                           /* ── Compact (30min / 1 slot): dense horizontal layout ── */
                           <>
-                            {/* Row 1: time · client · service · badge */}
+                            {/* Row 1: time · client · badge */}
                             <div style={{
                               display: "flex",
                               alignItems: "center",
-                              gap: 5,
+                              gap: nb ? 3 : 5,
                               width: "100%",
                               minWidth: 0,
                             }}>
                               <span style={{
-                                fontSize: 11,
+                                fontSize: nb ? 9 : 11,
                                 fontWeight: 800,
                                 color: colors.text,
                                 whiteSpace: "nowrap",
@@ -490,7 +514,7 @@ export default function AgendaDayGrid({
                                 {startStr}
                               </span>
                               <span style={{
-                                fontSize: 11,
+                                fontSize: nb ? 9 : 11,
                                 fontWeight: 600,
                                 color: "var(--text-primary)",
                                 whiteSpace: "nowrap",
@@ -501,7 +525,7 @@ export default function AgendaDayGrid({
                               }}>
                                 {appointment.customer_name_snapshot || "Cliente"}
                               </span>
-                              {appointment.service_name_snapshot && (
+                              {!nb && appointment.service_name_snapshot && (
                                 <span style={{
                                   fontSize: 9,
                                   fontWeight: 400,
@@ -517,19 +541,19 @@ export default function AgendaDayGrid({
                                 </span>
                               )}
                               <span style={{
-                                fontSize: 7,
+                                fontSize: nb ? 6 : 7,
                                 fontWeight: 700,
-                                padding: "1px 5px",
+                                padding: nb ? "1px 3px" : "1px 5px",
                                 borderRadius: 3,
                                 background: colors.badgeBg,
                                 color: colors.text,
                                 textTransform: "uppercase",
                                 letterSpacing: "0.05em",
                                 flexShrink: 0,
-                                lineHeight: "13px",
+                                lineHeight: nb ? "11px" : "13px",
                                 marginLeft: "auto",
                               }}>
-                                {isCompleted && <CheckCircle size={8} style={{ marginRight: 2, verticalAlign: 'middle' }} />}
+                                {isCompleted && <CheckCircle size={nb ? 6 : 8} style={{ marginRight: 1, verticalAlign: 'middle' }} />}
                                 {colors.badge}
                               </span>
                               {isCompleted && colors.secondaryBadge && (
@@ -549,8 +573,8 @@ export default function AgendaDayGrid({
                                 </span>
                               )}
                             </div>
-                            {/* Row 2: phone (if fits) */}
-                            {appointment.customer_phone_snapshot && (
+                            {/* Row 2: phone (if fits — hide on notebook compact) */}
+                            {!nb && appointment.customer_phone_snapshot && (
                               <div style={{
                                 fontSize: 9,
                                 color: "var(--text-muted)",
@@ -578,31 +602,31 @@ export default function AgendaDayGrid({
                               flexShrink: 0,
                             }}>
                               <span style={{
-                                fontSize: 12,
+                                fontSize: nb ? 9 : 12,
                                 fontWeight: 800,
                                 color: colors.text,
                                 fontVariantNumeric: "tabular-nums",
                                 lineHeight: 1,
                                 letterSpacing: "-0.01em",
                               }}>
-                                {startStr} — {endStr}
+                                {nb ? startStr : `${startStr} — ${endStr}`}
                               </span>
                               <div style={{ display: "flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
                                 <span style={{
-                                  fontSize: 8,
+                                  fontSize: nb ? 6 : 8,
                                   fontWeight: 700,
-                                  padding: "2px 6px",
+                                  padding: nb ? "1px 4px" : "2px 6px",
                                   borderRadius: 4,
                                   background: colors.badgeBg,
                                   color: colors.text,
                                   textTransform: "uppercase",
                                   letterSpacing: "0.05em",
-                                  lineHeight: "14px",
+                                  lineHeight: nb ? "11px" : "14px",
                                   display: "flex",
                                   alignItems: "center",
-                                  gap: 3,
+                                  gap: nb ? 2 : 3,
                                 }}>
-                                  {isCompleted && <CheckCircle size={9} />}
+                                  {isCompleted && <CheckCircle size={nb ? 7 : 9} />}
                                   {colors.badge}
                                 </span>
                                 {isCompleted && colors.secondaryBadge && (
@@ -625,7 +649,7 @@ export default function AgendaDayGrid({
 
                             {/* Line 2: Client name */}
                             <div style={{
-                              fontSize: 12,
+                              fontSize: nb ? 9 : 12,
                               fontWeight: 600,
                               color: "var(--text-primary)",
                               whiteSpace: "nowrap",
@@ -633,18 +657,18 @@ export default function AgendaDayGrid({
                               textOverflow: "ellipsis",
                               width: "100%",
                               lineHeight: 1.2,
-                              marginTop: 3,
+                              marginTop: nb ? 1 : 3,
                               display: "flex",
                               alignItems: "center",
-                              gap: 4,
+                              gap: nb ? 2 : 4,
                             }}>
-                              <User size={11} style={{ flexShrink: 0, opacity: 0.5 }} />
+                              <User size={nb ? 8 : 11} style={{ flexShrink: 0, opacity: 0.5 }} />
                               {appointment.customer_name_snapshot || "Cliente"}
                             </div>
 
                             {/* Line 3: Service */}
                             <div style={{
-                              fontSize: 10,
+                              fontSize: nb ? 8 : 10,
                               fontWeight: 500,
                               color: "var(--text-secondary)",
                               whiteSpace: "nowrap",
@@ -653,16 +677,16 @@ export default function AgendaDayGrid({
                               width: "100%",
                               display: "flex",
                               alignItems: "center",
-                              gap: 3,
-                              marginTop: 2,
+                              gap: nb ? 2 : 3,
+                              marginTop: nb ? 1 : 2,
                               lineHeight: 1.2,
                             }}>
-                              <Scissors size={9} style={{ flexShrink: 0, opacity: 0.6 }} />
+                              <Scissors size={nb ? 7 : 9} style={{ flexShrink: 0, opacity: 0.6 }} />
                               {appointment.service_name_snapshot || "Serviço"}
-                              <span style={{ opacity: 0.4, fontSize: 8 }}>•</span>
-                              <span style={{ fontVariantNumeric: "tabular-nums", fontSize: 9, opacity: 0.7 }}>
+                              {!nb && <span style={{ opacity: 0.4, fontSize: 8 }}>•</span>}
+                              {!nb && <span style={{ fontVariantNumeric: "tabular-nums", fontSize: 9, opacity: 0.7 }}>
                                 {realDur}min
-                              </span>
+                              </span>}
                             </div>
 
                             {/* Line 4+ — Expanded: phone / notes */}
@@ -718,8 +742,7 @@ export default function AgendaDayGrid({
                     <div
                       key={prof.id}
                       style={{
-                        flex: 1,
-                        minWidth: MIN_COL_WIDTH,
+                        minWidth: 0,
                         borderRight: "1px solid var(--border)",
                       }}
                     />
@@ -732,8 +755,7 @@ export default function AgendaDayGrid({
                     key={prof.id}
                     onClick={() => onSlotClick(prof.id, time)}
                     style={{
-                      flex: 1,
-                      minWidth: MIN_COL_WIDTH,
+                      minWidth: 0,
                       borderRight: "1px solid var(--border)",
                       cursor: "pointer",
                       transition: "background 100ms ease",

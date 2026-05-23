@@ -1,7 +1,7 @@
 "use client"
 
 import { useRouter } from 'next/navigation'
-import { Package, Wrench, List, Sparkles, Star, Clock, DollarSign, ChevronRight } from 'lucide-react'
+import { Package, Wrench, List, Sparkles, Star, Clock, DollarSign, ChevronRight, CalendarCheck } from 'lucide-react'
 import type { PublicCatalogServiceV2 } from '@/features/agenda/actions/public-booking.actions'
 
 // ── Popular Services (real IDs resolved at render time) ──
@@ -42,8 +42,9 @@ interface BookingModeSelectorProps {
 export default function BookingModeSelector({ services }: BookingModeSelectorProps) {
   const router = useRouter()
   const popularServices = resolvePopularServices(services)
-  const comboCount = services.filter(s => s.isCombo).length
-  const mainCount = services.filter(s => !s.isCombo && s.canBeMain).length
+  const comboCount = services.filter(s => s.isCombo && !s.isPlan).length
+  const mainCount = services.filter(s => !s.isCombo && !s.isPlan && s.canBeMain).length
+  const subscriptionsEnabled = process.env.NEXT_PUBLIC_SUBSCRIPTIONS_ENABLED !== 'false'
 
   return (
     <div className="space-y-8">
@@ -99,6 +100,30 @@ export default function BookingModeSelector({ services }: BookingModeSelectorPro
           </div>
         </button>
       </div>
+
+      {/* Subscription card */}
+      {subscriptionsEnabled && (
+        <div className="fade-up" style={{ animationDelay: '250ms' }}>
+          <button
+            onClick={() => router.push('/cliente/agendar?mode=subscription')}
+            className="group relative w-full p-6 rounded-2xl border border-border bg-card/50 premium-card hover:border-purple-500/30 text-left transition-all duration-300"
+          >
+            <div className="absolute top-3 right-3 px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-500 text-[10px] font-semibold">
+              Planos mensais
+            </div>
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-purple-500/20 to-purple-500/5 border border-purple-500/20 flex items-center justify-center mb-4 group-hover:scale-110 group-hover:shadow-lg transition-all duration-300">
+              <CalendarCheck className="w-7 h-7 text-purple-500" />
+            </div>
+            <h3 className="text-lg font-bold text-foreground mb-1">Assinaturas Mensais</h3>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              Escolha um plano mensal com dia e horário fixo. Desconto exclusivo para assinantes.
+            </p>
+            <div className="mt-4 flex items-center gap-1 text-xs text-purple-500 font-medium group-hover:gap-2 transition-all">
+              Ver planos <ChevronRight className="w-3.5 h-3.5 icon-nudge" />
+            </div>
+          </button>
+        </div>
+      )}
 
       {/* Popular Services */}
       {popularServices.length > 0 && (

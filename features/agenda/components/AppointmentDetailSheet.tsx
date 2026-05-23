@@ -1,15 +1,17 @@
 "use client"
 
 import { useState } from "react"
+import { toast } from "sonner"
 import {
   X, Clock, User, Scissors, Phone, FileText,
-  Check, XCircle, AlertTriangle, CreditCard, Play, Trash2
+  Check, XCircle, AlertTriangle, CreditCard, Play, Trash2, RotateCcw
 } from "lucide-react"
 import {
   cancelAppointment,
   markNoShow,
   checkInAppointment,
   confirmAppointment,
+  reopenAppointment,
 } from "../actions/agenda.actions"
 import type { AppointmentWithRelations } from "../types"
 import { APPOINTMENT_STATUS_LABELS, APPOINTMENT_STATUS_COLORS } from "../types"
@@ -34,6 +36,7 @@ export default function AppointmentDetailSheet({
   const [loading, setLoading] = useState(false)
   const [cancelReason, setCancelReason] = useState("")
   const [showCancelInput, setShowCancelInput] = useState(false)
+  const [showReopenConfirm, setShowReopenConfirm] = useState(false)
 
   if (!open || !appointment) return null
 
@@ -48,13 +51,26 @@ export default function AppointmentDetailSheet({
   const canCancel = !["completed", "cancelled"].includes(appointment.status)
   const canNoShow = !["completed", "cancelled", "no_show"].includes(appointment.status)
   const canEdit = !["completed", "cancelled"].includes(appointment.status)
+  const canReopen = ["completed", "no_show"].includes(appointment.status)
+  const hasLinkedSale = appointment.status === "completed" && !!appointment.linked_sale_id
 
   const handleAction = async (action: () => Promise<any>) => {
     setLoading(true)
-    await action()
-    setLoading(false)
-    onRefresh()
-    onClose()
+    try {
+      const result = await action()
+      if (result && result.success === false) {
+        toast.error(result.error || "Erro ao executar ação")
+        setLoading(false)
+        return
+      }
+      toast.success("Ação realizada com sucesso!")
+      onRefresh()
+      onClose()
+    } catch (err: any) {
+      toast.error(err.message || "Erro inesperado")
+    } finally {
+      setLoading(false)
+    }
   }
 
   const handleCancel = async () => {
@@ -283,6 +299,73 @@ export default function AppointmentDetailSheet({
             </div>
           )}
         </div>
+
+          {/* Reopen section */}
+          {canReopen && (
+            <>
+              <div style={{
+                fontSize: 9,
+                fontWeight: 700,
+                color: "var(--text-muted)",
+                letterSpacing: "0.12em",
+                textTransform: "uppercase",
+                marginTop: 16,
+                marginBottom: 4,
+              }}>
+                Reabertura
+              </div>
+
+              {!showReopenConfirm ? (
+                <button
+                  style={actionBtnStyle("var(--warning)")}
+                  onClick={() => setShowReopenConfirm(true)}
+                >
+                  <RotateCcw size={14} style={{ color: "#f59e0b" }} /> Reabrir Atendimento
+                </button>
+              ) : (
+                <div style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 8,
+                  padding: 12,
+                  background: "rgba(245, 158, 11, 0.06)",
+                  border: "1px solid rgba(245, 158, 11, 0.2)",
+                  borderRadius: 8,
+                }}>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: "var(--text-primary)" }}>
+                    Deseja reabrir este atendimento?
+                  </div>
+                  <div style={{ fontSize: 11, color: "var(--text-secondary)", lineHeight: 1.4 }}>
+                    {hasLinkedSale
+                      ? "⚠️ Este atendimento possui venda vinculada. Se a venda já foi estornada, a reabertura será liberada automaticamente. Caso contrário, estorne a venda primeiro."
+                      : "O atendimento voltará para a agenda como ativo e poderá ser editado, finalizado ou marcado como ausência novamente."
+                    }
+                  </div>
+                  <div style={{ display: "flex", gap: 6 }}>
+                    <button
+                      style={{
+                        ...actionBtnStyle("#f59e0b"),
+                        flex: 1,
+                        background: "rgba(245,158,11,0.1)",
+                        borderColor: "rgba(245,158,11,0.3)",
+                        color: "#f59e0b",
+                      }}
+                      onClick={() => handleAction(() => reopenAppointment(appointment.id))}
+                      disabled={loading}
+                    >
+                      <RotateCcw size={14} /> Confirmar Reabertura
+                    </button>
+                    <button
+                      onClick={() => setShowReopenConfirm(false)}
+                      style={{ ...actionBtnStyle(""), width: "auto", padding: "8px 12px" }}
+                    >
+                      Voltar
+                    </button>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
       </div>
     </div>
   )

@@ -70,9 +70,9 @@ export function ReceptionHistoryView({
   const appliedAdvances = advances?.filter((a) => a.status === "applied") || []
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
       {/* ── Col 1 & 2: Advances for Current Period ──────────────── */}
-      <div className="lg:col-span-2 space-y-6">
+      <div className="xl:col-span-2 space-y-6">
         <Card className="border-[var(--border-strong)] bg-[var(--bg-surface)]">
           <CardHeader>
             <div className="flex items-center justify-between">

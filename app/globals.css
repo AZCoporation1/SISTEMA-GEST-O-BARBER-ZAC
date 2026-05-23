@@ -511,7 +511,7 @@
     margin-bottom: 28px;
   }
 
-  @media (max-width: 1400px) {
+  @media (max-width: 900px) {
     .kpi-grid {
       grid-template-columns: repeat(2, 1fr);
     }
@@ -887,6 +887,317 @@
 
     .filter-search {
       max-width: 100% !important;
+    }
+  }
+
+  /* ============ DESKTOP COMPACTO / NOTEBOOK ============ */
+
+  /* ── Level 1: Desktop Compacto (1024–1200px) ─────────────── */
+  @media (max-width: 1200px) {
+    .kpi-grid {
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .kpi-card {
+      padding: 12px 14px;
+      gap: 6px;
+    }
+
+    .kpi-value {
+      font-size: 20px;
+    }
+
+    .kpi-icon {
+      width: 28px;
+      height: 28px;
+      border-radius: 7px;
+    }
+
+    .kpi-label {
+      font-size: 10px;
+      letter-spacing: 0.04em;
+    }
+
+    .page-header {
+      margin-bottom: 16px;
+      gap: 10px;
+    }
+
+    .page-title {
+      font-size: 20px;
+    }
+
+    .page-subtitle {
+      font-size: 12px;
+      margin-top: 2px;
+    }
+
+    .page-content {
+      padding: 16px 20px;
+    }
+
+    .section-card-header {
+      padding: 10px 14px;
+    }
+
+    .section-card-body {
+      padding: 10px 14px;
+    }
+
+    .empty-state {
+      padding: 32px 16px;
+    }
+
+    .filter-bar {
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .data-table th {
+      padding: 10px 12px;
+      font-size: 9px;
+    }
+
+    .data-table td {
+      padding: 10px 12px;
+      font-size: 12px;
+    }
+
+    .alert-banner {
+      padding: 8px 12px;
+      font-size: 12px;
+      margin-bottom: 10px;
+    }
+  }
+
+  /* ── Level 2: Compactação Forte (~1115px) ─────────────────── */
+  @media (max-width: 1115px) {
+    .kpi-grid {
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .kpi-card {
+      padding: 10px 12px;
+      gap: 4px;
+      border-radius: 8px;
+    }
+
+    .kpi-value {
+      font-size: 18px;
+    }
+
+    .kpi-label {
+      font-size: 9px;
+    }
+
+    .kpi-icon {
+      width: 24px;
+      height: 24px;
+    }
+
+    .page-content {
+      padding: 12px 16px;
+    }
+
+    .page-header {
+      margin-bottom: 12px;
+      gap: 8px;
+    }
+
+    .page-title {
+      font-size: 17px;
+    }
+
+    .filter-bar {
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .data-table th {
+      padding: 10px 12px;
+      font-size: 9px;
+    }
+
+    .data-table td {
+      padding: 10px 12px;
+      font-size: 12px;
+    }
+
+    .section-card-header {
+      padding: 10px 14px;
+    }
+
+    .section-card-body {
+      padding: 10px 14px;
+    }
+
+    .section-card-title {
+      font-size: 12px;
+    }
+
+    .empty-state {
+      padding: 32px 16px;
+      gap: 10px;
+    }
+
+    .alert-banner {
+      padding: 10px 14px;
+      font-size: 12px;
+      margin-bottom: 12px;
+    }
+  }
+
+  /* ── Level 3: Tela Baixa / Notebook Crítico (≤700px height) ── */
+  @media (max-height: 700px) {
+    .page-content {
+      padding-top: 8px;
+      padding-bottom: 8px;
+    }
+
+    .page-header {
+      margin-bottom: 8px;
+      gap: 6px;
+    }
+
+    .page-title {
+      font-size: 16px;
+    }
+
+    .page-subtitle {
+      font-size: 10px;
+      margin-top: 1px;
+    }
+
+    .kpi-grid {
+      margin-bottom: 8px;
+      gap: 6px;
+    }
+
+    .kpi-card {
+      padding: 8px 10px;
+      gap: 4px;
+      border-radius: 8px;
+    }
+
+    .kpi-value {
+      font-size: 16px;
+    }
+
+    .kpi-label {
+      font-size: 8px;
+    }
+
+    .kpi-icon {
+      width: 22px;
+      height: 22px;
+      border-radius: 6px;
+    }
+
+    .kpi-delta {
+      font-size: 10px;
+    }
+
+    .topbar {
+      height: 44px;
+      padding: 0 16px;
+      gap: 10px;
+    }
+
+    .sidebar-logo {
+      padding: 10px 16px;
+    }
+
+    .sidebar-nav {
+      padding: 6px 10px;
+    }
+
+    .sidebar-item {
+      padding: 6px 12px;
+      font-size: 12px;
+    }
+
+    .sidebar-section-label {
+      padding: 8px 12px 3px;
+      font-size: 8px;
+    }
+
+    .section-card-header {
+      padding: 8px 12px;
+    }
+
+    .section-card-body {
+      padding: 8px 12px;
+    }
+
+    .empty-state {
+      padding: 20px 14px;
+    }
+
+    .alert-banner {
+      padding: 6px 10px;
+      font-size: 11px;
+    }
+  }
+
+  /* ── Dialog Responsivo para Tela Baixa ───────────────────── */
+  @media (max-height: 700px) {
+    [data-slot="dialog-content"] {
+      max-height: calc(100dvh - 24px) !important;
+      padding: 14px !important;
+      gap: 10px !important;
+    }
+
+    [data-slot="dialog-header"] {
+      gap: 4px;
+    }
+
+    [data-slot="dialog-title"] {
+      font-size: 14px;
+    }
+
+    [data-slot="dialog-description"] {
+      font-size: 12px;
+    }
+
+    [data-slot="dialog-footer"] {
+      padding-top: 8px;
+    }
+  }
+
+  /* ── Combinação: Compacto + Tela Baixa (Notebook Crítico) ── */
+  @media (max-width: 1200px) and (max-height: 700px) {
+    .page-content {
+      padding: 6px 12px;
+    }
+
+    .kpi-grid {
+      gap: 6px;
+      margin-bottom: 6px;
+    }
+
+    .kpi-card {
+      padding: 6px 10px;
+      gap: 3px;
+    }
+
+    .kpi-value {
+      font-size: 15px;
+    }
+
+    .kpi-icon {
+      width: 20px;
+      height: 20px;
+      border-radius: 5px;
+    }
+
+    .kpi-label {
+      font-size: 8px;
+    }
+
+    .page-header {
+      margin-bottom: 6px;
     }
   }
 
@@ -1900,4 +2211,15 @@
       animation: none !important;
     }
   }
+}
+
+/* ── Keyframes ────────────────────────────────── */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes slideInRight {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
 }

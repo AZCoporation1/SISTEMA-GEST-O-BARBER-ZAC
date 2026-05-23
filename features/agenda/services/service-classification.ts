@@ -22,6 +22,7 @@ export interface ServiceClassificationInput {
 
 export interface ServiceClassification {
   isCombo: boolean
+  isPlan: boolean
   canBeMain: boolean
   canBeAddon: boolean
   primaryCategorySlug: string
@@ -48,6 +49,7 @@ export const CATEGORY_SLUGS = {
   FINALIZACAO_E_PENTEADOS: "finalizacao-e-penteados",
   CONSULTORIA_E_EDUCACAO: "consultoria-e-educacao",
   ATENDIMENTO_ESPECIAL: "atendimento-especial",
+  PLANOS_MENSAIS: "planos-mensais",
   OUTROS: "outros",
 } as const
 
@@ -62,6 +64,7 @@ export const CATEGORY_DISPLAY_NAMES: Record<string, string> = {
   [CATEGORY_SLUGS.FINALIZACAO_E_PENTEADOS]: "Finalização e Penteados",
   [CATEGORY_SLUGS.CONSULTORIA_E_EDUCACAO]: "Consultoria e Educação",
   [CATEGORY_SLUGS.ATENDIMENTO_ESPECIAL]: "Atendimento Especial",
+  [CATEGORY_SLUGS.PLANOS_MENSAIS]: "Planos Mensais",
   [CATEGORY_SLUGS.OUTROS]: "Outros",
 }
 
@@ -69,6 +72,7 @@ export const CATEGORY_DISPLAY_NAMES: Record<string, string> = {
 
 const KEYWORD_GROUPS = {
   combo: /combo|pacote/,
+  plano: /^plano\s/,
   corte: /corte|degrade|social|executivo|fade|tesoura|texturizacao|zac|infantil|pezinho cabelo|pezinho|passar a maquina/,
   barba: /barba|barboterapia|terapia de barba|razor|aparar barba|cavanhaque|pezinho barba/,
   bigode: /bigode/,
@@ -95,6 +99,7 @@ const GROUP_DISPLAY_CATEGORIES: Record<string, string[]> = {
   finalizacao: ["Finalização e Penteados"],
   consultoria: ["Consultoria e Educação"],
   especial: ["Atendimento Especial"],
+  plano: ["Planos Mensais"],
 }
 
 // Group → primary slug mapping
@@ -110,6 +115,7 @@ const GROUP_PRIMARY_SLUG: Record<string, string> = {
   finalizacao: CATEGORY_SLUGS.FINALIZACAO_E_PENTEADOS,
   consultoria: CATEGORY_SLUGS.CONSULTORIA_E_EDUCACAO,
   especial: CATEGORY_SLUGS.ATENDIMENTO_ESPECIAL,
+  plano: CATEGORY_SLUGS.PLANOS_MENSAIS,
 }
 
 // ── Specific Service Overrides ───────────────────────────
@@ -245,8 +251,9 @@ export function classifyService(service: ServiceClassificationInput): ServiceCla
   const override = SERVICE_OVERRIDES[name]
   if (override) {
     const isCombo = KEYWORD_GROUPS.combo.test(name)
+    const isPlan = KEYWORD_GROUPS.plano.test(name)
     const canBeMain = isCombo || MAIN_SERVICE_KEYWORDS.test(name)
-    const canBeAddon = !isCombo && ADDON_KEYWORDS.test(name)
+    const canBeAddon = !isCombo && !isPlan && ADDON_KEYWORDS.test(name)
 
     let shouldHide = override.shouldHideFromPublicFunnel
     let hideReason = override.hideReason
@@ -259,6 +266,7 @@ export function classifyService(service: ServiceClassificationInput): ServiceCla
 
     return {
       isCombo,
+      isPlan,
       canBeMain,
       canBeAddon,
       primaryCategorySlug: override.slug,
@@ -274,6 +282,7 @@ export function classifyService(service: ServiceClassificationInput): ServiceCla
 
   // ── Step 1: Detect combo ──
   const isCombo = KEYWORD_GROUPS.combo.test(name)
+  const isPlan = KEYWORD_GROUPS.plano.test(name)
 
   // ── Step 2: Detect matched keyword groups ──
   const matchedGroups: string[] = []
@@ -310,6 +319,10 @@ export function classifyService(service: ServiceClassificationInput): ServiceCla
     primaryCategorySlug = CATEGORY_SLUGS.COMBOS_PRONTOS
     matchedTags.unshift("combo")
     reason = `Nome contém "combo/pacote". DisplayCategories derivadas dos componentes internos.`
+  } else if (isPlan) {
+    primaryCategorySlug = CATEGORY_SLUGS.PLANOS_MENSAIS
+    matchedTags.unshift("plano")
+    reason = `Nome contém "plano". Classificado como Plano Mensal.`
   } else if (matchedGroups.length === 1) {
     const group = matchedGroups[0]
     primaryCategorySlug = GROUP_PRIMARY_SLUG[group] || CATEGORY_SLUGS.OUTROS
@@ -328,8 +341,8 @@ export function classifyService(service: ServiceClassificationInput): ServiceCla
   }
 
   // ── Step 5: Determine main/addon role ──
-  const canBeMain = isCombo || MAIN_SERVICE_KEYWORDS.test(name)
-  const canBeAddon = !isCombo && ADDON_KEYWORDS.test(name)
+  const canBeMain = isCombo || (!isPlan && MAIN_SERVICE_KEYWORDS.test(name))
+  const canBeAddon = !isCombo && !isPlan && ADDON_KEYWORDS.test(name)
 
   // ── Step 6: Public funnel visibility ──
   let shouldHideFromPublicFunnel = false
@@ -345,6 +358,7 @@ export function classifyService(service: ServiceClassificationInput): ServiceCla
 
   return {
     isCombo,
+    isPlan,
     canBeMain,
     canBeAddon,
     primaryCategorySlug,

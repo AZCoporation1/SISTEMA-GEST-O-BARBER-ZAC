@@ -94,7 +94,7 @@ export function ReceptionOverview() {
   return (
     <div className="space-y-6">
       {/* ── HEADER & PERIOD SELECTOR ───────────────────────────── */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 p-5 rounded-2xl border border-[var(--border-strong)] bg-[var(--bg-surface)]/60 backdrop-blur-md shadow-sm">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 p-4 xl:p-5 rounded-2xl border border-[var(--border-strong)] bg-[var(--bg-surface)]/60 backdrop-blur-md shadow-sm">
         <div className="flex items-center gap-3">
           <div className="p-3 rounded-xl bg-[var(--accent)]/10 text-[var(--accent)]">
             <Headset className="size-6" />
@@ -134,7 +134,7 @@ export function ReceptionOverview() {
             <div
               key={staff.id}
               onClick={() => setSelectedStaffId(staff.id)}
-              className={`p-5 rounded-2xl border transition-all cursor-pointer relative overflow-hidden flex flex-col justify-between h-[210px] ${
+              className={`p-4 xl:p-5 rounded-2xl border transition-all cursor-pointer relative overflow-hidden flex flex-col justify-between min-h-0 ${
                 isSelected
                   ? "border-[var(--accent)] bg-[var(--accent)]/5 shadow-md ring-1 ring-[var(--accent)]/30"
                   : "border-[var(--border-strong)] bg-[var(--bg-surface)] hover:bg-[var(--bg-hover)]"
@@ -234,7 +234,7 @@ export function ReceptionOverview() {
       {activeStaff && ledgerSummary && (
         <div className="space-y-6">
           {/* LEDGER SUMMARIES KPIs */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <div className="p-4 rounded-xl border border-[var(--border-strong)] bg-[var(--bg-surface)] flex items-center justify-between shadow-sm">
               <div className="space-y-1">
                 <span className="text-[10px] font-semibold text-[var(--text-secondary)] uppercase">Salário Quinzena</span>

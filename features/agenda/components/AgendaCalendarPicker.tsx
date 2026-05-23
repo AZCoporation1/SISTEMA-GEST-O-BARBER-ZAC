@@ -50,8 +50,8 @@ export default function AgendaCalendarPicker({ selectedDate, onDateChange }: Pro
     <div style={{
       background: "var(--bg-surface)",
       border: "1px solid var(--border)",
-      borderRadius: 12,
-      padding: 16,
+      borderRadius: 10,
+      padding: 12,
       width: "100%",
     }}>
       {/* Month Navigation */}

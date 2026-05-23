@@ -6,10 +6,11 @@ import AgendarClientContent from "./AgendarClientContent"
 export default async function AgendarServicePage({
   searchParams,
 }: {
-  searchParams: Promise<{ mode?: string }>
+  searchParams: Promise<{ mode?: string; planId?: string }>
 }) {
   const params = await searchParams
   const mode = params.mode || 'hub'
+  const planId = params.planId || undefined
 
   // Fetch both catalogs in parallel (no cache wrapper — page is dynamic)
   const [resultV2, resultLegacy] = await Promise.all([
@@ -47,6 +48,7 @@ export default async function AgendarServicePage({
 
       <AgendarClientContent
         mode={mode}
+        planId={planId}
         servicesV2={hasV2 ? resultV2.data! : []}
         servicesLegacy={hasLegacy ? resultLegacy.data! : []}
       />

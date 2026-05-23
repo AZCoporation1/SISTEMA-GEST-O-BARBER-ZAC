@@ -2,7 +2,7 @@
 "use client"
 
 import { useState, useCallback, useEffect, useMemo } from "react"
-import { Plus, Lock, Calendar, ChevronLeft, ChevronRight, Settings, Clock, Repeat, AlertTriangle, X } from "lucide-react"
+import { Plus, Lock, Calendar, ChevronLeft, ChevronRight, Settings, Clock, Repeat, AlertTriangle, X, RefreshCw } from "lucide-react"
 import { fetchCancelledAppointmentsByDate, type CancelledAppointmentInfo } from "@/features/agenda/services/agenda.service"
 import AgendaDayGrid from "@/features/agenda/components/AgendaDayGrid"
 import AgendaCalendarPicker from "@/features/agenda/components/AgendaCalendarPicker"
@@ -16,6 +16,7 @@ import WaitlistSheet from "@/features/agenda/components/WaitlistSheet"
 import AgendaMobileView from "@/features/agenda/components/AgendaMobileView"
 import ProfessionalViewSelector from "@/features/agenda/components/ProfessionalViewSelector"
 import RecurrenceDialog from "@/features/agenda/components/RecurrenceDialog"
+import AgendaCancellationAlerts from "@/features/agenda/components/AgendaCancellationAlerts"
 import AgendaRuntimeDiagnostics from "@/features/agenda/components/AgendaRuntimeDiagnostics"
 import MobileBlockActionSheet from "@/features/agenda/components/MobileBlockActionSheet"
 import MobileSlotActionSheet from "@/features/agenda/components/MobileSlotActionSheet"
@@ -48,6 +49,18 @@ function useIsMobile(breakpoint = 768) {
   return isMobile
 }
 
+function useIsNotebook(breakpoint = 1280) {
+  const [v, setV] = useState(false)
+  useEffect(() => {
+    const mq = window.matchMedia(`(max-width: ${breakpoint}px)`)
+    const h = (e: MediaQueryListEvent | MediaQueryList) => setV(e.matches)
+    h(mq)
+    mq.addEventListener("change", h)
+    return () => mq.removeEventListener("change", h)
+  }, [breakpoint])
+  return v
+}
+
 export default function AgendaPageClient() {
   const [selectedDate, setSelectedDate] = useState(getToday)
   const { appointments: rawAppointments, blocks: rawBlocks, loading, refresh } = useAgendaData(selectedDate)
@@ -57,6 +70,7 @@ export default function AgendaPageClient() {
   const { services: rawServices } = useBookableServices()
   const { user, hasAdminAccess, isProfessional } = useAuth()
   const isMobile = useIsMobile()
+  const isNotebook = useIsNotebook()
 
   // ── Safe defaults — prevent undefined.map/filter crashes ──
   const appointments = rawAppointments ?? []
@@ -139,6 +153,8 @@ export default function AgendaPageClient() {
   const [editingAppointment, setEditingAppointment] = useState<AppointmentWithRelations | null>(null)
   const [defaultSlot, setDefaultSlot] = useState<{ professionalId: string; time: string } | null>(null)
   const [showMobileCalendar, setShowMobileCalendar] = useState(false)
+  const [showNotebookCalendar, setShowNotebookCalendar] = useState(false)
+  const [refreshing, setRefreshing] = useState(false)
   const [selectedBlock, setSelectedBlock] = useState<AppointmentBlockRow | null>(null)
   const [showBlockSheet, setShowBlockSheet] = useState(false)
   const [showSlotSheet, setShowSlotSheet] = useState(false)
@@ -195,6 +211,15 @@ export default function AgendaPageClient() {
     refreshHours()
   }
 
+  const handleRefreshAll = useCallback(async () => {
+    if (refreshing) return
+    setRefreshing(true)
+    try {
+      await Promise.all([refresh(), refreshSettings(), refreshHours()])
+    } catch {}
+    setTimeout(() => setRefreshing(false), 600)
+  }, [refresh, refreshSettings, refreshHours, refreshing])
+
   // Filter appointments for professional role
   const visibleAppointments = restrictToProfessionalId
     ? appointments.filter(a => a.professional_id === restrictToProfessionalId)
@@ -250,18 +275,18 @@ export default function AgendaPageClient() {
               display: "flex",
               alignItems: "center",
               gap: 6,
-              padding: "9px 14px",
+              padding: "7px 10px",
               background: "none",
               border: "1px solid var(--border)",
               borderRadius: 8,
               color: "var(--text-secondary)",
-              fontSize: 12,
+              fontSize: 11,
               fontWeight: 600,
               cursor: "pointer",
               fontFamily: "inherit",
             }}
           >
-            <Clock size={14} />
+            <Clock size={13} />
             {isMobile ? "" : "Espera"}
           </button>
 
@@ -272,19 +297,52 @@ export default function AgendaPageClient() {
               display: "flex",
               alignItems: "center",
               gap: 6,
-              padding: "9px 14px",
+              padding: "7px 10px",
               background: "none",
               border: "1px solid var(--border)",
               borderRadius: 8,
               color: "var(--text-secondary)",
-              fontSize: 12,
+              fontSize: 11,
               fontWeight: 600,
               cursor: "pointer",
               fontFamily: "inherit",
             }}
           >
-            <Repeat size={14} />
+            <Repeat size={13} />
             {isMobile ? "" : "Recorrência"}
+          </button>
+
+          {/* Refresh button */}
+          <button
+            onClick={handleRefreshAll}
+            disabled={refreshing}
+            title="Atualizar agenda"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              padding: "7px 10px",
+              background: "none",
+              border: "1px solid var(--border)",
+              borderRadius: 8,
+              color: refreshing ? "var(--accent)" : "var(--text-secondary)",
+              fontSize: 11,
+              fontWeight: 600,
+              cursor: refreshing ? "wait" : "pointer",
+              fontFamily: "inherit",
+              opacity: refreshing ? 0.7 : 1,
+              transition: "all 150ms ease",
+            }}
+          >
+            <RefreshCw
+              size={13}
+              style={{
+                transition: "transform 600ms ease",
+                transform: refreshing ? "rotate(360deg)" : "none",
+                animation: refreshing ? "spin 0.8s linear infinite" : "none",
+              }}
+            />
+            {isMobile ? "" : "Atualizar"}
           </button>
 
           {/* Block button */}
@@ -294,18 +352,18 @@ export default function AgendaPageClient() {
               display: "flex",
               alignItems: "center",
               gap: 6,
-              padding: "9px 14px",
+              padding: "7px 10px",
               background: "none",
               border: "1px solid var(--border)",
               borderRadius: 8,
               color: "var(--text-secondary)",
-              fontSize: 12,
+              fontSize: 11,
               fontWeight: 600,
               cursor: "pointer",
               fontFamily: "inherit",
             }}
           >
-            <Lock size={14} />
+            <Lock size={13} />
             {isMobile ? "" : "Bloquear"}
           </button>
 
@@ -317,18 +375,18 @@ export default function AgendaPageClient() {
                 display: "flex",
                 alignItems: "center",
                 gap: 6,
-                padding: "9px 14px",
+                padding: "7px 10px",
                 background: "none",
                 border: "1px solid var(--border)",
                 borderRadius: 8,
                 color: "var(--text-secondary)",
-                fontSize: 12,
+                fontSize: 11,
                 fontWeight: 600,
                 cursor: "pointer",
                 fontFamily: "inherit",
               }}
             >
-              <Settings size={14} />
+              <Settings size={13} />
               {isMobile ? "" : "Config"}
             </button>
           )}
@@ -345,14 +403,14 @@ export default function AgendaPageClient() {
               display: "flex",
               alignItems: "center",
               gap: 6,
-              padding: "9px 16px",
+              padding: "7px 12px",
               borderRadius: 8,
-              fontSize: 12,
+              fontSize: 11,
               cursor: "pointer",
               fontFamily: "inherit",
             }}
           >
-            <Plus size={14} />
+            <Plus size={13} />
             {isMobile ? "" : "Novo Agendamento"}
           </button>
         </div>
@@ -368,63 +426,20 @@ export default function AgendaPageClient() {
         date={selectedDate}
       />
 
-      {/* Cancellation Banner — internal signaling */}
+      {/* Cancellation Alerts — compact on notebook, banner on desktop */}
       {cancelledToday.length > 0 && !cancelBannerDismissed && (
-        <div style={{
-          display: "flex",
-          alignItems: "flex-start",
-          gap: 10,
-          padding: "10px 14px",
-          marginBottom: 12,
-          background: "rgba(239,68,68,0.06)",
-          border: "1px solid rgba(239,68,68,0.15)",
-          borderRadius: 10,
-          fontSize: 12,
-        }}>
-          <AlertTriangle size={16} style={{ color: "var(--destructive, #ef4444)", flexShrink: 0, marginTop: 1 }} />
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontWeight: 700, color: "var(--destructive, #ef4444)", marginBottom: 4, fontSize: 11, textTransform: "uppercase", letterSpacing: "0.05em" }}>
-              {cancelledToday.length} cancelamento{cancelledToday.length > 1 ? 's' : ''} neste dia
-            </div>
-            {cancelledToday.slice(0, 3).map(c => {
-              const time = new Date(c.start_at).toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit' })
-              const reason = c.cancellation_reason?.replace('[CLIENTE] ', '') || ''
-              return (
-                <div key={c.id} style={{ color: "var(--text-secondary)", lineHeight: 1.5 }}>
-                  <span style={{ fontWeight: 600 }}>{time}</span> — {c.customer_name_snapshot || 'Cliente'} · {c.service_name_snapshot}{c.professional?.name ? ` c/ ${c.professional.name}` : ''}{reason ? ` · "${reason}"` : ''}
-                </div>
-              )
-            })}
-            {cancelledToday.length > 3 && (
-              <div style={{ color: "var(--text-muted)", fontStyle: "italic", marginTop: 2 }}>
-                +{cancelledToday.length - 3} outro{cancelledToday.length - 3 > 1 ? 's' : ''}
-              </div>
-            )}
-          </div>
-          <button
-            onClick={() => setCancelBannerDismissed(true)}
-            style={{
-              background: "none",
-              border: "none",
-              padding: 4,
-              cursor: "pointer",
-              color: "var(--text-muted)",
-              flexShrink: 0,
-              borderRadius: 6,
-            }}
-            title="Dispensar"
-          >
-            <X size={14} />
-          </button>
-        </div>
+        <AgendaCancellationAlerts
+          cancelledToday={cancelledToday}
+          onDismiss={() => setCancelBannerDismissed(true)}
+        />
       )}
 
       {/* Date Navigation */}
       <div style={{
         display: "flex",
         alignItems: "center",
-        gap: 12,
-        marginBottom: 16,
+        gap: 10,
+        marginBottom: 10,
       }}>
         <button
           onClick={prevDay}
@@ -444,11 +459,14 @@ export default function AgendaPageClient() {
           display: "flex",
           alignItems: "center",
           gap: 8,
-          cursor: isMobile ? "pointer" : "default",
-        }} onClick={() => isMobile && setShowMobileCalendar(!showMobileCalendar)}>
+          cursor: (isMobile || isNotebook) ? "pointer" : "default",
+        }} onClick={() => {
+          if (isMobile) setShowMobileCalendar(!showMobileCalendar)
+          else if (isNotebook) setShowNotebookCalendar(!showNotebookCalendar)
+        }}>
           <Calendar size={15} style={{ color: "var(--accent)" }} />
           <span style={{
-            fontSize: 14,
+            fontSize: 13,
             fontWeight: 700,
             color: "var(--text-primary)",
             letterSpacing: "-0.01em",
@@ -515,6 +533,42 @@ export default function AgendaPageClient() {
         </div>
       )}
 
+      {/* Notebook Calendar Popover */}
+      {isNotebook && !isMobile && showNotebookCalendar && (
+        <div style={{
+          position: "relative",
+          zIndex: 30,
+          marginBottom: 8,
+        }}>
+          <div style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            width: 240,
+            boxShadow: "0 8px 32px rgba(0,0,0,0.18)",
+            borderRadius: 10,
+            overflow: "hidden",
+          }}>
+            <AgendaCalendarPicker
+              selectedDate={selectedDate}
+              onDateChange={(d) => {
+                setSelectedDate(d)
+                setShowNotebookCalendar(false)
+              }}
+            />
+          </div>
+          {/* Backdrop */}
+          <div
+            onClick={() => setShowNotebookCalendar(false)}
+            style={{
+              position: "fixed",
+              inset: 0,
+              zIndex: -1,
+            }}
+          />
+        </div>
+      )}
+
       {/* Layout: Desktop vs Mobile */}
       {isMobile ? (
         <AgendaMobileView
@@ -547,21 +601,8 @@ export default function AgendaPageClient() {
             />
           )}
 
-          <div style={{
-            display: "grid",
-            gridTemplateColumns: "240px 1fr",
-            gap: 16,
-            alignItems: "flex-start",
-          }}>
-            {/* Sidebar: Calendar Picker */}
-            <div style={{ position: "sticky", top: 72 }}>
-              <AgendaCalendarPicker
-                selectedDate={selectedDate}
-                onDateChange={setSelectedDate}
-              />
-            </div>
-
-            {/* Main: Day Grid */}
+          {isNotebook ? (
+            /* Notebook: Full-width grid, no side calendar */
             <AgendaDayGrid
               appointments={gridAppointments}
               blocks={gridBlocks}
@@ -573,7 +614,35 @@ export default function AgendaPageClient() {
               onAppointmentClick={handleAppointmentClick}
               onBlockClick={handleBlockClick}
             />
-          </div>
+          ) : (
+            <div style={{
+              display: "grid",
+              gridTemplateColumns: "220px 1fr",
+              gap: 12,
+              alignItems: "flex-start",
+            }}>
+              {/* Sidebar: Calendar Picker */}
+              <div style={{ position: "sticky", top: 72 }}>
+                <AgendaCalendarPicker
+                  selectedDate={selectedDate}
+                  onDateChange={setSelectedDate}
+                />
+              </div>
+
+              {/* Main: Day Grid */}
+              <AgendaDayGrid
+                appointments={gridAppointments}
+                blocks={gridBlocks}
+                professionals={gridProfessionals}
+                workingHours={workingHours}
+                settings={settings}
+                selectedDate={selectedDate}
+                onSlotClick={handleSlotClick}
+                onAppointmentClick={handleAppointmentClick}
+                onBlockClick={handleBlockClick}
+              />
+            </div>
+          )}
         </>
       )}
 

@@ -18,6 +18,7 @@ import {
   BarChart3,
   Settings,
   Calendar,
+  CalendarCheck,
   Scissors,
   ShieldCheck,
   FileUp,
@@ -28,7 +29,8 @@ import {
   User,
   ChevronsLeft,
   ChevronsRight,
-  Headset
+  Headset,
+  HandCoins
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
@@ -70,6 +72,7 @@ export const navItems: NavItem[] = [
     items: [
       { href: '/agendamento', icon: Calendar, label: 'Agenda' },
       { href: '/recepcao', icon: Headset, label: 'Recepção' },
+      { href: '/assinaturas', icon: CalendarCheck, label: 'Assinaturas' },
       { href: '/vendas', icon: ShoppingCart, label: 'Vendas' },
       { href: '/perfumes', icon: Sparkles, label: 'Perfumes' },
       { href: '/clientes', icon: Users, label: 'Clientes' },
@@ -81,6 +84,7 @@ export const navItems: NavItem[] = [
     section: 'Financeiro',
     items: [
       { href: '/caixa', icon: Wallet, label: 'Caixa' },
+      { href: '/a-receber', icon: HandCoins, label: 'A Receber' },
       { href: '/fluxo-de-caixa', icon: TrendingUp, label: 'Fluxo de Caixa' },
       { href: '/custos', icon: Receipt, label: 'Custos' },
     ]

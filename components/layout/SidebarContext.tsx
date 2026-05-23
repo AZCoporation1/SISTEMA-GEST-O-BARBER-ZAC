@@ -19,7 +19,12 @@ export function SidebarProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const stored = localStorage.getItem(SIDEBAR_COLLAPSED_KEY)
-    if (stored === 'true') setCollapsed(true)
+    if (stored === 'true') {
+      setCollapsed(true)
+    } else if (stored === null && window.matchMedia('(max-width: 1200px)').matches) {
+      // Auto-collapse on notebook when no explicit preference saved
+      setCollapsed(true)
+    }
   }, [])
 
   const toggle = useCallback(() => {

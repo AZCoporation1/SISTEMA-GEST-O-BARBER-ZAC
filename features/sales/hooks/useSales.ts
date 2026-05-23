@@ -2,9 +2,8 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { getSales, getPaymentMethods, getCustomers, getCollaborators } from "../services/sales.service"
-import { processSale } from "../actions/sales.actions"
+import { processSaleWithReceivables, SaleWithReceivablesPayload } from "../actions/processSaleWithReceivables"
 import { SalesFilters } from "../types"
-import { SaleFormValues } from "../validators"
 import { useToast } from "@/hooks/use-toast"
 
 export function useSales(filters: SalesFilters) {
@@ -32,12 +31,14 @@ export function usePOSMutations() {
   const { toast } = useToast()
 
   const processMutation = useMutation({
-    mutationFn: (data: SaleFormValues) => processSale(data),
+    mutationFn: (data: SaleWithReceivablesPayload) => processSaleWithReceivables(data),
     onSuccess: (res) => {
       if (res.success) {
         queryClient.invalidateQueries({ queryKey: ["sales"] })
         queryClient.invalidateQueries({ queryKey: ["inventory"] })
         queryClient.invalidateQueries({ queryKey: ["cash"] })
+        queryClient.invalidateQueries({ queryKey: ["receivables"] })
+        queryClient.invalidateQueries({ queryKey: ["receivable-summary"] })
         toast({ title: "Venda concluída com sucesso!" })
       } else {
         toast({ title: "Erro no PDV", description: res.error, variant: "destructive" })
@@ -53,3 +54,4 @@ export function usePOSMutations() {
     isProcessing: processMutation.isPending,
   }
 }
+

@@ -6,6 +6,7 @@ import { appointmentSchema, blockSchema, agendaSettingsSchema, waitlistSchema, t
 import { logAudit } from "@/features/audit/actions/audit.actions"
 import { resolveUserProfileId } from "@/lib/supabase/resolve-user"
 import { processSale } from "@/features/sales/actions/sales.actions"
+import { markOccurrenceUsed } from "@/features/subscriptions/actions/subscription.actions"
 import { calculateServiceComposition, validateCompositionCompatibility } from "../services/service-composition"
 import type { CompositionServiceInput } from "../services/service-composition"
 import { revalidatePath } from "next/cache"
@@ -358,12 +359,19 @@ export async function checkInAppointment(id: string) {
     const supabase = await createServerClient()
     const ctx = await getUserContext(supabase)
 
+    const { data: appt } = await supabase.from('appointments').select('is_subscription, subscription_occurrence_id').eq('id', id).single()
+
     const { error } = await supabase
       .from('appointments')
       .update({ status: 'checked_in', updated_by: ctx.userProfileId })
       .eq('id', id)
 
     if (error) throw error
+
+    // ── Subscription: consume occurrence on check-in (idempotent) ──
+    if (appt?.is_subscription && appt?.subscription_occurrence_id) {
+      await markOccurrenceUsed(appt.subscription_occurrence_id, id, 'checked_in')
+    }
 
     await logAudit({
       action: 'UPDATE',
@@ -486,7 +494,11 @@ export async function completeAppointmentViaSale(
 
     if (updateErr) {
       console.error("Failed to link sale to appointment:", updateErr)
-      // Sale was created but link failed — not a fatal error
+    }
+
+    // ── Subscription: consume occurrence on complete (idempotent) ──
+    if (appointment.is_subscription && appointment.subscription_occurrence_id) {
+      await markOccurrenceUsed(appointment.subscription_occurrence_id, appointmentId, 'completed')
     }
 
     await logAudit({
@@ -826,6 +838,93 @@ export async function convertWaitlistToAppointment(
     return { success: true, data: appointmentResult.data }
   } catch (err: any) {
     return { success: false, error: err.message || "Erro ao converter item da lista" }
+  }
+}
+
+// ══════════════════════════════════════════════════════════
+// REOPEN APPOINTMENT (completed / no_show → scheduled)
+// ══════════════════════════════════════════════════════════
+
+export async function reopenAppointment(id: string) {
+  try {
+    const supabase = await createServerClient()
+    const ctx = await getUserContext(supabase)
+
+    // Only admin can reopen
+    if (!ctx.hasAdminAccess) {
+      return { success: false, error: "Apenas administradores podem reabrir atendimentos." }
+    }
+
+    // Fetch current appointment
+    const { data: appointment, error: fetchErr } = await supabase
+      .from('appointments')
+      .select('*')
+      .eq('id', id)
+      .single()
+
+    if (fetchErr || !appointment) {
+      return { success: false, error: "Agendamento não encontrado." }
+    }
+
+    // Only completed or no_show can be reopened
+    if (!['completed', 'no_show'].includes(appointment.status)) {
+      return { success: false, error: `Status "${appointment.status}" não permite reabertura. Apenas finalizados ou ausências podem ser reabertos.` }
+    }
+
+    // SAFETY: If completed with linked sale, check sale status before blocking
+    let saleWasReversed = false
+    if (appointment.status === 'completed' && appointment.linked_sale_id) {
+      const { data: linkedSale } = await supabase
+        .from('sales')
+        .select('id, status')
+        .eq('id', appointment.linked_sale_id)
+        .single()
+
+      // If sale exists and is still active/completed → block
+      if (linkedSale && !['cancelled', 'refunded'].includes(linkedSale.status)) {
+        return {
+          success: false,
+          error: "Este atendimento ainda possui venda ativa. Estorne a venda antes de reabrir.",
+        }
+      }
+      // Sale not found or already cancelled/refunded → allow reopening
+      saleWasReversed = true
+    }
+
+    // Perform the reopen
+    const { data: updated, error: updateErr } = await supabase
+      .from('appointments')
+      .update({
+        status: 'scheduled',
+        updated_by: ctx.userProfileId,
+      })
+      .eq('id', id)
+      .select()
+      .single()
+
+    if (updateErr) throw updateErr
+
+    await logAudit({
+      action: 'reopen_appointment',
+      entity: 'appointments',
+      entity_id: id,
+      oldData: appointment,
+      newData: updated,
+      observation: `Atendimento reaberto: ${appointment.status} → scheduled. ${saleWasReversed ? 'Venda vinculada estornada/cancelada detectada. Reabertura permitida.' : appointment.status === 'no_show' ? 'Ausência revertida.' : 'Sem venda vinculada.'}`,
+      context: {
+        origem: 'agenda_interna',
+        financeiro_estornado_detectado: saleWasReversed,
+        venda_bloqueante_detectada: false,
+        status_anterior: appointment.status,
+        linked_sale_id: appointment.linked_sale_id || null,
+      },
+    })
+
+    revalidatePath("/agendamento")
+    return { success: true, data: updated }
+  } catch (err: any) {
+    console.error("Reopen Appointment Error:", err)
+    return { success: false, error: err.message || "Erro ao reabrir atendimento" }
   }
 }
 

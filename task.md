@@ -26,3 +26,36 @@
   - `[x]` Run `tsc --noEmit`.
   - `[x]` Run `next build`.
   - `[x]` Verify Customer Booking Portal compiles and integrates properly.
+
+## FASE 3 — Script de Migração
+- [x] Criar `scripts/migrate-subscription-plans-from-services.mjs`
+- [x] Parser de nomes com items, visits, scope, visit_template
+- [x] Mapeamento de profissionais confirmado
+- [x] --dry-run executado: **14/14 ✅ alta confiança, 0 erros**
+- [x] --apply executado e validado: **14/14 planos migrados com sucesso**
+
+## FASE 4 — Tipos TypeScript
+- [x] `features/subscriptions/types.ts` — Row types, enums, labels, colors, enriched types
+- [x] `features/agenda/types.ts` — Adicionar subscription_id, subscription_occurrence_id, is_subscription ao AppointmentRow
+- [x] `types/supabase.ts` — Registrar 6 tabelas novas
+
+## FASE 5 — Server Actions
+- [x] `features/subscriptions/actions/subscription.actions.ts` — SEM @ts-nocheck
+- [x] getPublicSubscriptionPlans (com feature flag)
+- [x] checkPlanProfessionalAllowed
+- [x] checkSubscriptionAvailability (conflito + working hours)
+- [x] createSubscriptionDraft (validação completa)
+- [x] activateSubscription (admin only, gera appointments)
+- [x] generateSubscriptionAppointments (idempotente, visit_template)
+- [x] cancelCustomerSubscription (cancela tudo em cascata)
+- [x] getCustomerActiveSubscription
+- [x] markOccurrenceUsed (idempotente)
+- [x] getSubscriberDiscount (backend source of truth, 7%)
+- [x] listSubscriptions (admin)
+- [x] getSubscriptionDetails (admin, com occurrences/payments)
+
+## FASE 6 — UI Portal do Cliente
+- [x] `SubscriptionPlanSelector.tsx` — Cards premium com filtro de scope
+- [x] `SubscriptionFlow.tsx` — Wizard multi-step com escolha de barbeiro, dia/hora recorrentes, preview de datas e conflito, dados do cliente e checkout placeholder
+- [x] `AgendarClientContent.tsx` — Roteamento do funil completo de planos e fluxo de assinatura
+- [x] `BookingModeSelector.tsx` — Botão "Planos Mensais" (purple) habilitado via feature flag

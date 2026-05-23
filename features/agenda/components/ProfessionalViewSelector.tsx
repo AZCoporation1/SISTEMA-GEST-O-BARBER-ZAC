@@ -75,12 +75,12 @@ export default function ProfessionalViewSelector({
     <div style={{
       display: "flex",
       flexDirection: "column",
-      gap: 8,
-      marginBottom: 14,
-      padding: "10px 14px",
+      gap: 5,
+      marginBottom: 8,
+      padding: "7px 12px",
       background: "var(--bg-surface)",
       border: "1px solid var(--border)",
-      borderRadius: 10,
+      borderRadius: 8,
     }}>
       {/* Row 1: Presets + Label */}
       <div style={{

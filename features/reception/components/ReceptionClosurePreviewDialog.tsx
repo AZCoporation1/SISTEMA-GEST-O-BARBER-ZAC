@@ -97,7 +97,7 @@ export function ReceptionClosurePreviewDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-2xl w-[min(95vw,672px)]">
         <DialogHeader>
           <DialogTitle>Fechamento de Período</DialogTitle>
           <DialogDescription>

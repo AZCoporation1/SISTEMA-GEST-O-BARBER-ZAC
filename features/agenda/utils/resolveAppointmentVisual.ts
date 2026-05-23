@@ -6,15 +6,16 @@
  *
  * Priority order:
  *  1. Cancelled     → should not appear (filtered before reaching here)
- *  2. Completed     → GREEN, badge "FINALIZADO"
- *  3. No-show       → RED, badge "AUSÊNCIA"
- *  4. Checked-in    → CYAN, badge "CHECK-IN"
- *  5. Blocked       → GRAY, badge "BLOQUEADO"
- *  6. App Cliente   → BLUE, badge "APP"
- *  7. Encaixe       → AMBER, badge "ENCAIXE"
- *  8. Avulso        → ORANGE, badge "AVULSO"
- *  9. Confirmed     → PURPLE, badge "CONFIRMADO"
- * 10. Scheduled     → BLUE, badge "AGENDADO"
+ *  2. Completed     → GREEN, badge "FINALIZADO" (+secondary ASSINANTE/APP/AVULSO)
+ *  3. No-show       → RED, badge "AUSÊNCIA" (+secondary ASSINANTE if subscription)
+ *  4. Checked-in    → CYAN, badge "CHECK-IN" (+secondary ASSINANTE if subscription)
+ *  5. Subscription  → MAGENTA/PURPLE, badge "ASSINANTE" (when is_subscription=true)
+ *  6. Blocked       → GRAY, badge "BLOQUEADO"
+ *  7. App Cliente   → BLUE, badge "APP"
+ *  8. Encaixe       → AMBER, badge "ENCAIXE"
+ *  9. Avulso        → ORANGE, badge "AVULSO"
+ * 10. Confirmed     → PURPLE, badge "CONFIRMADO"
+ * 11. Scheduled     → BLUE, badge "AGENDADO"
  */
 
 import type { AppointmentWithRelations } from "../types"
@@ -52,26 +53,42 @@ export function resolveAppointmentVisual(appt: AppointmentWithRelations): Appoin
   }
 
   if (appt.status === "no_show") {
+    const secondary = appt.is_subscription ? "ASSINANTE" : undefined
     return {
       bg: APPOINTMENT_STATUS_COLORS.no_show.bg,
       border: APPOINTMENT_STATUS_COLORS.no_show.border,
       text: APPOINTMENT_STATUS_COLORS.no_show.text,
       badge: "AUSÊNCIA",
       badgeBg: "rgba(239,68,68,0.15)",
+      ...(secondary ? { secondaryBadge: secondary } : {}),
     }
   }
 
   if (appt.status === "checked_in") {
+    const secondary = appt.is_subscription ? "ASSINANTE" : undefined
     return {
       bg: APPOINTMENT_STATUS_COLORS.checked_in.bg,
       border: APPOINTMENT_STATUS_COLORS.checked_in.border,
       text: APPOINTMENT_STATUS_COLORS.checked_in.text,
       badge: "CHECK-IN",
       badgeBg: "rgba(6,182,212,0.15)",
+      ...(secondary ? { secondaryBadge: secondary } : {}),
     }
   }
 
-  // ── 2. Origin-priority states ─────────────────────────
+  // ── 2. Subscription appointments ──────────────────────
+  // Before other origin states. Magenta/purple for subscription.
+  if (appt.is_subscription) {
+    return {
+      bg: "rgba(192,38,211,0.12)",
+      border: "rgba(192,38,211,0.30)",
+      text: "#c026d3",
+      badge: "ASSINANTE",
+      badgeBg: "rgba(192,38,211,0.15)",
+    }
+  }
+
+  // ── 3. Origin-priority states ─────────────────────────
   // Only applied when status is still scheduled/confirmed/encaixe.
 
   if (appt.source === "customer") {
@@ -104,7 +121,7 @@ export function resolveAppointmentVisual(appt: AppointmentWithRelations): Appoin
     }
   }
 
-  // ── 3. Default: cadastrado interno ────────────────────
+  // ── 4. Default: cadastrado interno ────────────────────
   const sc = APPOINTMENT_STATUS_COLORS[appt.status] || APPOINTMENT_STATUS_COLORS.scheduled
   return {
     ...sc,
@@ -115,9 +132,10 @@ export function resolveAppointmentVisual(appt: AppointmentWithRelations): Appoin
 
 /**
  * Returns a secondary origin label for completed appointments,
- * so the card can optionally show "AVULSO" or "APP" as secondary info.
+ * so the card can optionally show "AVULSO", "APP", or "ASSINANTE" as secondary info.
  */
 function getOriginSecondaryBadge(appt: AppointmentWithRelations): string | undefined {
+  if (appt.is_subscription) return "ASSINANTE"
   if (appt.source === "customer") return "APP"
   if (!appt.customer_id) return "AVULSO"
   return undefined

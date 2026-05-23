@@ -609,6 +609,13 @@ export interface Database {
       services: GenericTable
       service_categories: GenericTable
       professional_requests: GenericTable
+      // Subscription module tables
+      subscription_plans: GenericTable
+      subscription_plan_professionals: GenericTable
+      customer_subscriptions: GenericTable
+      subscription_occurrences: GenericTable
+      subscription_payments: GenericTable
+      subscription_webhook_events: GenericTable
       [key: string]: GenericTable
     }
     Views: {

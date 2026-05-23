@@ -201,6 +201,7 @@ export interface PublicCatalogServiceV2 {
   categorySlug: string
   description: string | null
   isCombo: boolean
+  isPlan: boolean
   canBeMain: boolean
   displayCategories: string[]
   tags: string[]
@@ -255,6 +256,7 @@ export async function getPublicBookingCatalogV2(): Promise<{
         categorySlug: classification.primaryCategorySlug,
         description: s.description || null,
         isCombo: classification.isCombo,
+        isPlan: classification.isPlan,
         canBeMain: classification.canBeMain,
         displayCategories: classification.displayCategories,
         tags: classification.tags,
