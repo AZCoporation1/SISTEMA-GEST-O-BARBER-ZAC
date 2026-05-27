@@ -4,6 +4,7 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { productSchema, ProductFormValues } from "../validators"
 import { useAllCategories, useBrands } from "../hooks/useInventory"
+import { getPrefixByCategoryName } from "@/features/inventory/utils/code-parser"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -54,6 +55,12 @@ export function ProductForm({ initialData, onSubmit, isLoading }: ProductFormPro
     }
   })
 
+  // Dynamic Code Placeholder based on Category
+  const selectedCategoryId = form.watch("category_id")
+  const selectedCategory = (categories || []).find((c: any) => c.id === selectedCategoryId)
+  const prefix = getPrefixByCategoryName(selectedCategory?.name)
+  const placeholderText = selectedCategory ? `Ex: ${prefix} 001` : "Ex: PERF 001, RELO 001..."
+
   // Auto-calculate simulation
   const cost = form.watch("cost_price")
   const markup = form.watch("markup_percent")
@@ -71,7 +78,7 @@ export function ProductForm({ initialData, onSubmit, isLoading }: ProductFormPro
               <FormItem className="sm:col-span-1">
                 <FormLabel className="text-sm">Código do Produto*</FormLabel>
                 <FormControl>
-                  <Input placeholder="Ex: PERF 001" {...field} className="h-10" />
+                  <Input placeholder={placeholderText} {...field} className="h-10" />
                 </FormControl>
                 <FormMessage />
               </FormItem>

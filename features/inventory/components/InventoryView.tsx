@@ -281,6 +281,7 @@ export function InventoryView() {
             { value: "INSU", label: "INSU" },
             { value: "BEBI", label: "BEBI" },
             { value: "PERF", label: "PERF" },
+            { value: "RELO", label: "RELO" },
           ].map((tab) => (
             <button
               key={tab.value}

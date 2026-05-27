@@ -3,33 +3,13 @@
 
 import { createServerClient } from "@/lib/supabase/server"
 import { logAudit } from "@/features/audit/actions/audit.actions"
-import { isValidSmartSKU, formatSmartSKU, SmartSKUPrefix } from "@/features/inventory/utils/code-parser"
+import { isValidSmartSKU, formatSmartSKU, SmartSKUPrefix, getPrefixByCategoryName } from "@/features/inventory/utils/code-parser"
 
 /**
  * Determines the Smart SKU prefix for a given category name.
  */
 function resolvePrefix(categoryName: string | null | undefined): SmartSKUPrefix {
-  if (!categoryName) return 'INSU'
-  const lower = categoryName.toLowerCase().trim()
-
-  // PERF — Perfumaria
-  if (lower.includes('perfum') || lower.includes('fragranc') || lower.includes('amadeirad')
-    || lower.includes('oriental') || lower.includes('floral') || lower.includes('aromátic')
-    || lower.includes('fougère') || lower.includes('bergamot') || lower.includes('baunilha')
-    || lower.includes('especiad') || lower.includes('bolso') || lower.includes('cabelo')
-    || lower.includes('frutado') || lower.includes('gourmet')) {
-    return 'PERF'
-  }
-
-  // BEBI — Bebidas e Conveniência
-  if (lower.includes('bebid') || lower.includes('refrigerant') || lower.includes('energétic')
-    || lower.includes('água') || lower.includes('cervej') || lower.includes('conveniênc')
-    || lower.includes('coca') || lower.includes('suco')) {
-    return 'BEBI'
-  }
-
-  // Everything else → INSU
-  return 'INSU'
+  return getPrefixByCategoryName(categoryName)
 }
 
 /**
@@ -93,7 +73,7 @@ export async function backfillSmartSKUs() {
     }
 
     // 4. Find the highest existing number for each prefix to avoid collisions
-    const maxNumbers: Record<SmartSKUPrefix, number> = { PERF: 0, BEBI: 0, INSU: 0 }
+    const maxNumbers: Record<SmartSKUPrefix, number> = { PERF: 0, BEBI: 0, INSU: 0, RELO: 0 }
     for (const code of alreadyValid) {
       const match = code.match(/^(PERF|BEBI|INSU)\s+(\d+)$/i)
       if (match) {
@@ -106,13 +86,13 @@ export async function backfillSmartSKUs() {
     }
 
     // 5. Assign new codes sequentially per prefix, sorted by name within each group
-    const grouped: Record<SmartSKUPrefix, typeof needsMigration> = { PERF: [], BEBI: [], INSU: [] }
+    const grouped: Record<SmartSKUPrefix, typeof needsMigration> = { PERF: [], BEBI: [], INSU: [], RELO: [] }
     needsMigration.forEach(p => grouped[p.prefix].push(p))
 
     const updates: Array<{ id: string; external_code: string }> = []
     const warnings: string[] = []
 
-    for (const prefix of ['PERF', 'BEBI', 'INSU'] as SmartSKUPrefix[]) {
+    for (const prefix of ['PERF', 'BEBI', 'INSU', 'RELO'] as SmartSKUPrefix[]) {
       const group = grouped[prefix].sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'))
       let counter = maxNumbers[prefix]
 
