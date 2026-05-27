@@ -141,6 +141,23 @@ export interface InventoryProductRow {
   created_at: string
   updated_at: string
   deleted_at: string | null
+  is_deleted: boolean
+  deleted_by: string | null
+  deletion_reason: string | null
+  deletion_mode: 'hard_delete' | 'forced_archive' | 'operational_delete' | null
+  deleted_snapshot_id: string | null
+}
+
+export interface InventoryProductDeletionSnapshotRow {
+  id: string
+  original_product_id: string
+  product_snapshot: Json
+  deletion_mode: 'hard_delete' | 'forced_archive' | 'operational_delete'
+  reason: string | null
+  dependency_summary: Json
+  deleted_by: string | null
+  deleted_at: string
+  created_at: string
 }
 
 export interface StockMovementRow {
@@ -609,6 +626,8 @@ export interface Database {
       services: GenericTable
       service_categories: GenericTable
       professional_requests: GenericTable
+      appointment_command_items: GenericTable
+      inventory_product_deletion_snapshots: GenericTable
       // Subscription module tables
       subscription_plans: GenericTable
       subscription_plan_professionals: GenericTable

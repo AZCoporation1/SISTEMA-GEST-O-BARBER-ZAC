@@ -179,3 +179,190 @@ export async function getProductCodesAction() {
     return { success: false, data: [] }
   }
 }
+
+async function getProductDependencySummary(supabase: any, productId: string) {
+  const tables = [
+    { name: 'stock_movements', column: 'product_id' },
+    { name: 'stock_adjustments', column: 'product_id' },
+    { name: 'sale_items', column: 'product_id' },
+    { name: 'perfume_sales', column: 'inventory_product_id' },
+    { name: 'reception_advances', column: 'product_id' },
+    { name: 'professional_advances', column: 'product_id' },
+    { name: 'purchase_order_items', column: 'product_id' },
+    { name: 'commission_rules', column: 'product_id' },
+    { name: 'professional_requests', column: 'inventory_product_id' },
+    { name: 'appointment_command_items', column: 'product_id' },
+  ]
+  
+  const counts: Record<string, number> = {}
+  
+  await Promise.all(
+    tables.map(async (t) => {
+      const { count, error } = await supabase
+        .from(t.name)
+        .select('id', { count: 'exact', head: true })
+        .eq(t.column, productId)
+      
+      if (error) {
+        console.error(`Error counting dependencies in table ${t.name}:`, error)
+        counts[t.name] = 0
+      } else {
+        counts[t.name] = count || 0
+      }
+    })
+  )
+  
+  return counts
+}
+
+export async function getProductDependencySummaryAction(productId: string) {
+  try {
+    const supabase = await createServerClient()
+    
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      return { success: false, error: "Usuário não autenticado." }
+    }
+    
+    const { data: profile } = await supabase
+      .from("user_profiles")
+      .select("role, system_role")
+      .eq("auth_user_id", user.id)
+      .single()
+      
+    const isAdmin = profile && (profile.role === 'admin' || profile.role === 'gestor' || profile.system_role === 'admin_total' || profile.system_role === 'owner_admin_professional')
+    if (!isAdmin) {
+      return { success: false, error: "Acesso negado. Apenas administradores/donos podem consultar dependências." }
+    }
+    
+    const summary = await getProductDependencySummary(supabase, productId)
+    return { success: true, data: summary }
+  } catch (error: any) {
+    console.error("Error in getProductDependencySummaryAction:", error)
+    return { success: false, error: error.message || "Erro ao obter dependências." }
+  }
+}
+
+export async function forceDeleteProductAction(productId: string, reason: string) {
+  try {
+    const supabase = await createServerClient()
+    
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      return { success: false, error: "Usuário não autenticado." }
+    }
+    
+    const { data: profile, error: profileErr } = await supabase
+      .from("user_profiles")
+      .select("role, system_role")
+      .eq("auth_user_id", user.id)
+      .single()
+      
+    if (profileErr || !profile) {
+      return { success: false, error: "Perfil do usuário não encontrado." }
+    }
+    
+    const isAdmin = profile.role === 'admin' || profile.role === 'gestor' || profile.system_role === 'admin_total' || profile.system_role === 'owner_admin_professional'
+    if (!isAdmin) {
+      return { success: false, error: "Acesso negado. Apenas administradores/donos podem excluir produtos definitivamente." }
+    }
+    
+    const userProfileId = await resolveUserProfileId(supabase, user.id)
+    
+    const { data: product, error: productErr } = await supabase
+      .from("inventory_products")
+      .select("*")
+      .eq("id", productId)
+      .single()
+      
+    if (productErr || !product) {
+      return { success: false, error: "Produto não encontrado." }
+    }
+    
+    const summary = await getProductDependencySummary(supabase, productId)
+    const hasHistory = Object.values(summary).reduce((acc, count) => acc + count, 0) > 0
+    const modeStr = hasHistory ? 'forced_archive' : 'hard_delete'
+    
+    const snapshotData = {
+      original_product_id: productId,
+      product_snapshot: product,
+      deletion_mode: modeStr,
+      reason: reason || null,
+      dependency_summary: summary,
+      deleted_by: userProfileId,
+      deleted_at: new Date().toISOString()
+    }
+    
+    const { data: snapshot, error: snapErr } = await supabase
+      .from("inventory_product_deletion_snapshots")
+      .insert(snapshotData)
+      .select()
+      .single()
+      
+    if (snapErr) {
+      console.error("Error creating deletion snapshot:", snapErr)
+      throw new Error(`Falha ao registrar snapshot de exclusão: ${snapErr.message}`)
+    }
+    
+    let mode: 'hard_delete' | 'forced_archive' = 'hard_delete'
+    let updatedProduct = null
+    
+    if (!hasHistory) {
+      const { error: deleteErr } = await supabase
+        .from("inventory_products")
+        .delete()
+        .eq("id", productId)
+        
+      if (deleteErr) {
+        console.warn("Physical delete failed. Falling back to operational delete:", deleteErr.message)
+        mode = 'forced_archive'
+      } else {
+        mode = 'hard_delete'
+      }
+    } else {
+      mode = 'forced_archive'
+    }
+    
+    if (mode === 'forced_archive') {
+      const { data: updated, error: updateErr } = await supabase
+        .from("inventory_products")
+        .update({
+          is_deleted: true,
+          is_active: false,
+          deleted_at: new Date().toISOString(),
+          deleted_by: userProfileId,
+          deletion_reason: reason || null,
+          deletion_mode: 'forced_archive',
+          deleted_snapshot_id: snapshot.id
+        })
+        .eq("id", productId)
+        .select()
+        .single()
+        
+      if (updateErr) {
+        throw new Error(`Falha ao realizar a exclusão operacional forçada: ${updateErr.message}`)
+      }
+      updatedProduct = updated
+    }
+    
+    await logAudit({
+      action: 'DELETE',
+      entity: 'inventory_products',
+      entity_id: productId,
+      oldData: product,
+      newData: updatedProduct,
+      observation: `Exclusão definitiva. Modo: ${mode}. Motivo: ${reason || "Não informado"}. Dependências: ${JSON.stringify(summary)}`
+    })
+    
+    revalidatePath("/estoque")
+    return {
+      success: true,
+      mode: mode,
+      message: "Produto excluído definitivamente do estoque operacional."
+    }
+  } catch (error: any) {
+    console.error("Error in forceDeleteProductAction:", error)
+    return { success: false, error: error.message || "Erro ao excluir produto." }
+  }
+}
+
