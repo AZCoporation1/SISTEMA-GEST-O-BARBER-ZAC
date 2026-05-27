@@ -3,7 +3,7 @@
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { productSchema, ProductFormValues } from "../validators"
-import { useCategories, useBrands } from "../hooks/useInventory"
+import { useAllCategories, useBrands } from "../hooks/useInventory"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -33,7 +33,7 @@ interface ProductFormProps {
 }
 
 export function ProductForm({ initialData, onSubmit, isLoading }: ProductFormProps) {
-  const { data: categories } = useCategories()
+  const { data: categories } = useAllCategories()
   const { data: brands } = useBrands()
 
   const form = useForm<ProductFormValues>({

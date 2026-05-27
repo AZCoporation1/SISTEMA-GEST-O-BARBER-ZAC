@@ -1,7 +1,7 @@
 "use client"
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
-import { getInventoryPositions, getCategories, getBrands } from "../services/inventory.service"
+import { getInventoryPositions, getCategories, getAllCategories, getBrands } from "../services/inventory.service"
 import { createProduct, updateProduct, toggleProductStatus } from "../actions/inventory.actions"
 import { InventoryFilters } from "../types"
 import { ProductFormValues } from "../validators"
@@ -18,6 +18,13 @@ export function useCategories() {
   return useQuery({
     queryKey: ["categories"],
     queryFn: () => getCategories()
+  })
+}
+
+export function useAllCategories() {
+  return useQuery({
+    queryKey: ["all-categories"],
+    queryFn: () => getAllCategories()
   })
 }
 

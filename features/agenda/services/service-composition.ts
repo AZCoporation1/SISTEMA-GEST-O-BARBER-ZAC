@@ -305,31 +305,49 @@ export function validateCompositionCompatibility(
 // ── Suggested Addons Engine ──────────────────────────────
 // Defines which services can be offered as addons for each main service category.
 // Two tiers: "addon leve" (quick complements) and "serviço secundário forte" (can be main too).
+// reasonMap: contextual labels for each suggestion (used for UI microcopy).
+
+const ALISAMENTO_KEYWORDS = /alisamento|alissamento|progressiva|selagem|botox capilar/
+const SOBRANCELHA_MAIN_KEYWORDS = /sobrancelha|sombrancelha/
+const TRATAMENTO_MAIN_KEYWORDS = /hidratacao|reconstrucao|cauterizacao|nutricao|acidificacao|sos reconstrutor|tratamento capilar/
 
 /**
- * Given a main service and all available services, returns categorized addon suggestions.
+ * Given a main service and all available services, returns categorized addon suggestions
+ * plus a reasonMap with contextual labels for each suggested service.
  * Barba/Limpeza de pele are "serviço secundário forte" — they are canBeMain but also
  * selectable as addon for compatible main services.
  */
 export function getSuggestedAddons(
   mainService: CompositionServiceInput,
   allServices: CompositionServiceInput[]
-): { light: CompositionServiceInput[]; strong: CompositionServiceInput[] } {
+): { light: CompositionServiceInput[]; strong: CompositionServiceInput[]; reasonMap: Record<string, string> } {
   const mainClassification = classifyService(mainService as ServiceClassificationInput)
   const mainName = norm(mainService.name)
 
   // Combos don't accept addons
   if (mainClassification.isCombo) {
-    return { light: [], strong: [] }
+    return { light: [], strong: [], reasonMap: {} }
+  }
+
+  // Plans don't accept addons
+  if (mainClassification.isPlan) {
+    return { light: [], strong: [], reasonMap: {} }
   }
 
   const light: CompositionServiceInput[] = []
   const strong: CompositionServiceInput[] = []
+  const reasonMap: Record<string, string> = {}
 
   const isMainCorte = CORTE_KEYWORDS.test(mainName)
   const isMainBarba = BARBA_KEYWORDS.test(mainName)
-  const isMainQuimica = QUIMICA_KEYWORDS.test(mainName)
+  const isMainAlisamento = ALISAMENTO_KEYWORDS.test(mainName)
+  const isMainQuimica = QUIMICA_KEYWORDS.test(mainName) && !isMainAlisamento
   const isMainEstetica = /limpeza de pele|skin care|massoterapia|detox/.test(mainName)
+  const isMainSobrancelha = SOBRANCELHA_MAIN_KEYWORDS.test(mainName)
+  const isMainTratamento = TRATAMENTO_MAIN_KEYWORDS.test(mainName)
+
+  // Derive display label for the main service (used in reasonLabel)
+  const mainLabel = mainService.name.split('(')[0].trim()
 
   for (const svc of allServices) {
     // Skip self
@@ -341,49 +359,66 @@ export function getSuggestedAddons(
     const svcClassification = classifyService(svc as ServiceClassificationInput)
     // Skip combos
     if (svcClassification.isCombo) continue
+    // Skip plans
+    if (svcClassification.isPlan) continue
 
     const svcName = norm(svc.name)
     const isSvcSobrancelha = SOBRANCELHA_KEYWORDS.test(svcName)
     const isSvcBarba = BARBA_KEYWORDS.test(svcName)
     const isSvcCorte = CORTE_KEYWORDS.test(svcName)
     const isSvcEstetica = /limpeza de pele|skin care|massoterapia|detox/.test(svcName)
-    const isSvcTratamento = /hidratacao|reconstrucao|acidificacao|lavagem/.test(svcName)
+    const isSvcTratamento = /hidratacao|reconstrucao|acidificacao|lavagem|cauterizacao|nutricao/.test(svcName)
     const isSvcQuimica = QUIMICA_KEYWORDS.test(svcName)
     const isSvcFinalizacao = /penteado|finalizacao/.test(svcName)
 
     if (isMainCorte) {
       // Corte: sobrancelha/bigode/depilação = leve; barba/limpeza de pele/hidratação = forte
-      if (isSvcSobrancelha) { light.push(svc); continue }
-      if (isSvcBarba) { strong.push(svc); continue }
-      if (isSvcEstetica) { strong.push(svc); continue }
-      if (isSvcTratamento) { strong.push(svc); continue }
-      if (isSvcFinalizacao) { light.push(svc); continue }
+      if (isSvcSobrancelha) { light.push(svc); reasonMap[svc.id] = `Mais escolhido com ${mainLabel}`; continue }
+      if (isSvcBarba) { strong.push(svc); reasonMap[svc.id] = `Mais escolhido com ${mainLabel}`; continue }
+      if (isSvcEstetica) { strong.push(svc); reasonMap[svc.id] = `Cuidado extra recomendado`; continue }
+      if (isSvcTratamento) { strong.push(svc); reasonMap[svc.id] = `Completa seu atendimento`; continue }
+      if (isSvcFinalizacao) { light.push(svc); reasonMap[svc.id] = `Finalização recomendada`; continue }
     } else if (isMainBarba) {
-      // Barba: sobrancelha = leve; corte/limpeza de pele = forte
-      if (isSvcSobrancelha) { light.push(svc); continue }
-      if (isSvcCorte) { strong.push(svc); continue }
-      if (isSvcEstetica) { strong.push(svc); continue }
+      // Barba: sobrancelha/depilação = leve; corte/limpeza de pele = forte
+      if (isSvcSobrancelha) { light.push(svc); reasonMap[svc.id] = `Combina com ${mainLabel}`; continue }
+      if (isSvcCorte) { strong.push(svc); reasonMap[svc.id] = `Mais escolhido com ${mainLabel}`; continue }
+      if (isSvcEstetica) { strong.push(svc); reasonMap[svc.id] = `Cuidado extra recomendado`; continue }
+    } else if (isMainAlisamento) {
+      // Alisamento: corte/hidratação/reconstrução = forte; finalização = leve
+      if (isSvcCorte) { strong.push(svc); reasonMap[svc.id] = `Combina com ${mainLabel}`; continue }
+      if (isSvcTratamento) { strong.push(svc); reasonMap[svc.id] = `Completa seu atendimento`; continue }
+      if (isSvcFinalizacao) { light.push(svc); reasonMap[svc.id] = `Finalização recomendada`; continue }
+      if (isSvcSobrancelha) { light.push(svc); reasonMap[svc.id] = `Complemento leve`; continue }
     } else if (isMainEstetica) {
-      // Estética: sobrancelha = leve; corte/barba = forte
-      if (isSvcSobrancelha) { light.push(svc); continue }
-      if (isSvcCorte) { strong.push(svc); continue }
-      if (isSvcBarba) { strong.push(svc); continue }
+      // Estética (Limpeza de Pele): sobrancelha = leve; corte/barba/barboterapia = forte
+      if (isSvcSobrancelha) { light.push(svc); reasonMap[svc.id] = `Combina com ${mainLabel}`; continue }
+      if (isSvcCorte) { strong.push(svc); reasonMap[svc.id] = `Mais escolhido com ${mainLabel}`; continue }
+      if (isSvcBarba) { strong.push(svc); reasonMap[svc.id] = `Combina com ${mainLabel}`; continue }
+    } else if (isMainSobrancelha) {
+      // Sobrancelha como principal: corte/barba/limpeza de pele = forte
+      if (isSvcCorte) { strong.push(svc); reasonMap[svc.id] = `Mais escolhido com ${mainLabel}`; continue }
+      if (isSvcBarba) { strong.push(svc); reasonMap[svc.id] = `Combina com ${mainLabel}`; continue }
+      if (isSvcEstetica) { strong.push(svc); reasonMap[svc.id] = `Cuidado extra recomendado`; continue }
     } else if (isMainQuimica) {
-      // Química: tratamentos = forte (hidratação, reconstrução); finalização = leve
+      // Química/Coloração: tratamentos = forte; finalização/sobrancelha = leve
       // No química + química
       if (isSvcQuimica) continue
-      if (isSvcTratamento) { strong.push(svc); continue }
-      if (isSvcFinalizacao) { light.push(svc); continue }
-    } else if (isSvcTratamento) {
-      // Tratamento as main: finalização = leve
-      if (isSvcFinalizacao) { light.push(svc); continue }
+      if (isSvcCorte) { strong.push(svc); reasonMap[svc.id] = `Combina com ${mainLabel}`; continue }
+      if (isSvcTratamento) { strong.push(svc); reasonMap[svc.id] = `Completa seu atendimento`; continue }
+      if (isSvcFinalizacao) { light.push(svc); reasonMap[svc.id] = `Finalização recomendada`; continue }
+      if (isSvcSobrancelha) { light.push(svc); reasonMap[svc.id] = `Complemento leve`; continue }
+    } else if (isMainTratamento) {
+      // Tratamento Capilar como principal: corte = forte; finalização/sobrancelha = leve
+      if (isSvcCorte) { strong.push(svc); reasonMap[svc.id] = `Combina com ${mainLabel}`; continue }
+      if (isSvcFinalizacao) { light.push(svc); reasonMap[svc.id] = `Finalização recomendada`; continue }
+      if (isSvcSobrancelha) { light.push(svc); reasonMap[svc.id] = `Complemento leve`; continue }
     } else {
       // Generic: offer sobrancelha as leve
-      if (isSvcSobrancelha) { light.push(svc); continue }
+      if (isSvcSobrancelha) { light.push(svc); reasonMap[svc.id] = `Complemento leve`; continue }
     }
   }
 
-  return { light, strong }
+  return { light, strong, reasonMap }
 }
 
 // ── Main Composition Calculator ──────────────────────────

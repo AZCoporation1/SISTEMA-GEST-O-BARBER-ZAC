@@ -375,6 +375,8 @@ export interface PublicAddonSuggestion {
   price: number
   durationMinutes: number
   tier: "light" | "strong"
+  /** Contextual label for UI microcopy (e.g. "Combina com Alisamento") */
+  reasonLabel?: string
 }
 
 export async function getPublicBookingSuggestedAddons(
@@ -405,7 +407,7 @@ export async function getPublicBookingSuggestedAddons(
       return { success: false, error: "Serviço principal não encontrado." }
     }
 
-    const { light, strong } = getSuggestedAddons(mainService, allServices as CompositionServiceInput[])
+    const { light, strong, reasonMap } = getSuggestedAddons(mainService, allServices as CompositionServiceInput[])
 
     const suggestions: PublicAddonSuggestion[] = [
       ...strong.map(s => ({
@@ -415,6 +417,7 @@ export async function getPublicBookingSuggestedAddons(
         price: s.price,
         durationMinutes: s.duration_minutes,
         tier: "strong" as const,
+        reasonLabel: reasonMap[s.id] || undefined,
       })),
       ...light.map(s => ({
         id: s.id,
@@ -423,6 +426,7 @@ export async function getPublicBookingSuggestedAddons(
         price: s.price,
         durationMinutes: s.duration_minutes,
         tier: "light" as const,
+        reasonLabel: reasonMap[s.id] || undefined,
       })),
     ]
 

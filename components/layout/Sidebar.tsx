@@ -30,7 +30,8 @@ import {
   ChevronsLeft,
   ChevronsRight,
   Headset,
-  HandCoins
+  HandCoins,
+  MessageCircle
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
@@ -99,6 +100,7 @@ export const navItems: NavItem[] = [
   {
     section: 'Sistema',
     items: [
+      { href: '/whatsapp', icon: MessageCircle, label: 'WhatsApp' },
       { href: '/configuracoes', icon: Settings, label: 'Configurações' },
       { href: '/auditoria', icon: ShieldCheck, label: 'Auditoria' },
     ]

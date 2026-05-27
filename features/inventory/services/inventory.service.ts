@@ -167,6 +167,24 @@ export async function getCategories() {
 }
 
 /**
+ * Returns all active inventory categories, regardless of product association.
+ * Used for product creation/editing where new categories need to be selectable.
+ */
+export async function getAllCategories() {
+  const supabase = createClient()
+
+  const { data, error } = await supabase
+    .from("inventory_categories")
+    .select("*")
+    .eq("is_active", true)
+    .order("name")
+    
+  if (error) throw new Error(error.message)
+  return data as unknown as InventoryCategoryRow[]
+}
+
+
+/**
  * Returns only active brands that have at least one non-deleted product.
  * This eliminates ghost brands and dirty entries from the dropdown.
  */
