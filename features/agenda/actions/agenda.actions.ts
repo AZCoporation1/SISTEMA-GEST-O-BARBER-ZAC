@@ -5,6 +5,8 @@ import { createServerClient } from "@/lib/supabase/server"
 import { appointmentSchema, blockSchema, agendaSettingsSchema, waitlistSchema, type AppointmentFormValues, type BlockFormValues, type AgendaSettingsFormValues, type WaitlistFormValues } from "../validators"
 import { logAudit } from "@/features/audit/actions/audit.actions"
 import { resolveUserProfileId } from "@/lib/supabase/resolve-user"
+import { dispatchNotification, resolveAdminTargets, resolveProfessionalTarget } from "@/features/notifications/services/notificationRouter.service"
+import { buildAppointmentCreatedPayload, buildAppointmentCancelledPayload, buildAppointmentRescheduledPayload, buildAppointmentCheckinPayload, buildAppointmentCompletedPayload, buildAppointmentNoShowPayload } from "@/features/notifications/services/eventPayloads"
 import { processSale } from "@/features/sales/actions/sales.actions"
 import { markOccurrenceUsed } from "@/features/subscriptions/actions/subscription.actions"
 import { calculateServiceComposition, validateCompositionCompatibility } from "../services/service-composition"
@@ -178,6 +180,43 @@ export async function createAppointment(data: AppointmentFormValues) {
     })
 
     revalidatePath("/agendamento")
+
+    // ── Push Notification: appointment_created ──
+    try {
+      const profName = serviceSnapshot.service_name_snapshot ? undefined : undefined
+      // Resolve professional name
+      let professionalName = 'Profissional'
+      const { data: profData } = await supabase.from('collaborators').select('name, display_name').eq('id', validated.professional_id).single()
+      if (profData) professionalName = profData.display_name || profData.name
+
+      const notifData = {
+        appointmentId: appointment.id,
+        customerName: customerSnapshot.customer_name_snapshot || 'Cliente',
+        serviceName: serviceSnapshot.service_name_snapshot || 'Serviço',
+        professionalName,
+        professionalId: validated.professional_id,
+        startTime: validated.start_time,
+        startDate: validated.start_date,
+      }
+
+      const targets = [...(await resolveAdminTargets())]
+      const profTarget = await resolveProfessionalTarget(validated.professional_id)
+      if (profTarget) targets.push(profTarget)
+
+      const adminPayload = buildAppointmentCreatedPayload(notifData, 'admin')
+      await dispatchNotification({
+        eventType: 'appointment_created',
+        entityType: 'appointment',
+        entityId: appointment.id,
+        idempotencyKey: `appointment_created:${appointment.id}`,
+        title: adminPayload.title,
+        body: adminPayload.body,
+        data: adminPayload.data,
+        targets,
+        createdBy: ctx.userProfileId,
+      })
+    } catch {}
+
     return { success: true, data: appointment }
   } catch (err: any) {
     console.error("Create Appointment Error:", err)
@@ -269,6 +308,45 @@ export async function updateAppointment(id: string, data: AppointmentFormValues)
     })
 
     revalidatePath("/agendamento")
+
+    // ── Push Notification: appointment_rescheduled (if time/date changed) ──
+    try {
+      const oldStartTime = oldData?.start_at ? new Date(oldData.start_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' }) : ''
+      if (oldData && (oldData.start_at !== startAt || oldData.professional_id !== validated.professional_id)) {
+        let professionalName = 'Profissional'
+        const { data: profData } = await supabase.from('collaborators').select('name, display_name').eq('id', validated.professional_id).single()
+        if (profData) professionalName = profData.display_name || profData.name
+
+        const notifData = {
+          appointmentId: id,
+          customerName: updated?.customer_name_snapshot || oldData?.customer_name_snapshot || 'Cliente',
+          serviceName: updated?.service_name_snapshot || oldData?.service_name_snapshot || 'Serviço',
+          professionalName,
+          professionalId: validated.professional_id,
+          startTime: oldStartTime,
+          newStartTime: validated.start_time,
+          newStartDate: validated.start_date,
+        }
+
+        const targets = [...(await resolveAdminTargets())]
+        const profTarget = await resolveProfessionalTarget(validated.professional_id)
+        if (profTarget) targets.push(profTarget)
+
+        const payload = buildAppointmentRescheduledPayload(notifData, 'admin')
+        await dispatchNotification({
+          eventType: 'appointment_rescheduled',
+          entityType: 'appointment',
+          entityId: id,
+          idempotencyKey: `appointment_rescheduled:${id}:${new Date().toISOString()}`,
+          title: payload.title,
+          body: payload.body,
+          data: payload.data,
+          targets,
+          createdBy: ctx.userProfileId,
+        })
+      }
+    } catch {}
+
     return { success: true, data: updated }
   } catch (err: any) {
     console.error("Update Appointment Error:", err)
@@ -311,6 +389,37 @@ export async function cancelAppointment(id: string, reason: string) {
     })
 
     revalidatePath("/agendamento")
+
+    // ── Push Notification: appointment_cancelled ──
+    try {
+      const notifData = {
+        appointmentId: id,
+        customerName: oldData?.customer_name_snapshot || 'Cliente',
+        serviceName: oldData?.service_name_snapshot || 'Serviço',
+        professionalId: oldData?.professional_id,
+        startTime: oldData?.start_at ? new Date(oldData.start_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' }) : '',
+      }
+
+      const targets = [...(await resolveAdminTargets())]
+      if (oldData?.professional_id) {
+        const profTarget = await resolveProfessionalTarget(oldData.professional_id)
+        if (profTarget) targets.push(profTarget)
+      }
+
+      const payload = buildAppointmentCancelledPayload(notifData, 'admin')
+      await dispatchNotification({
+        eventType: 'appointment_cancelled',
+        entityType: 'appointment',
+        entityId: id,
+        idempotencyKey: `appointment_cancelled:${id}:${new Date().toISOString()}`,
+        title: payload.title,
+        body: payload.body,
+        data: payload.data,
+        targets,
+        createdBy: ctx.userProfileId,
+      })
+    } catch {}
+
     return { success: true }
   } catch (err: any) {
     return { success: false, error: err.message || "Erro ao cancelar agendamento" }
@@ -344,6 +453,37 @@ export async function markNoShow(id: string) {
     })
 
     revalidatePath("/agendamento")
+
+    // ── Push Notification: appointment_no_show ──
+    try {
+      const notifData = {
+        appointmentId: id,
+        customerName: updated?.customer_name_snapshot || 'Cliente',
+        serviceName: updated?.service_name_snapshot || 'Serviço',
+        professionalId: updated?.professional_id,
+        startTime: updated?.start_at ? new Date(updated.start_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' }) : '',
+      }
+
+      const targets = [...(await resolveAdminTargets())]
+      if (updated?.professional_id) {
+        const profTarget = await resolveProfessionalTarget(updated.professional_id)
+        if (profTarget) targets.push(profTarget)
+      }
+
+      const payload = buildAppointmentNoShowPayload(notifData, 'admin')
+      await dispatchNotification({
+        eventType: 'appointment_no_show',
+        entityType: 'appointment',
+        entityId: id,
+        idempotencyKey: `appointment_no_show:${id}`,
+        title: payload.title,
+        body: payload.body,
+        data: payload.data,
+        targets,
+        createdBy: ctx.userProfileId,
+      })
+    } catch {}
+
     return { success: true }
   } catch (err: any) {
     return { success: false, error: err.message || "Erro ao marcar ausência" }
@@ -381,6 +521,39 @@ export async function checkInAppointment(id: string) {
     })
 
     revalidatePath("/agendamento")
+
+    // ── Push Notification: appointment_checkin ──
+    try {
+      const { data: apptFull } = await supabase.from('appointments').select('customer_name_snapshot, service_name_snapshot, professional_id, start_at').eq('id', id).single()
+
+      const notifData = {
+        appointmentId: id,
+        customerName: apptFull?.customer_name_snapshot || 'Cliente',
+        serviceName: apptFull?.service_name_snapshot || 'Serviço',
+        professionalId: apptFull?.professional_id,
+        startTime: apptFull?.start_at ? new Date(apptFull.start_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' }) : '',
+      }
+
+      const targets = [...(await resolveAdminTargets())]
+      if (apptFull?.professional_id) {
+        const profTarget = await resolveProfessionalTarget(apptFull.professional_id)
+        if (profTarget) targets.push(profTarget)
+      }
+
+      const payload = buildAppointmentCheckinPayload(notifData, 'admin')
+      await dispatchNotification({
+        eventType: 'appointment_checkin',
+        entityType: 'appointment',
+        entityId: id,
+        idempotencyKey: `appointment_checkin:${id}`,
+        title: payload.title,
+        body: payload.body,
+        data: payload.data,
+        targets,
+        createdBy: ctx.userProfileId,
+      })
+    } catch {}
+
     return { success: true }
   } catch (err: any) {
     return { success: false, error: err.message || "Erro no check-in" }
@@ -421,6 +594,22 @@ export async function confirmAppointment(id: string) {
 // COMPLETE APPOINTMENT VIA SALE (processSale integration)
 // ══════════════════════════════════════════════════════════
 
+function isPerfumeProduct(product: any): boolean {
+  if (!product) return false
+  
+  const code = String(product.external_code || '').toUpperCase()
+  if (code.startsWith('PERF')) return true
+
+  const catName = String(product.category?.name || '').toLowerCase()
+  const catSlug = String(product.category?.slug || '').toLowerCase()
+  
+  if (catName.includes('perfume') || catSlug.includes('perfume') || catName === 'perf' || catSlug === 'perf') {
+    return true
+  }
+
+  return false
+}
+
 export async function completeAppointmentViaSale(
   appointmentId: string,
   saleData: {
@@ -437,11 +626,17 @@ export async function completeAppointmentViaSale(
       discount?: number
     }>
     notes?: string
+    service_price_override?: number
+    service_price_adjustment_reason?: string
   }
 ) {
   try {
     const supabase = await createServerClient()
     const ctx = await getUserContext(supabase)
+
+    if (!ctx.userId) {
+      throw new Error("Usuário não autenticado")
+    }
 
     // Fetch appointment
     const { data: appointment, error: fetchErr } = await supabase
@@ -451,8 +646,108 @@ export async function completeAppointmentViaSale(
       .single()
 
     if (fetchErr || !appointment) throw new Error("Agendamento não encontrado")
-    if (appointment.status === 'completed') throw new Error("Agendamento já finalizado")
+    if (appointment.status === 'completed') throw new Error("Este atendimento já foi finalizado.")
     if (appointment.status === 'cancelled') throw new Error("Agendamento cancelado")
+
+    // Check if there's already an active sale linked to this appointment
+    if (appointment.linked_sale_id) {
+      const { data: linkedSale } = await supabase
+        .from('sales')
+        .select('id, status')
+        .eq('id', appointment.linked_sale_id)
+        .single()
+
+      if (linkedSale && linkedSale.status !== 'cancelled') {
+        throw new Error("Este atendimento já possui uma venda ativa vinculada.")
+      }
+    }
+
+    // Validate quantities, unit prices, and discount
+    if (saleData.discount_amount && saleData.discount_amount < 0) {
+      throw new Error("O valor do desconto não pode ser negativo.")
+    }
+
+    const itemsTotal = saleData.items.reduce((sum, item) => {
+      if (item.unitPrice < 0) throw new Error("Os valores unitários não podem ser negativos.")
+      if (item.quantity <= 0) throw new Error("As quantidades devem ser maiores que zero.")
+      return sum + (item.quantity * item.unitPrice - (item.discount || 0))
+    }, 0)
+
+    const totalFinal = itemsTotal - (saleData.discount_amount || 0)
+    if (totalFinal <= 0) {
+      throw new Error("O valor total da venda deve ser maior que zero.")
+    }
+
+    // Fetch products to validate and get unit costs
+    const productIds = saleData.items
+      .filter(item => item.type === 'product' && item.productId)
+      .map(item => item.productId as string)
+
+    let dbProducts: any[] = []
+    if (productIds.length > 0) {
+      const { data: prods, error: prodErr } = await supabase
+        .from('inventory_products')
+        .select(`
+          id, name, external_code, is_active, current_qty, cost_price, deleted_at, is_deleted,
+          category:category_id (id, name, slug)
+        `)
+        .in('id', productIds)
+
+      if (prodErr) throw new Error("Erro ao carregar dados do estoque para validação.")
+      dbProducts = prods || []
+    }
+
+    // Validate products and check for perfumes
+    for (const item of saleData.items) {
+      if (item.type === 'product' && item.productId) {
+        const dbProd = dbProducts.find(p => p.id === item.productId)
+        if (!dbProd) {
+          throw new Error(`Produto "${item.name}" não encontrado no estoque.`)
+        }
+        if (!dbProd.is_active) {
+          throw new Error(`Produto "${item.name}" não está ativo.`)
+        }
+        if (dbProd.deleted_at || dbProd.is_deleted) {
+          throw new Error(`Produto "${item.name}" foi excluído.`)
+        }
+        if (isPerfumeProduct(dbProd)) {
+          throw new Error("Perfumes possuem fluxo próprio de venda e não podem ser adicionados por esta comanda.")
+        }
+        if (dbProd.current_qty < item.quantity) {
+          throw new Error(`Estoque insuficiente para o produto "${item.name}". Disponível: ${dbProd.current_qty}, Solicitado: ${item.quantity}.`)
+        }
+      }
+    }
+
+    // Price adjustment calculations
+    const originalPrice = appointment.service_price_snapshot || 0
+    // Find the main service item in the sale items to get the charged price
+    const mainServiceItem = saleData.items.find(
+      item => item.type === 'service' && item.serviceId === appointment.service_id
+    )
+    const chargedPrice = mainServiceItem ? mainServiceItem.unitPrice : originalPrice
+    const isPriceAdjusted = mainServiceItem ? (chargedPrice !== originalPrice) : false
+
+    let diffPercent = 0
+    if (originalPrice > 0) {
+      diffPercent = (Math.abs(chargedPrice - originalPrice) / originalPrice) * 100
+    } else if (chargedPrice > 0) {
+      diffPercent = 100
+    }
+
+    if (isPriceAdjusted && diffPercent > 20) {
+      if (!saleData.service_price_adjustment_reason || !saleData.service_price_adjustment_reason.trim()) {
+        throw new Error("Motivo do ajuste é obrigatório para diferenças maiores que 20%.")
+      }
+    }
+
+    // Build Sale Notes
+    let saleNotes = saleData.notes || `Comanda do agendamento ${appointmentId.split('-')[0]}`
+    if (isPriceAdjusted) {
+      const adjustmentAmount = chargedPrice - originalPrice
+      const adjustmentPercent = diffPercent
+      saleNotes += `\n[Ajuste de Preço do Serviço: R$ ${originalPrice.toFixed(2)} -> R$ ${chargedPrice.toFixed(2)} (${adjustmentAmount >= 0 ? '+' : ''}${adjustmentPercent.toFixed(1)}%). Motivo: ${saleData.service_price_adjustment_reason || 'Não informado'}]`
+    }
 
     // Build SaleFormValues for processSale
     const saleFormData: SaleFormValues = {
@@ -461,18 +756,27 @@ export async function completeAppointmentViaSale(
       collaborator_id: appointment.professional_id,
       payment_method_id: saleData.payment_method_id,
       discount_amount: saleData.discount_amount || 0,
-      notes: saleData.notes || `Comanda do agendamento ${appointmentId.split('-')[0]}`,
-      items: saleData.items.map((item, idx) => ({
-        id: `cmd-${idx}`,
-        type: item.type,
-        productId: item.productId || null,
-        serviceId: item.serviceId || null,
-        name: item.name,
-        quantity: item.quantity,
-        unitPrice: item.unitPrice,
-        unitCost: item.unitCost,
-        discount: item.discount || 0,
-      })),
+      notes: saleNotes,
+      items: saleData.items.map((item, idx) => {
+        let cost = item.unitCost || 0
+        if (item.type === 'product' && item.productId) {
+          const dbProd = dbProducts.find(p => p.id === item.productId)
+          if (dbProd) {
+            cost = dbProd.cost_price || 0
+          }
+        }
+        return {
+          id: `cmd-${idx}`,
+          type: item.type,
+          productId: item.productId || null,
+          serviceId: item.serviceId || null,
+          name: item.name,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+          unitCost: cost,
+          discount: item.discount || 0,
+        }
+      }),
     }
 
     // ── Call the official sale engine ──
@@ -501,12 +805,47 @@ export async function completeAppointmentViaSale(
       await markOccurrenceUsed(appointment.subscription_occurrence_id, appointmentId, 'completed')
     }
 
+    // ── Log Audit for price adjustment ──
+    if (isPriceAdjusted) {
+      const adjustmentAmount = chargedPrice - originalPrice
+      const { error: auditErr } = await supabase
+        .from('audit_logs')
+        .insert({
+          actor_id: ctx.userProfileId,
+          action: 'service_price_adjusted_on_checkout',
+          entity_type: 'appointment',
+          entity_id: appointmentId,
+          before_data: {
+            appointment_id: appointmentId,
+            service_name: appointment.service_name_snapshot,
+            original_price: originalPrice,
+          },
+          after_data: {
+            charged_price: chargedPrice,
+            adjustment_amount: adjustmentAmount,
+            adjustment_percent: diffPercent,
+            reason: saleData.service_price_adjustment_reason || '',
+            adjusted_by: ctx.userProfileId,
+          },
+          context: {
+            source: 'command_sheet',
+            professional_id: appointment.professional_id,
+            customer_name_snapshot: appointment.customer_name_snapshot,
+          },
+        })
+
+      if (auditErr) {
+        console.error("Failed to insert price adjustment audit log:", auditErr)
+      }
+    }
+
+    // Standard audit log
     await logAudit({
       action: 'UPDATE',
       entity: 'appointments',
       entity_id: appointmentId,
       newData: { status: 'completed', linked_sale_id: saleResult.data?.id },
-      observation: `Comanda finalizada. Venda #${saleResult.data?.id?.split('-')[0]} criada via processSale. Total: R$ ${saleFormData.items.reduce((a, i) => a + i.quantity * i.unitPrice - (i.discount || 0), 0).toFixed(2)}`,
+      observation: `Comanda finalizada. Venda #${saleResult.data?.id?.split('-')[0]} criada via processSale. Total: R$ ${totalFinal.toFixed(2)}`,
     })
 
     revalidatePath("/agendamento")
@@ -514,6 +853,37 @@ export async function completeAppointmentViaSale(
     revalidatePath("/caixa")
     revalidatePath("/dashboard")
     revalidatePath("/fluxo-de-caixa")
+
+    // ── Push Notification: appointment_completed ──
+    try {
+      const notifData = {
+        appointmentId,
+        customerName: appointment.customer_name_snapshot || 'Cliente',
+        serviceName: appointment.service_name_snapshot || 'Serviço',
+        professionalId: appointment.professional_id,
+        professionalName: appointment.professional?.name || 'Profissional',
+      }
+
+      const targets = [...(await resolveAdminTargets())]
+      if (appointment.professional_id) {
+        const profTarget = await resolveProfessionalTarget(appointment.professional_id)
+        if (profTarget) targets.push(profTarget)
+      }
+
+      const payload = buildAppointmentCompletedPayload(notifData, 'admin')
+      await dispatchNotification({
+        eventType: 'appointment_completed',
+        entityType: 'appointment',
+        entityId: appointmentId,
+        idempotencyKey: `appointment_completed:${appointmentId}`,
+        title: payload.title,
+        body: payload.body,
+        data: payload.data,
+        targets,
+        createdBy: ctx.userProfileId,
+      })
+    } catch {}
+
     return { success: true, data: { appointment: { ...appointment, status: 'completed' }, sale: saleResult.data } }
   } catch (err: any) {
     console.error("Complete Appointment Error:", err)
@@ -1165,6 +1535,52 @@ export async function addCommandItem(appointmentId: string, item: {
       }
     }
 
+    // Consolidate quantity if product already exists in comanda
+    if (item.item_type === 'product' && item.product_id) {
+      // First check if the product is active/deleted/perfume
+      const { data: dbProd } = await supabase
+        .from('inventory_products')
+        .select(`
+          id, name, external_code, is_active, deleted_at, is_deleted,
+          category:category_id (id, name, slug)
+        `)
+        .eq('id', item.product_id)
+        .single()
+
+      if (!dbProd) {
+        return { success: false, error: "Produto não encontrado." }
+      }
+      if (!dbProd.is_active) {
+        return { success: false, error: "Este produto está inativo." }
+      }
+      if (dbProd.deleted_at || dbProd.is_deleted) {
+        return { success: false, error: "Este produto foi excluído." }
+      }
+      if (isPerfumeProduct(dbProd)) {
+        return { success: false, error: "Perfumes possuem fluxo próprio de venda e não podem ser adicionados por esta comanda." }
+      }
+
+      const { data: existing } = await supabase
+        .from('appointment_command_items')
+        .select('id, quantity')
+        .eq('appointment_id', appointmentId)
+        .eq('product_id', item.product_id)
+        .maybeSingle()
+
+      if (existing) {
+        const { data: updated, error } = await supabase
+          .from('appointment_command_items')
+          .update({ quantity: existing.quantity + item.quantity })
+          .eq('id', existing.id)
+          .select()
+          .single()
+
+        if (error) throw error
+        revalidatePath("/agendamento")
+        return { success: true, data: updated }
+      }
+    }
+
     const { data: cmdItem, error } = await supabase
       .from('appointment_command_items')
       .insert({
@@ -1198,6 +1614,26 @@ export async function removeCommandItem(id: string) {
     return { success: true }
   } catch (err: any) {
     return { success: false, error: err.message || "Erro ao remover item da comanda" }
+  }
+}
+
+export async function updateCommandItemQuantity(id: string, quantity: number) {
+  try {
+    const supabase = await createServerClient()
+    if (quantity <= 0) {
+      const { error } = await supabase.from('appointment_command_items').delete().eq('id', id)
+      if (error) throw error
+    } else {
+      const { error } = await supabase
+        .from('appointment_command_items')
+        .update({ quantity })
+        .eq('id', id)
+      if (error) throw error
+    }
+    revalidatePath("/agendamento")
+    return { success: true }
+  } catch (err: any) {
+    return { success: false, error: err.message || "Erro ao atualizar quantidade" }
   }
 }
 
@@ -1436,6 +1872,40 @@ export async function createCustomerAppointment(data: CustomerAppointmentInput) 
 
     revalidatePath("/agendamento")
     revalidatePath("/cliente/meus-agendamentos")
+
+    // ── Push Notification: appointment_created (by customer) ──
+    try {
+      let professionalName = 'Profissional'
+      const { data: profData } = await adminDb.from('collaborators').select('name, display_name').eq('id', data.professionalId).single()
+      if (profData) professionalName = profData.display_name || profData.name
+
+      const notifData = {
+        appointmentId: appointment.id,
+        customerName: customer.full_name || 'Cliente',
+        serviceName: composition.displayName || 'Serviço',
+        professionalName,
+        professionalId: data.professionalId,
+        startTime: data.startTime,
+        startDate: data.startDate,
+      }
+
+      const targets = [...(await resolveAdminTargets())]
+      const profTarget = await resolveProfessionalTarget(data.professionalId)
+      if (profTarget) targets.push(profTarget)
+
+      const payload = buildAppointmentCreatedPayload(notifData, 'admin')
+      await dispatchNotification({
+        eventType: 'appointment_created',
+        entityType: 'appointment',
+        entityId: appointment.id,
+        idempotencyKey: `appointment_created:${appointment.id}`,
+        title: payload.title,
+        body: payload.body,
+        data: payload.data,
+        targets,
+      })
+    } catch {}
+
     return { success: true, data: appointment }
 
   } catch (err: any) {
@@ -1571,6 +2041,35 @@ export async function cancelCustomerAppointment(data: CancelCustomerAppointmentI
     revalidatePath("/cliente/agendar")
     revalidatePath("/cliente/agendar/data-hora")
     revalidatePath("/profissional/agenda")
+
+    // ── Push Notification: appointment_cancelled (by customer) ──
+    try {
+      const notifData = {
+        appointmentId: appointment.id,
+        customerName: customerName,
+        serviceName: serviceName,
+        professionalId: appointment.professional_id,
+        startTime: formattedTime,
+      }
+
+      const targets = [...(await resolveAdminTargets())]
+      if (appointment.professional_id) {
+        const profTarget = await resolveProfessionalTarget(appointment.professional_id)
+        if (profTarget) targets.push(profTarget)
+      }
+
+      const payload = buildAppointmentCancelledPayload(notifData, 'admin')
+      await dispatchNotification({
+        eventType: 'appointment_cancelled',
+        entityType: 'appointment',
+        entityId: appointment.id,
+        idempotencyKey: `appointment_cancelled:${appointment.id}:${now}`,
+        title: payload.title,
+        body: payload.body,
+        data: payload.data,
+        targets,
+      })
+    } catch {}
 
     return { success: true }
 

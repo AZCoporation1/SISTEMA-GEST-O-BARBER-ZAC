@@ -518,6 +518,91 @@ export interface ProfessionalRequestRow {
   updated_at: string
 }
 
+// ── Push Notifications ─────────────────────────────────────
+export type NotificationEventTypeEnum =
+  | 'appointment_created'
+  | 'appointment_cancelled'
+  | 'appointment_rescheduled'
+  | 'appointment_checkin'
+  | 'appointment_completed'
+  | 'appointment_no_show'
+  | 'subscription_closed'
+  | 'subscription_cancelled'
+  | 'subscription_payment_approved'
+  | 'test_notification'
+
+export type DeliveryStatusEnum = 'pending' | 'sent' | 'failed' | 'skipped'
+
+export interface PushSubscriptionRow {
+  id: string
+  user_profile_id: string
+  collaborator_id: string | null
+  customer_id: string | null
+  role: string
+  provider: string
+  token: string
+  endpoint: string | null
+  p256dh: string | null
+  auth_key: string | null
+  platform: string | null
+  browser: string | null
+  device_label: string | null
+  user_agent: string | null
+  is_pwa: boolean
+  permission_status: string | null
+  is_active: boolean
+  last_seen_at: string | null
+  revoked_at: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface NotificationPreferenceRow {
+  id: string
+  user_profile_id: string
+  notify_new_appointment: boolean
+  notify_cancelled_appointment: boolean
+  notify_rescheduled_appointment: boolean
+  notify_checkin: boolean
+  notify_completed: boolean
+  notify_no_show: boolean
+  notify_subscription_closed: boolean
+  notify_subscription_cancelled: boolean
+  quiet_hours_enabled: boolean
+  quiet_hours_start: string | null
+  quiet_hours_end: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface NotificationEventRow {
+  id: string
+  event_type: NotificationEventTypeEnum
+  entity_type: string
+  entity_id: string
+  idempotency_key: string
+  title: string
+  body: string
+  data: Json
+  created_by: string | null
+  created_at: string
+}
+
+export interface NotificationDeliveryLogRow {
+  id: string
+  notification_event_id: string
+  push_subscription_id: string
+  user_profile_id: string | null
+  collaborator_id: string | null
+  target_role: string | null
+  status: DeliveryStatusEnum
+  provider: string
+  provider_message_id: string | null
+  error_message: string | null
+  sent_at: string | null
+  created_at: string
+}
+
 // ── View Row Types ─────────────────────────────────────────
 export interface VwInventoryPositionRow {
   product_id: string
@@ -628,6 +713,11 @@ export interface Database {
       professional_requests: GenericTable
       appointment_command_items: GenericTable
       inventory_product_deletion_snapshots: GenericTable
+      // Push Notification tables
+      push_subscriptions: GenericTable
+      notification_preferences: GenericTable
+      notification_events: GenericTable
+      notification_delivery_logs: GenericTable
       // Subscription module tables
       subscription_plans: GenericTable
       subscription_plan_professionals: GenericTable

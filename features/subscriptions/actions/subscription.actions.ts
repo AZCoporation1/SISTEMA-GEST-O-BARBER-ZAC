@@ -18,6 +18,8 @@ import { createServerClient } from "@/lib/supabase/server"
 import { createClient } from "@supabase/supabase-js"
 import { logAudit } from "@/features/audit/actions/audit.actions"
 import { resolveUserProfileId } from "@/lib/supabase/resolve-user"
+import { dispatchNotification, resolveAdminTargets, resolveProfessionalTarget } from "@/features/notifications/services/notificationRouter.service"
+import { buildSubscriptionClosedPayload, buildSubscriptionCancelledPayload } from "@/features/notifications/services/eventPayloads"
 import { revalidatePath } from "next/cache"
 import type {
   SubscriptionPlanRow,
@@ -446,6 +448,46 @@ export async function activateSubscription(subscriptionId: string): Promise<{
 
     revalidatePath('/assinaturas')
     revalidatePath('/agendamento')
+
+    // ── Push Notification: subscription_closed ──
+    try {
+      const adminClient2 = getAdminClient()
+      const { data: custData } = await adminClient2.from('customers').select('full_name').eq('id', sub.customer_id).single()
+      const { data: planData } = await adminClient2.from('subscription_plans').select('display_name').eq('id', sub.plan_id).single()
+      let professionalName = 'Profissional'
+      if (sub.preferred_professional_id) {
+        const { data: prof } = await adminClient2.from('collaborators').select('name, display_name').eq('id', sub.preferred_professional_id).single()
+        if (prof) professionalName = prof.display_name || prof.name
+      }
+      const weekdays = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado']
+      const notifData = {
+        subscriptionId,
+        customerName: custData?.full_name || 'Cliente',
+        planName: planData?.display_name || 'Assinatura',
+        professionalName,
+        professionalId: sub.preferred_professional_id,
+        dayOfWeek: weekdays[sub.fixed_weekday] || '',
+        time: sub.fixed_time || '',
+      }
+      const targets = [...(await resolveAdminTargets())]
+      if (sub.preferred_professional_id) {
+        const profTarget = await resolveProfessionalTarget(sub.preferred_professional_id)
+        if (profTarget) targets.push(profTarget)
+      }
+      const payload = buildSubscriptionClosedPayload(notifData, 'admin')
+      await dispatchNotification({
+        eventType: 'subscription_closed',
+        entityType: 'subscription',
+        entityId: subscriptionId,
+        idempotencyKey: `subscription_closed:${subscriptionId}`,
+        title: payload.title,
+        body: payload.body,
+        data: payload.data,
+        targets,
+        createdBy: ctx.userProfileId,
+      })
+    } catch {}
+
     return { success: true }
   } catch (err: any) {
     console.error('activateSubscription error:', err)
@@ -684,6 +726,35 @@ export async function cancelCustomerSubscription(
 
     revalidatePath('/assinaturas')
     revalidatePath('/agendamento')
+
+    // ── Push Notification: subscription_cancelled ──
+    try {
+      const { data: custData } = await adminClient.from('customers').select('full_name').eq('id', sub.customer_id).single()
+      const { data: planData } = await adminClient.from('subscription_plans').select('display_name').eq('id', sub.plan_id).single()
+      const notifData = {
+        subscriptionId,
+        customerName: custData?.full_name || 'Cliente',
+        planName: planData?.display_name || 'Assinatura',
+      }
+      const targets = [...(await resolveAdminTargets())]
+      if (sub.preferred_professional_id) {
+        const profTarget = await resolveProfessionalTarget(sub.preferred_professional_id)
+        if (profTarget) targets.push(profTarget)
+      }
+      const payload = buildSubscriptionCancelledPayload(notifData, 'admin')
+      await dispatchNotification({
+        eventType: 'subscription_cancelled',
+        entityType: 'subscription',
+        entityId: subscriptionId,
+        idempotencyKey: `subscription_cancelled:${subscriptionId}:${now}`,
+        title: payload.title,
+        body: payload.body,
+        data: payload.data,
+        targets,
+        createdBy: ctx.userProfileId,
+      })
+    } catch {}
+
     return { success: true }
   } catch (err: any) {
     console.error('cancelCustomerSubscription error:', err)

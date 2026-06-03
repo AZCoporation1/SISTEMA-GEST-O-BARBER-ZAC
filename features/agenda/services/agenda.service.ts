@@ -154,8 +154,10 @@ export async function fetchBookableServices() {
 export async function fetchProductsForComanda() {
   const { data, error } = await supabase
     .from("inventory_products")
-    .select("id, name, external_code, sale_price_generated, current_qty, cost_price")
+    .select("id, name, external_code, sale_price_generated, current_qty, cost_price, is_active, deleted_at, is_deleted, category_id, category:category_id(id, name, slug)")
     .eq("is_active", true)
+    .is("deleted_at", null)
+    .eq("is_deleted", false)
     .gt("current_qty", 0)
     .order("name")
 
@@ -165,9 +167,15 @@ export async function fetchProductsForComanda() {
   }
 
   // ── CRITICAL: Exclude PERF products (Vista/Prazo motor is separate) ──
-  return (data || []).filter((p: any) =>
-    !p.external_code || !String(p.external_code).toUpperCase().startsWith("PERF")
-  )
+  return (data || []).filter((p: any) => {
+    if (!p.external_code) return true
+    const isPerf = String(p.external_code).toUpperCase().startsWith("PERF") ||
+      String(p.category?.name || "").toLowerCase().includes("perfume") ||
+      String(p.category?.slug || "").toLowerCase().includes("perfume") ||
+      String(p.category?.name || "").toLowerCase() === "perf" ||
+      String(p.category?.slug || "").toLowerCase() === "perf"
+    return !isPerf
+  })
 }
 
 // ── Customers ────────────────────────────────────────────

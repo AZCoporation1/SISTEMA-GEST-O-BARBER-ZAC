@@ -1,7 +1,7 @@
 {
-  "name": "IBZ Scoreboard",
-  "short_name": "IBZ Score",
-  "description": "Ranking e pontuação semanal do Instituto Barber Zac.",
+  "name": "Barber Zac ERP",
+  "short_name": "Barber Zac",
+  "description": "ERP operacional premium do Instituto Barber Zac — agenda, estoque, financeiro, vendas, comissões e notificações.",
   "start_url": "/?source=pwa",
   "scope": "/",
   "display": "standalone",
@@ -18,8 +18,8 @@
     { "src": "/icons/ibz-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ],
   "shortcuts": [
-    { "name": "Ranking", "url": "/", "icons": [{ "src": "/icons/ibz-192.png", "sizes": "192x192" }] },
-    { "name": "Chat", "url": "/chat", "icons": [{ "src": "/icons/ibz-192.png", "sizes": "192x192" }] },
-    { "name": "Lançar", "url": "/lancar", "icons": [{ "src": "/icons/ibz-192.png", "sizes": "192x192" }] }
+    { "name": "Agenda", "url": "/agendamento", "icons": [{ "src": "/icons/ibz-192.png", "sizes": "192x192" }] },
+    { "name": "Dashboard", "url": "/dashboard", "icons": [{ "src": "/icons/ibz-192.png", "sizes": "192x192" }] },
+    { "name": "Agendar", "url": "/cliente/agendar", "icons": [{ "src": "/icons/ibz-192.png", "sizes": "192x192" }] }
   ]
 }

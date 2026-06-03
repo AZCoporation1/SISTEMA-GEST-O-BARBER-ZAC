@@ -10,6 +10,9 @@ import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 import { Form, FormControl, FormField, FormItem, FormMessage } from "@/components/ui/form"
 import { Building2, Bell, Bot, Monitor } from "lucide-react"
+import { NotificationSettingsCard } from "@/features/notifications/components/NotificationSettingsCard"
+import { NotificationPreferencePanel } from "@/features/notifications/components/NotificationPreferencePanel"
+import { NotificationDiagnosticsPanel } from "@/features/notifications/components/NotificationDiagnosticsPanel"
 
 import { useAppSettings, useSettingsMutations } from "../hooks/useSettings"
 import { settingsSchema, SettingsFormValues } from "../validators"
@@ -134,7 +137,18 @@ export function SettingsView() {
             </CardContent>
           </Card>
 
-          {/* AI */}
+          {/* Push Notifications — outside the form */}
+          </form>
+        </Form>
+
+        <NotificationSettingsCard />
+        <NotificationPreferencePanel isAdmin />
+        <NotificationDiagnosticsPanel />
+
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+
+           {/* AI */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2"><Bot className="h-4 w-4" /> Inteligência Artificial</CardTitle>

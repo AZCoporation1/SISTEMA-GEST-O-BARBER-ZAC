@@ -15,6 +15,7 @@ import {
   AlertCircle, Calendar, ChevronDown,
 } from 'lucide-react'
 import Link from 'next/link'
+import { ProfessionalNotificationCard } from '@/features/notifications/components/ProfessionalNotificationCard'
 
 export default function ContaPage() {
   const { user, hasAdminAccess } = useAuth()
@@ -128,6 +129,9 @@ export default function ContaPage() {
         periodLabel={currentPeriod.label}
         isAdmin={hasAdminAccess}
       />
+
+      {/* ═══ PUSH NOTIFICATIONS ═══ */}
+      <ProfessionalNotificationCard />
 
       {/* Quick agenda link */}
       <Link href="/profissional/agenda" style={{

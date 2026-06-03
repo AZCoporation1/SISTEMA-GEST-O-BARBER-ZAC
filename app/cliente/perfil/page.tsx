@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, Loader2, User, Mail, Phone, Award, Calendar, Camera, LogOut, Pencil, Check, X, ShieldAlert, UserPlus } from 'lucide-react'
+import { ClientNotificationCard } from '@/features/notifications/components/ClientNotificationCard'
 import { getCustomerProfile, updateCustomerProfile, customerLogout, createCustomerForInternalUser } from '@/features/customers/actions/customer-auth.actions'
 import { useAuth } from '@/components/auth-provider'
 import { toast } from 'sonner'
@@ -391,6 +392,9 @@ export default function PerfilPage() {
           Sair da conta
         </button>
       </div>
+
+      {/* Push Notifications */}
+      <ClientNotificationCard />
     </div>
   )
 }
