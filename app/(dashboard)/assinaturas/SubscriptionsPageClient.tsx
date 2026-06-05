@@ -1,24 +1,40 @@
 "use client"
 
+/**
+ * Barber Zac ERP — Subscriptions Page Client (Enhanced)
+ *
+ * Full admin panel for subscription management with:
+ * - 6 KPI cards (active, pending, cancelled, revenue, visits scheduled, upcoming billing)
+ * - Advanced filters (status pills, professional, plan, weekday, search)
+ * - Enriched table (customer, plan, professional, day/time, billing day, status, usage, actions)
+ * - "Nova Assinatura" button → multi-step wizard
+ * - Detail sheet with occurrences, payments, admin actions
+ */
+
 import { useState, useEffect, useCallback } from 'react'
 import {
-  CalendarCheck, Crown, RefreshCw, Search, Filter,
-  ChevronRight, CheckCircle, XCircle, Clock, AlertCircle,
-  Users, DollarSign, TrendingUp, Calendar, Eye, Power,
-  Ban
+  CalendarCheck, RefreshCw, Search, Plus,
+  CheckCircle, XCircle, Clock, DollarSign,
+  Eye, Power, Ban, TrendingUp, CalendarDays,
+  Users
 } from 'lucide-react'
 import {
   listSubscriptions,
   activateSubscription,
   cancelCustomerSubscription,
   getSubscriptionDetails,
+  getAdminSubscriptionPlans,
 } from '@/features/subscriptions/actions/subscription.actions'
 import {
   SUBSCRIPTION_STATUS_LABELS,
   SUBSCRIPTION_STATUS_COLORS,
   WEEKDAY_NAMES,
   type SubscriptionStatus,
+  type SubscriptionPlanWithProfessionals,
 } from '@/features/subscriptions/types'
+import SubscriptionUsageBar from './SubscriptionUsageBar'
+import SubscriptionDetailSheet from './SubscriptionDetailSheet'
+import NewSubscriptionWizard from './NewSubscriptionWizard'
 
 interface KPICard {
   label: string
@@ -32,21 +48,51 @@ export default function SubscriptionsPageClient() {
   const [subscriptions, setSubscriptions] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [filterStatus, setFilterStatus] = useState<SubscriptionStatus | 'all'>('all')
+  const [filterProfessional, setFilterProfessional] = useState('')
+  const [filterPlan, setFilterPlan] = useState('')
+  const [filterWeekday, setFilterWeekday] = useState<number | ''>('')
   const [searchTerm, setSearchTerm] = useState('')
+
   const [selectedSub, setSelectedSub] = useState<any>(null)
   const [detailsLoading, setDetailsLoading] = useState(false)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
+  const [showWizard, setShowWizard] = useState(false)
+
+  // Plans and professionals for filter dropdowns
+  const [plans, setPlans] = useState<SubscriptionPlanWithProfessionals[]>([])
+  const [allProfessionals, setAllProfessionals] = useState<Array<{ id: string; name: string }>>([])
 
   const loadData = useCallback(async () => {
     setLoading(true)
-    const result = await listSubscriptions(
-      filterStatus === 'all' ? undefined : { status: filterStatus }
-    )
+    const filters: any = {}
+    if (filterStatus !== 'all') filters.status = filterStatus
+    if (filterProfessional) filters.professionalId = filterProfessional
+    if (filterPlan) filters.planId = filterPlan
+    if (filterWeekday !== '') filters.weekday = filterWeekday
+
+    const result = await listSubscriptions(filters)
     if (result.success && result.data) {
       setSubscriptions(result.data)
     }
     setLoading(false)
-  }, [filterStatus])
+  }, [filterStatus, filterProfessional, filterPlan, filterWeekday])
+
+  // Load plans for filter dropdown
+  useEffect(() => {
+    getAdminSubscriptionPlans().then(r => {
+      if (r.success && r.data) {
+        setPlans(r.data)
+        // Extract unique professionals from all plans
+        const profMap = new Map<string, string>()
+        r.data.forEach(p => {
+          p.professionals.forEach(prof => {
+            profMap.set(prof.id, prof.display_name || prof.name)
+          })
+        })
+        setAllProfessionals(Array.from(profMap.entries()).map(([id, name]) => ({ id, name })))
+      }
+    })
+  }, [])
 
   useEffect(() => { loadData() }, [loadData])
 
@@ -60,7 +106,7 @@ export default function SubscriptionsPageClient() {
   }
 
   async function handleActivate(subId: string) {
-    if (!confirm('Ativar esta assinatura manualmente? Isso criará os agendamentos.')) return
+    if (!confirm('Ativar esta assinatura? Isso criará os agendamentos na agenda.')) return
     setActionLoading(subId)
     const result = await activateSubscription(subId)
     if (result.success) {
@@ -86,38 +132,72 @@ export default function SubscriptionsPageClient() {
     setActionLoading(null)
   }
 
+  function handleRefreshDetails() {
+    if (selectedSub?.id) handleViewDetails(selectedSub.id)
+  }
+
   // ── KPIs ──
   const activeCount = subscriptions.filter(s => s.status === 'active').length
-  const pendingCount = subscriptions.filter(s => s.status === 'pending_payment').length
+  const pendingCount = subscriptions.filter(s => s.status === 'pending_payment' || s.status === 'draft').length
   const cancelledCount = subscriptions.filter(s => s.status === 'cancelled').length
   const monthlyRevenue = subscriptions
     .filter(s => s.status === 'active')
     .reduce((sum, s) => sum + (s.subscription_plans?.monthly_price || 0), 0)
+  const scheduledVisitsThisWeek = subscriptions
+    .filter(s => s.status === 'active')
+    .reduce((sum, s) => {
+      const occs = s.subscription_occurrences || []
+      const now = new Date()
+      const weekEnd = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
+      return sum + occs.filter((o: any) => {
+        if (o.status !== 'scheduled') return false
+        const d = new Date(o.occurrence_date)
+        return d >= now && d <= weekEnd
+      }).length
+    }, 0)
+  const totalUsed = subscriptions
+    .filter(s => s.status === 'active')
+    .reduce((sum, s) => sum + (s.usage?.used || 0), 0)
 
   const kpis: KPICard[] = [
     { label: 'Ativas', value: activeCount, icon: CheckCircle, color: '#10b981', bgColor: 'rgba(16,185,129,0.1)' },
     { label: 'Pendentes', value: pendingCount, icon: Clock, color: '#f59e0b', bgColor: 'rgba(245,158,11,0.1)' },
     { label: 'Canceladas', value: cancelledCount, icon: XCircle, color: '#6b7280', bgColor: 'rgba(107,114,128,0.1)' },
-    { label: 'Receita Mensal', value: `R$ ${monthlyRevenue.toFixed(2).replace('.', ',')}`, icon: DollarSign, color: '#c026d3', bgColor: 'rgba(192,38,211,0.1)' },
+    { label: 'Receita Mensal', value: `R$ ${monthlyRevenue.toFixed(2).replace('.', ',')}`, icon: DollarSign, color: '#8b5cf6', bgColor: 'rgba(139,92,246,0.1)' },
+    { label: 'Visitas (7 dias)', value: scheduledVisitsThisWeek, icon: CalendarDays, color: '#3b82f6', bgColor: 'rgba(59,130,246,0.1)' },
+    { label: 'Visitas Usadas', value: totalUsed, icon: TrendingUp, color: '#c026d3', bgColor: 'rgba(192,38,211,0.1)' },
   ]
 
+  // ── Client-side search filter ──
   const filtered = subscriptions.filter(s => {
     if (searchTerm) {
       const term = searchTerm.toLowerCase()
       const customerName = s.customers?.full_name?.toLowerCase() || ''
       const planName = s.subscription_plans?.display_name?.toLowerCase() || ''
-      if (!customerName.includes(term) && !planName.includes(term)) return false
+      const profName = (s.professional_name || '').toLowerCase()
+      if (!customerName.includes(term) && !planName.includes(term) && !profName.includes(term)) return false
     }
     return true
   })
 
-  const statusFilters: Array<{ value: SubscriptionStatus | 'all'; label: string }> = [
-    { value: 'all', label: 'Todas' },
-    { value: 'active', label: 'Ativas' },
-    { value: 'pending_payment', label: 'Pendentes' },
+  const statusFilters: Array<{ value: SubscriptionStatus | 'all'; label: string; count?: number }> = [
+    { value: 'all', label: 'Todas', count: subscriptions.length },
+    { value: 'active', label: 'Ativas', count: activeCount },
+    { value: 'pending_payment', label: 'Pendentes', count: pendingCount },
     { value: 'draft', label: 'Rascunho' },
-    { value: 'cancelled', label: 'Canceladas' },
+    { value: 'past_due', label: 'Atrasadas' },
+    { value: 'cancelled', label: 'Canceladas', count: cancelledCount },
   ]
+
+  const selectStyle: React.CSSProperties = {
+    padding: '6px 10px',
+    borderRadius: 8,
+    border: '1px solid var(--border)',
+    background: 'var(--card)',
+    color: 'var(--text-primary)',
+    fontSize: 12,
+    minWidth: 130,
+  }
 
   return (
     <div className="page-container space-y-6">
@@ -134,29 +214,45 @@ export default function SubscriptionsPageClient() {
             </p>
           </div>
         </div>
-        <button onClick={loadData} className="btn btn-sm btn-secondary gap-1.5" disabled={loading}>
-          <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-          Atualizar
-        </button>
+        <div className="flex items-center gap-2">
+          <button onClick={loadData} className="btn btn-sm btn-secondary gap-1.5" disabled={loading}>
+            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+            Atualizar
+          </button>
+          <button
+            onClick={() => setShowWizard(true)}
+            className="btn btn-sm gap-1.5"
+            style={{
+              background: 'linear-gradient(135deg, #8b5cf6, #6366f1)',
+              color: 'white',
+              border: 'none',
+              fontWeight: 600,
+            }}
+          >
+            <Plus className="w-3.5 h-3.5" />
+            Nova Assinatura
+          </button>
+        </div>
       </div>
 
       {/* KPIs */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
         {kpis.map(kpi => (
           <div key={kpi.label} className="p-4 rounded-xl border border-border bg-card/60">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs text-muted-foreground font-medium">{kpi.label}</span>
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: kpi.bgColor }}>
-                <kpi.icon className="w-4 h-4" style={{ color: kpi.color }} />
+              <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide">{kpi.label}</span>
+              <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: kpi.bgColor }}>
+                <kpi.icon className="w-3.5 h-3.5" style={{ color: kpi.color }} />
               </div>
             </div>
-            <div className="text-2xl font-bold" style={{ color: kpi.color }}>{kpi.value}</div>
+            <div className="text-xl font-bold" style={{ color: kpi.color }}>{kpi.value}</div>
           </div>
         ))}
       </div>
 
       {/* Filters */}
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="space-y-3">
+        {/* Status pills */}
         <div className="flex overflow-x-auto gap-1.5 hide-scrollbar">
           {statusFilters.map(f => (
             <button
@@ -168,18 +264,62 @@ export default function SubscriptionsPageClient() {
                   : 'bg-card text-muted-foreground border-border hover:bg-accent'}`}
             >
               {f.label}
+              {f.count !== undefined && (
+                <span className="ml-1 opacity-70">({f.count})</span>
+              )}
             </button>
           ))}
         </div>
-        <div className="relative flex-1 min-w-[200px]">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-          <input
-            type="text"
-            value={searchTerm}
-            onChange={e => setSearchTerm(e.target.value)}
-            placeholder="Buscar por cliente ou plano..."
-            className="w-full pl-8 pr-3 py-2 bg-card border border-border rounded-lg text-sm placeholder:text-muted-foreground focus:outline-none focus:border-purple-500/40"
-          />
+
+        {/* Advanced filters row */}
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Search */}
+          <div className="relative flex-1 min-w-[200px]">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+              placeholder="Buscar cliente, plano ou profissional..."
+              className="w-full pl-8 pr-3 py-2 bg-card border border-border rounded-lg text-sm placeholder:text-muted-foreground focus:outline-none focus:border-purple-500/40"
+            />
+          </div>
+
+          {/* Plan filter */}
+          <select
+            value={filterPlan}
+            onChange={e => setFilterPlan(e.target.value)}
+            style={selectStyle}
+          >
+            <option value="">Todos os Planos</option>
+            {plans.map(p => (
+              <option key={p.id} value={p.id}>{p.display_name}</option>
+            ))}
+          </select>
+
+          {/* Professional filter */}
+          <select
+            value={filterProfessional}
+            onChange={e => setFilterProfessional(e.target.value)}
+            style={selectStyle}
+          >
+            <option value="">Todos Profissionais</option>
+            {allProfessionals.map(p => (
+              <option key={p.id} value={p.id}>{p.name}</option>
+            ))}
+          </select>
+
+          {/* Weekday filter */}
+          <select
+            value={filterWeekday}
+            onChange={e => setFilterWeekday(e.target.value === '' ? '' : Number(e.target.value))}
+            style={selectStyle}
+          >
+            <option value="">Dia da Semana</option>
+            {[1, 2, 3, 4, 5, 6, 0].map(d => (
+              <option key={d} value={d}>{WEEKDAY_NAMES[d]}</option>
+            ))}
+          </select>
         </div>
       </div>
 
@@ -190,8 +330,10 @@ export default function SubscriptionsPageClient() {
             <tr>
               <th className="text-left">Cliente</th>
               <th className="text-left">Plano</th>
-              <th className="text-center">Status</th>
+              <th className="text-left">Profissional</th>
               <th className="text-center">Dia/Hora</th>
+              <th className="text-center">Status</th>
+              <th className="text-center">Uso</th>
               <th className="text-right">Preço</th>
               <th className="text-center">Ações</th>
             </tr>
@@ -199,16 +341,23 @@ export default function SubscriptionsPageClient() {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={6} className="text-center py-12 text-muted-foreground text-sm">
+                <td colSpan={8} className="text-center py-12 text-muted-foreground text-sm">
                   <RefreshCw className="w-5 h-5 mx-auto animate-spin mb-2" />
                   Carregando...
                 </td>
               </tr>
             ) : filtered.length === 0 ? (
               <tr>
-                <td colSpan={6} className="text-center py-12 text-muted-foreground text-sm">
+                <td colSpan={8} className="text-center py-12 text-muted-foreground text-sm">
                   <CalendarCheck className="w-8 h-8 mx-auto opacity-30 mb-2" />
                   Nenhuma assinatura encontrada.
+                  <br />
+                  <button
+                    onClick={() => setShowWizard(true)}
+                    className="text-purple-500 hover:text-purple-400 text-xs mt-2 underline"
+                  >
+                    Criar nova assinatura
+                  </button>
                 </td>
               </tr>
             ) : (
@@ -217,32 +366,52 @@ export default function SubscriptionsPageClient() {
                 const customer = sub.customers
                 const statusColor = SUBSCRIPTION_STATUS_COLORS[sub.status as SubscriptionStatus] || '#6b7280'
                 const statusLabel = SUBSCRIPTION_STATUS_LABELS[sub.status as SubscriptionStatus] || sub.status
+                const usage = sub.usage || { used: 0, visitsPerCycle: 0, label: '0/0' }
 
                 return (
-                  <tr key={sub.id} className="hover:bg-accent/30 transition-colors">
+                  <tr key={sub.id} className="hover:bg-accent/30 transition-colors cursor-pointer" onClick={() => handleViewDetails(sub.id)}>
                     <td>
                       <div className="font-medium text-foreground">{customer?.full_name || 'Cliente'}</div>
-                      <div className="text-xs text-muted-foreground">{customer?.phone || customer?.email || ''}</div>
+                      <div className="text-xs text-muted-foreground">{customer?.phone || ''}</div>
                     </td>
                     <td>
-                      <div className="text-foreground">{plan?.display_name || plan?.name || '—'}</div>
+                      <div className="text-foreground">{plan?.display_name || '—'}</div>
                       <div className="text-xs text-muted-foreground">{plan?.visits_per_cycle || '?'} visitas/mês</div>
+                    </td>
+                    <td>
+                      <div className="text-foreground text-xs font-medium">{sub.professional_name || '—'}</div>
+                    </td>
+                    <td className="text-center">
+                      <div className="text-xs text-foreground font-medium">{WEEKDAY_NAMES[sub.fixed_weekday] || '?'}</div>
+                      <div className="text-xs text-muted-foreground">{sub.fixed_time || '?'}</div>
+                      {sub.billing_day && (
+                        <div className="text-[10px] text-muted-foreground mt-0.5">
+                          Pgto dia {sub.billing_day}
+                        </div>
+                      )}
                     </td>
                     <td className="text-center">
                       <span
-                        className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-semibold"
+                        className="inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-bold"
                         style={{ background: statusColor + '18', color: statusColor }}
                       >
                         {statusLabel}
                       </span>
+                      {sub.source === 'internal_admin' && (
+                        <div className="text-[9px] text-muted-foreground mt-0.5">interno</div>
+                      )}
                     </td>
-                    <td className="text-center text-xs text-muted-foreground">
-                      {WEEKDAY_NAMES[sub.fixed_weekday] || '?'} às {sub.fixed_time || '?'}
+                    <td className="text-center" onClick={e => e.stopPropagation()}>
+                      <SubscriptionUsageBar
+                        used={usage.used}
+                        total={usage.visitsPerCycle}
+                        compact
+                      />
                     </td>
-                    <td className="text-right font-medium text-foreground">
+                    <td className="text-right font-medium text-foreground whitespace-nowrap">
                       R$ {(plan?.monthly_price || 0).toFixed(2).replace('.', ',')}
                     </td>
-                    <td className="text-center">
+                    <td className="text-center" onClick={e => e.stopPropagation()}>
                       <div className="flex items-center justify-center gap-1">
                         <button
                           onClick={() => handleViewDetails(sub.id)}
@@ -281,155 +450,21 @@ export default function SubscriptionsPageClient() {
         </table>
       </div>
 
-      {/* Details Sheet (Modal) */}
+      {/* Detail Sheet */}
       {selectedSub && (
-        <div className="fixed inset-0 z-50 flex items-center justify-end bg-black/40 animate-fade-in" onClick={() => setSelectedSub(null)}>
-          <div
-            className="h-full w-full max-w-lg bg-card border-l border-border overflow-y-auto p-6 space-y-6 animate-slide-in-right"
-            onClick={e => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-bold text-foreground">Detalhes da Assinatura</h2>
-              <button onClick={() => setSelectedSub(null)} className="p-2 rounded-lg hover:bg-accent text-muted-foreground">
-                ✕
-              </button>
-            </div>
+        <SubscriptionDetailSheet
+          sub={selectedSub}
+          onClose={() => setSelectedSub(null)}
+          onRefresh={handleRefreshDetails}
+        />
+      )}
 
-            {/* Customer */}
-            <div className="p-4 rounded-xl bg-accent/30 border border-border">
-              <div className="text-xs text-muted-foreground mb-1">Cliente</div>
-              <div className="font-semibold text-foreground">{selectedSub.customers?.full_name}</div>
-              {selectedSub.customers?.phone && (
-                <div className="text-xs text-muted-foreground mt-0.5">{selectedSub.customers.phone}</div>
-              )}
-            </div>
-
-            {/* Plan */}
-            <div className="p-4 rounded-xl bg-purple-500/5 border border-purple-500/10">
-              <div className="text-xs text-muted-foreground mb-1">Plano</div>
-              <div className="font-semibold text-foreground">{selectedSub.subscription_plans?.display_name}</div>
-              <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
-                <span>{selectedSub.subscription_plans?.visits_per_cycle} visitas/mês</span>
-                <span>{selectedSub.subscription_plans?.duration_minutes_per_visit}min/visita</span>
-                <span className="font-medium text-purple-500">
-                  R$ {(selectedSub.subscription_plans?.monthly_price || 0).toFixed(2).replace('.', ',')}
-                </span>
-              </div>
-            </div>
-
-            {/* Status */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="p-3 rounded-xl border border-border">
-                <div className="text-xs text-muted-foreground mb-1">Status</div>
-                <span
-                  className="inline-flex px-2 py-0.5 rounded-full text-xs font-semibold"
-                  style={{
-                    background: (SUBSCRIPTION_STATUS_COLORS[selectedSub.status as SubscriptionStatus] || '#6b7280') + '18',
-                    color: SUBSCRIPTION_STATUS_COLORS[selectedSub.status as SubscriptionStatus] || '#6b7280',
-                  }}
-                >
-                  {SUBSCRIPTION_STATUS_LABELS[selectedSub.status as SubscriptionStatus] || selectedSub.status}
-                </span>
-              </div>
-              <div className="p-3 rounded-xl border border-border">
-                <div className="text-xs text-muted-foreground mb-1">Dia fixo</div>
-                <div className="text-sm font-medium text-foreground">
-                  {WEEKDAY_NAMES[selectedSub.fixed_weekday]} às {selectedSub.fixed_time}
-                </div>
-              </div>
-            </div>
-
-            {/* Occurrences */}
-            {selectedSub.subscription_occurrences && selectedSub.subscription_occurrences.length > 0 && (
-              <div>
-                <h3 className="text-sm font-semibold text-foreground mb-2">Visitas do Ciclo</h3>
-                <div className="space-y-2">
-                  {selectedSub.subscription_occurrences
-                    .sort((a: any, b: any) => a.occurrence_index - b.occurrence_index)
-                    .map((occ: any) => (
-                      <div key={occ.id} className="flex items-center gap-3 p-3 rounded-xl border border-border bg-card/50">
-                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold ${
-                          occ.status === 'used' ? 'bg-emerald-500/10 text-emerald-500' :
-                          occ.status === 'scheduled' ? 'bg-blue-500/10 text-blue-500' :
-                          'bg-gray-500/10 text-gray-500'
-                        }`}>
-                          {occ.occurrence_index}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="text-sm text-foreground">{occ.visit_label || `Visita ${occ.occurrence_index}`}</div>
-                          <div className="text-xs text-muted-foreground">
-                            {new Date(occ.occurrence_date).toLocaleDateString('pt-BR')}
-                          </div>
-                        </div>
-                        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
-                          occ.status === 'used' ? 'bg-emerald-500/10 text-emerald-500' :
-                          occ.status === 'scheduled' ? 'bg-blue-500/10 text-blue-500' :
-                          occ.status === 'cancelled' ? 'bg-red-500/10 text-red-500' :
-                          'bg-gray-500/10 text-gray-500'
-                        }`}>
-                          {occ.status === 'used' ? 'Utilizado' :
-                           occ.status === 'scheduled' ? 'Agendado' :
-                           occ.status === 'cancelled' ? 'Cancelado' : occ.status}
-                        </span>
-                      </div>
-                    ))}
-                </div>
-              </div>
-            )}
-
-            {/* Payments */}
-            {selectedSub.payments && selectedSub.payments.length > 0 && (
-              <div>
-                <h3 className="text-sm font-semibold text-foreground mb-2">Pagamentos</h3>
-                <div className="space-y-2">
-                  {selectedSub.payments.map((pay: any) => (
-                    <div key={pay.id} className="flex items-center justify-between p-3 rounded-xl border border-border">
-                      <div>
-                        <div className="text-sm text-foreground">
-                          R$ {(pay.amount || 0).toFixed(2).replace('.', ',')}
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          {pay.provider} · {pay.payment_method || 'manual'}
-                        </div>
-                      </div>
-                      <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
-                        pay.status === 'paid' ? 'bg-emerald-500/10 text-emerald-500' :
-                        pay.status === 'pending' ? 'bg-amber-500/10 text-amber-500' :
-                        'bg-red-500/10 text-red-500'
-                      }`}>
-                        {pay.status === 'paid' ? 'Pago' : pay.status === 'pending' ? 'Pendente' : pay.status}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Actions */}
-            <div className="flex gap-2 pt-4 border-t border-border">
-              {(selectedSub.status === 'draft' || selectedSub.status === 'pending_payment') && (
-                <button
-                  onClick={() => handleActivate(selectedSub.id)}
-                  disabled={actionLoading === selectedSub.id}
-                  className="flex-1 btn btn-primary gap-1.5"
-                >
-                  <Power className="w-4 h-4" />
-                  Ativar Manualmente
-                </button>
-              )}
-              {selectedSub.status !== 'cancelled' && selectedSub.status !== 'expired' && (
-                <button
-                  onClick={() => handleCancel(selectedSub.id)}
-                  disabled={actionLoading === selectedSub.id}
-                  className="flex-1 btn btn-danger gap-1.5"
-                >
-                  <Ban className="w-4 h-4" />
-                  Cancelar
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
+      {/* New Subscription Wizard */}
+      {showWizard && (
+        <NewSubscriptionWizard
+          onClose={() => setShowWizard(false)}
+          onCreated={() => { loadData(); setShowWizard(false) }}
+        />
       )}
     </div>
   )

@@ -132,12 +132,37 @@ export async function getProfessionalLedger(
 
   const closures = allClosures || []
 
+  // ── 5b. Subscription Payments (for subscription commissions) ──
+  const { data: allSubPayments } = await supabase
+    .from('subscription_payments')
+    .select(`
+      id, amount, status, payment_method, paid_at,
+      subscription:subscription_id(customer_id, customers(full_name), subscription_plans(display_name))
+    `)
+    .eq('professional_id', professionalId)
+    .gte('paid_at', periodStart)
+    .lte('paid_at', periodEnd)
+    .order('paid_at', { ascending: false })
+
+  const subscriptionPayments = allSubPayments || []
+  const activeSubPayments = subscriptionPayments.filter(p => p.status === 'paid')
+  
+  let subscriptionGrossTotal = 0
+  let subscriptionCommissionTotal = 0
+
+  for (const p of activeSubPayments) {
+    const amt = Number(p.amount) || 0
+    subscriptionGrossTotal += amt
+    subscriptionCommissionTotal += amt * (commissionPercent / 100)
+  }
+
   // ── 6. Audit events (filtered by relevant entities) ──
   // We collect all entity_ids that belong to this professional
   const relevantEntityIds = new Set<string>()
   sales.forEach(s => relevantEntityIds.add(s.id))
   advances.forEach(a => relevantEntityIds.add(a.id))
   perfumeSales.forEach(ps => relevantEntityIds.add(ps.id))
+  subscriptionPayments.forEach(sp => relevantEntityIds.add(sp.id))
   closures.forEach(c => relevantEntityIds.add(c.id))
 
   let auditEvents: any[] = []
@@ -156,7 +181,7 @@ export async function getProfessionalLedger(
   // ── 7. Calculate summary ──
   const barberShareFromSales = grossTotal * (commissionPercent / 100)
   const barbershopShare = grossTotal - barberShareFromSales
-  const barberShare = barberShareFromSales + perfumeCommissionTotal
+  const barberShare = barberShareFromSales + perfumeCommissionTotal + subscriptionCommissionTotal
   const netPayable = barberShare - advancesTotal
 
   const summary: ProfessionalLedgerSummary = {
@@ -172,6 +197,9 @@ export async function getProfessionalLedger(
     perfumeGrossTotal,
     perfumeCommissionTotal,
     perfumeSalesCount: activePerfumes.length,
+    subscriptionGrossTotal,
+    subscriptionCommissionTotal,
+    subscriptionPaymentsCount: activeSubPayments.length,
     barberShare,
     advancesTotal,
     stockWithdrawalsTotal,
@@ -184,6 +212,7 @@ export async function getProfessionalLedger(
     advances,
     stockWithdrawals,
     perfumeSales,
+    subscriptionPayments,
     closures,
     auditEvents,
   }

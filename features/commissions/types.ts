@@ -179,6 +179,9 @@ export interface ProfessionalLedgerSummary {
   perfumeGrossTotal: number
   perfumeCommissionTotal: number
   perfumeSalesCount: number
+  subscriptionGrossTotal: number
+  subscriptionCommissionTotal: number
+  subscriptionPaymentsCount: number
   barberShare: number
   advancesTotal: number
   stockWithdrawalsTotal: number
@@ -191,6 +194,7 @@ export interface ProfessionalLedger {
   advances: any[]
   stockWithdrawals: any[]
   perfumeSales: any[]
+  subscriptionPayments: any[]
   closures: any[]
   auditEvents: any[]
 }
