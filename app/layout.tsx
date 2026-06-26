@@ -3,6 +3,7 @@ import './globals.css'
 import { Toaster } from '@/components/ui/sonner'
 import { Providers } from '@/components/providers'
 import { PWAInit } from '@/components/PWAInit'
+import { UpdateBanner } from '@/components/UpdateBanner'
 
 export const metadata: Metadata = {
   title: 'Sistema de Gestão | Barber Zac',
@@ -57,6 +58,7 @@ export default function RootLayout({
       </head>
       <body>
         <PWAInit />
+        <UpdateBanner />
         <Providers>
           {children}
         </Providers>

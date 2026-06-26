@@ -3,8 +3,10 @@ export function registerServiceWorker() {
   window.addEventListener("load", () => {
     navigator.serviceWorker.register("/sw.js").catch(console.warn);
   });
+  // [PERF] Instead of forcing a reload (which interrupts sales/forms),
+  // dispatch a custom event so the UI can show a non-invasive update banner.
   navigator.serviceWorker.addEventListener("controllerchange", () => {
-    setTimeout(() => window.location.reload(), 300);
+    window.dispatchEvent(new CustomEvent("sw-update-available"));
   });
 }
 
