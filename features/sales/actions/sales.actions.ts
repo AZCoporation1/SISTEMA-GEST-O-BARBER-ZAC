@@ -13,17 +13,14 @@ export async function processSale(data: SaleFormValues) {
   const rollbacks: Array<() => Promise<void>> = []
 
   try {
+    const _t0 = Date.now()
     const validated = saleSchema.parse(data)
     
-    // Auth context
-    const { data: authData } = await supabase.auth.getUser()
-
-    // 0. FAIL-FAST: Check cash session BEFORE creating anything
-    const { data: activeSession } = await supabase
-      .from("cash_sessions")
-      .select("id")
-      .eq("status", "open")
-      .single()
+    // [PERF/C1] Parallelize independent reads: auth + cash session check
+    const [{ data: authData }, { data: activeSession }] = await Promise.all([
+      supabase.auth.getUser(),
+      supabase.from("cash_sessions").select("id").eq("status", "open").single(),
+    ])
 
     if (!activeSession) {
       return { 
@@ -39,21 +36,28 @@ export async function processSale(data: SaleFormValues) {
     // Resolve user profile ID for FK fields
     const userProfileId = await resolveUserProfileId(supabase, authData.user?.id)
 
-    // Resolve Customer Name for Snapshot & Log Description
+    // [PERF/C1] Parallelize customer + payment method lookups (both independent reads)
+    const [customerSnapshot, pmSnapshot] = await Promise.all([
+      validated.customer_id
+        ? supabase.from("customers").select("full_name").eq("id", validated.customer_id).single().then(r => r.data)
+        : Promise.resolve(null),
+      validated.payment_method_id
+        ? supabase.from("payment_methods").select("name").eq("id", validated.payment_method_id).single().then(r => r.data)
+        : Promise.resolve(null),
+    ])
+
     let finalCustomerNameSnapshot: string | null = null;
     let humanReadableCustomer = "";
-
-    if (validated.customer_id) {
-      const { data: customer } = await supabase.from("customers").select("full_name, phone, mobile_phone").eq("id", validated.customer_id).single()
-      if (customer) {
-        finalCustomerNameSnapshot = customer.full_name
-        humanReadableCustomer = ` - ${customer.full_name}`
-        // Optionally capture phone snapshot too, if desired
-      }
+    if (customerSnapshot) {
+      finalCustomerNameSnapshot = customerSnapshot.full_name
+      humanReadableCustomer = ` - ${customerSnapshot.full_name}`
     } else if (validated.customer_name_override) {
       finalCustomerNameSnapshot = validated.customer_name_override
       humanReadableCustomer = ` - Cliente avulso: ${validated.customer_name_override}`
     }
+    const paymentMethodLabel = pmSnapshot?.name ? ` — ${pmSnapshot.name}` : ""
+    const _t1 = Date.now()
+    console.log(`[PERF] processSale reads: ${_t1 - _t0}ms`)
 
     // 1. Create Sale Record — DO NOT send `total` (it's GENERATED ALWAYS)
     const { data: newSale, error: saleError } = await supabase
@@ -169,11 +173,15 @@ export async function processSale(data: SaleFormValues) {
       observation: `Venda registrada. Total: R$ ${total.toFixed(2)} (${validated.items.length} itens)`
     })
 
+    const _t2 = Date.now()
+    console.log(`[PERF] processSale writes: ${_t2 - _t1}ms`)
+
     revalidatePath("/vendas")
     revalidatePath("/estoque")
     revalidatePath("/caixa")
     revalidatePath("/dashboard")
     revalidatePath("/fluxo-de-caixa")
+    console.log(`[PERF] processSale revalidation: ${Date.now() - _t2}ms | total: ${Date.now() - _t0}ms`)
     return { success: true, data: newSale }
   } catch (error: any) {
     console.error("Process Sale Error, starting rollback:", error)
