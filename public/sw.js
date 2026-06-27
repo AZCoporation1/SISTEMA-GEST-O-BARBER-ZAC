@@ -162,11 +162,20 @@ self.addEventListener('push', function(event) {
 
 var OFFLINE_URL = "/offline.html";
 
+// Cache version — increment on deploy to force cleanup of stale caches
+var CACHE_VERSION = "v3";
+var EXPECTED_CACHES = [
+  "html-pages-" + CACHE_VERSION,
+  "static-" + CACHE_VERSION,
+  "images",
+  "offline-fallback"
+];
+
 // HTML navigation
 workbox.routing.registerRoute(
   function(params) { return params.request.mode === "navigate"; },
   new workbox.strategies.NetworkFirst({
-    cacheName: "html-pages",
+    cacheName: "html-pages-" + CACHE_VERSION,
     plugins: [
       new workbox.cacheableResponse.CacheableResponsePlugin({ statuses: [200] }),
       new workbox.expiration.ExpirationPlugin({ maxEntries: 25, purgeOnQuotaError: true })
@@ -177,7 +186,7 @@ workbox.routing.registerRoute(
 // Static assets
 workbox.routing.registerRoute(
   function(params) { return ["script","style","worker"].includes(params.request.destination); },
-  new workbox.strategies.StaleWhileRevalidate({ cacheName: "static" })
+  new workbox.strategies.StaleWhileRevalidate({ cacheName: "static-" + CACHE_VERSION })
 );
 
 // Images
@@ -189,20 +198,8 @@ workbox.routing.registerRoute(
   })
 );
 
-// Supabase REST GETs
-if (self.__SUPABASE_REST__) {
-  var supabaseMatcher = new RegExp("^" + self.__SUPABASE_REST__.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
-  workbox.routing.registerRoute(
-    function(params) { return params.request.method === "GET" && supabaseMatcher.test(params.url.href); },
-    new workbox.strategies.StaleWhileRevalidate({
-      cacheName: "supabase-rest",
-      plugins: [
-        new workbox.cacheableResponse.CacheableResponsePlugin({ statuses: [200] }),
-        new workbox.expiration.ExpirationPlugin({ maxEntries: 200, maxAgeSeconds: 60*5 })
-      ]
-    })
-  );
-}
+// [PERF] Supabase REST cache REMOVED — ERP financial data must always be fresh.
+// Previously used StaleWhileRevalidate with 5min TTL, causing stale data after sales.
 
 // Background Sync for ScoreBot
 if (self.__SCOREBOT_URL__) {
@@ -240,7 +237,22 @@ self.addEventListener("install", function(event) {
   );
 });
 
-// Initialize Firebase on activate
+// Initialize Firebase + clean old caches on activate
 self.addEventListener("activate", function(event) {
-  event.waitUntil(initializeFirebase());
+  event.waitUntil(
+    Promise.all([
+      initializeFirebase(),
+      // Clean up old cache versions and removed caches (e.g. supabase-rest)
+      caches.keys().then(function(cacheNames) {
+        return Promise.all(
+          cacheNames.filter(function(name) {
+            return EXPECTED_CACHES.indexOf(name) === -1;
+          }).map(function(name) {
+            console.log('[SW] Deleting old cache:', name);
+            return caches.delete(name);
+          })
+        );
+      })
+    ])
+  );
 });

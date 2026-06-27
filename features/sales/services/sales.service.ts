@@ -43,37 +43,40 @@ export async function getSales(filters: SalesFilters) {
   }
 }
 
+// [PERF/B4] Select only columns used by POSView dropdowns
 export async function getPaymentMethods() {
   const supabase = createClient()
   const { data, error } = await supabase
     .from("payment_methods")
-    .select("*")
+    .select("id, name, is_active")
     .eq("is_active", true)
     .order("name")
   
   if (error) throw new Error(error.message)
-  return data as unknown as PaymentMethodRow[]
+  return (data || []) as Pick<PaymentMethodRow, 'id' | 'name' | 'is_active'>[]
 }
 
+// [PERF/B4] Select only columns used by POSView customer dropdown
 export async function getCustomers() {
   const supabase = createClient()
   const { data, error } = await supabase
     .from("customers")
-    .select("*")
+    .select("id, full_name")
     .order("full_name")
   
   if (error) throw new Error(error.message)
-  return data as unknown as CustomerRow[]
+  return (data || []) as Pick<CustomerRow, 'id' | 'full_name'>[]
 }
 
+// [PERF/B4] Select only columns used by POSView collaborator dropdown
 export async function getCollaborators() {
   const supabase = createClient()
   const { data, error } = await supabase
     .from("collaborators")
-    .select("*")
+    .select("id, name, is_active")
     .eq("is_active", true)
     .order("name")
   
   if (error) throw new Error(error.message)
-  return data as unknown as CollaboratorRow[]
+  return (data || []) as Pick<CollaboratorRow, 'id' | 'name' | 'is_active'>[]
 }

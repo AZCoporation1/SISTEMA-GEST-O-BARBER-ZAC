@@ -238,22 +238,25 @@ export function POSView() {
       }
     }
 
-    await processSale(payload)
+    const result = await processSale(payload)
     
-    // reset
-    setCart([])
-    setDiscountAmount(0)
-    setNotes("")
-    setSelectedCustomer("")
-    setCustomerNameOverride("")
-    setSelectedCollaborator("")
-    setPaymentMethodId("")
-    setStockWarning(null)
-    setPaymentMode('upfront')
-    setPaymentOrigin('credit_card_installment')
-    setInstallmentCount(2)
-    setInstallmentNotes('')
-    setUpfrontPayAmount(0)
+    // [PERF/B3] Only reset cart after confirmed success — preserve cart on error
+    if (result?.success) {
+      setCart([])
+      setDiscountAmount(0)
+      setNotes("")
+      setSelectedCustomer("")
+      setCustomerNameOverride("")
+      setSelectedCollaborator("")
+      setPaymentMethodId("")
+      setStockWarning(null)
+      setPaymentMode('upfront')
+      setPaymentOrigin('credit_card_installment')
+      setInstallmentCount(2)
+      setInstallmentNotes('')
+      setUpfrontPayAmount(0)
+    }
+    // On error: cart stays intact, toast with error is shown by usePOSMutations hook
   }
 
   return (
