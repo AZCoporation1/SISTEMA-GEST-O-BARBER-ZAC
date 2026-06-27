@@ -220,24 +220,14 @@ origin/main: `17d4dd0`
 
 ---
 
-## 22. Decisão Final
+## 22. Decisão Final (Pós-Auditoria)
 
-### OTIMIZAÇÃO INTERNA — PRONTA PARA PREVIEW E VALIDAÇÃO OPERACIONAL
+**BLOQUEADO — build atual não possui as otimizações relatadas**
 
-**Evidências de ganho**:
-1. ✅ Dados stale eliminados — SW não cacheia mais REST Supabase (5min → 0)
-2. ✅ Reload inesperado eliminado — banner não-invasivo substitui `location.reload()`
-3. ✅ Carrinho protegido — operador não perde carrinho em erro de venda
-4. ✅ Payload reduzido — POS dropdowns trazem apenas colunas usadas
-5. ✅ Round-trips reduzidos — 3 leituras paralelas vs 5 sequenciais no processSale
-6. ✅ Error boundary — crashes em qualquer rota admin agora mostram tela amigável
-7. ✅ Cache versionado — deploy limpa caches antigos automaticamente
+### Evidências Matemáticas da Auditoria
+1. O commit `9268e9c` (base da otimização) não é ancestral de `origin/main` (`17d4dd0`). O código da otimização **nunca foi enviado para o GitHub**.
+2. A Vercel constrói a partir do GitHub (`origin/main`), logo o deployment atual `barber-9khjt9xgr-ichtonnys-projects.vercel.app` (alias: `barber-zac.vercel.app`) não contém os arquivos alterados, a instrumentação `[PERF]`, nem a remoção do cache REST do Service Worker.
+3. Não há ganho operacional mensurável em produção porque o código otimizado reside apenas na branch local `perf/internal-erp-optimization`.
 
-**Nenhuma alteração financeira, de comissão, de estoque, de RLS ou de gamificação.**
-
-**Próximos passos recomendados (pós-validação)**:
-1. Deploy em preview para smoke test operacional
-2. Validar com 1-2 operadores reais em produção piloto
-3. Fase C3: EXPLAIN em `vw_inventory_position` quando houver acesso ao banco
-4. Reduzir `select("*")` restantes por módulo
-5. Considerar `staleTime` para React Query em dados pouco voláteis
+**Ação Obrigatória**:
+Para validar as otimizações e medir o ganho de performance operacional, é indispensável sincronizar a árvore local com o repositório remoto (push) e provisionar um deployment (produção ou preview alias) contendo a respectiva build. Nenhuma medição de PDV ou dashboard é válida no domínio atual.
