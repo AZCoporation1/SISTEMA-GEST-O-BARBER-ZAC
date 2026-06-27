@@ -4,7 +4,7 @@ import { useAuth } from '@/components/auth-provider'
 import { usePathname, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
-import { LayoutDashboard, PlusCircle, ClipboardList, Wallet, LogOut, Menu, X, Calendar } from 'lucide-react'
+import { LayoutDashboard, PlusCircle, ClipboardList, Wallet, LogOut, Menu, X, Calendar, CheckSquare } from 'lucide-react'
 import { useState } from 'react'
 
 const proNavItems = [
@@ -13,6 +13,7 @@ const proNavItems = [
   { href: '/profissional/registrar', label: 'Registrar', icon: PlusCircle },
   { href: '/profissional/solicitacoes', label: 'Solicitações', icon: ClipboardList },
   { href: '/profissional/conta', label: 'Minha Conta', icon: Wallet },
+  { href: '/profissional/5s', label: 'Meu 5S', icon: CheckSquare },
 ]
 
 export default function ProfessionalLayout({ children }: { children: React.ReactNode }) {

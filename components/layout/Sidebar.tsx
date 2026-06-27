@@ -31,7 +31,9 @@ import {
   ChevronsRight,
   Headset,
   HandCoins,
-  MessageCircle
+  MessageCircle,
+  Trophy,
+  CheckSquare
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
@@ -88,6 +90,13 @@ export const navItems: NavItem[] = [
       { href: '/a-receber', icon: HandCoins, label: 'A Receber' },
       { href: '/fluxo-de-caixa', icon: TrendingUp, label: 'Fluxo de Caixa' },
       { href: '/custos', icon: Receipt, label: 'Custos' },
+    ]
+  },
+  {
+    section: 'Gestão Operacional',
+    items: [
+      { href: '/gamificacao', icon: Trophy, label: 'Gamificação' },
+      { href: '/5s-operacional', icon: CheckSquare, label: '5S Operacional' },
     ]
   },
   {

@@ -32,6 +32,7 @@ const ADMIN_ROUTES = [
   '/auditoria',
   '/agendamento',
   '/aprovacao-profissionais',
+  '/5s-operacional',
 ]
 
 // Routes exclusively for professional users
