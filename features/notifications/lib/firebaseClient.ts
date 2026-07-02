@@ -22,7 +22,7 @@ export function isFirebaseConfigured(): boolean {
 /**
  * Get or initialize Firebase app (singleton).
  */
-function getFirebaseApp(): FirebaseApp | null {
+export function getFirebaseApp(): FirebaseApp | null {
   if (firebaseApp) return firebaseApp
 
   if (!isFirebaseConfigured()) {

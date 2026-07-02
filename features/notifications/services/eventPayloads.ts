@@ -191,3 +191,73 @@ export function buildTestNotificationPayload(): PushPayload {
     },
   }
 }
+
+// ── Client-facing payloads (safe for lock screen — no PII) ──
+
+export function buildClientAppointmentCreatedPayload(
+  data: AppointmentNotificationData
+): PushPayload {
+  return {
+    title: '📅 Horário agendado',
+    body: 'Seu horário no IBZ foi agendado com sucesso.',
+    icon: '/icons/ibz-192.png',
+    badge: '/icons/ibz-192.png',
+    tag: `client-appt-created-${data.appointmentId}`,
+    data: {
+      url: '/cliente/meus-agendamentos',
+      eventType: 'appointment_created',
+      entityId: data.appointmentId,
+    },
+  }
+}
+
+export function buildClientAppointmentRescheduledPayload(
+  data: AppointmentNotificationData
+): PushPayload {
+  return {
+    title: '🔄 Agendamento atualizado',
+    body: 'Seu agendamento foi atualizado. Toque para conferir.',
+    icon: '/icons/ibz-192.png',
+    badge: '/icons/ibz-192.png',
+    tag: `client-appt-rescheduled-${data.appointmentId}`,
+    data: {
+      url: '/cliente/meus-agendamentos',
+      eventType: 'appointment_rescheduled',
+      entityId: data.appointmentId,
+    },
+  }
+}
+
+export function buildClientAppointmentCancelledPayload(
+  data: AppointmentNotificationData
+): PushPayload {
+  return {
+    title: '❌ Horário cancelado',
+    body: 'Seu horário foi cancelado. Toque para ver os detalhes.',
+    icon: '/icons/ibz-192.png',
+    badge: '/icons/ibz-192.png',
+    tag: `client-appt-cancelled-${data.appointmentId}`,
+    data: {
+      url: '/cliente/meus-agendamentos',
+      eventType: 'appointment_cancelled',
+      entityId: data.appointmentId,
+    },
+  }
+}
+
+export function buildClientAppointmentReminderPayload(
+  data: AppointmentNotificationData
+): PushPayload {
+  return {
+    title: '🔔 Lembrete',
+    body: 'Lembrete: você tem um horário em breve no IBZ.',
+    icon: '/icons/ibz-192.png',
+    badge: '/icons/ibz-192.png',
+    tag: `client-appt-reminder-${data.appointmentId}`,
+    data: {
+      url: '/cliente/meus-agendamentos',
+      eventType: 'appointment_created',
+      entityId: data.appointmentId,
+    },
+  }
+}

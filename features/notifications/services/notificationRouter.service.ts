@@ -314,3 +314,42 @@ export async function resolveProfessionalTarget(
     return null
   }
 }
+
+/**
+ * Resolve customer target — finds user_profile for a customer by customer_id.
+ * Used to include the customer as a notification target for appointment events.
+ */
+export async function resolveCustomerTarget(
+  customerId: string
+): Promise<NotificationTarget | null> {
+  try {
+    const supabase = await createServerClient()
+
+    // Get the customer's auth_user_id
+    const { data: customer } = await supabase
+      .from('customers')
+      .select('auth_user_id')
+      .eq('id', customerId)
+      .maybeSingle() as { data: any }
+
+    if (!customer?.auth_user_id) return null
+
+    // Resolve user_profile for this auth user
+    const { data: profile } = await supabase
+      .from('user_profiles')
+      .select('id')
+      .eq('auth_user_id', customer.auth_user_id)
+      .eq('is_active', true)
+      .maybeSingle()
+
+    if (!profile) return null
+
+    return {
+      userProfileId: (profile as { id: string }).id,
+      collaboratorId: null,
+      role: 'customer',
+    }
+  } catch {
+    return null
+  }
+}
